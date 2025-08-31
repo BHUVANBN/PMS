@@ -4,12 +4,12 @@ import mongoose from 'mongoose';
 // Define the different roles (job types) that users can have in the system
 // Each role determines what permissions and access level a user has
 const USER_ROLES = {
-  ADMIN: 'admin',          // Full system access, can manage everything and everyone
+  ADMIN: 'admin', 
+  HR: 'hr' ,         // Full system access, can manage everything and everyone
   MANAGER: 'manager',      // Can oversee projects and teams, manage assignments
   DEVELOPER: 'developer',  // Can work on coding tasks and development tickets
   TESTER: 'tester',       // Can test software and report bugs/issues
   EMPLOYEE: 'employee' ,
-  HR: 'hr' ,
   MARKETING: 'marketing' ,
   SALES: 'sales' ,
   INTERN: 'intern'

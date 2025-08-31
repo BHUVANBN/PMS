@@ -234,16 +234,8 @@ const moduleSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for efficient queries
-moduleSchema.index({ projectId: 1 });           // Find modules by project
-moduleSchema.index({ moduleLead: 1 });          // Find modules led by specific user
-moduleSchema.index({ status: 1 });              // Query modules by status
-moduleSchema.index({ 'teamMembers': 1 });       // Find modules where user is team member
-moduleSchema.index({ 'tickets.assignedDeveloper': 1 }); // Find tickets assigned to specific developer
-moduleSchema.index({ 'tickets.status': 1 });    // Query tickets by their current status
-moduleSchema.index({ 'tickets.sprintId': 1 });  // Find tickets in specific sprint
-moduleSchema.index({ 'tickets.ticketNumber': 1 }); // Quick lookup by ticket number
-moduleSchema.index({ 'tickets.type': 1 });      // Filter tickets by type (task vs bug)
+// Note: Indexes are defined at the project level for better performance
+// No duplicate indexes needed here since they're handled in projectSchema
 
 // Note: Tickets are now embedded within modules, not directly in projects
 // See moduleSchema.models.js for the ticket schema definition
@@ -306,8 +298,6 @@ const projectSchema = new mongoose.Schema({
 projectSchema.index({ status: 1 });                    // Query projects by status (active, completed, etc.)
 projectSchema.index({ 'teamMembers': 1 });             // Find all projects where user is team member
 projectSchema.index({ projectManager: 1 });            // Find projects managed by specific user
-projectSchema.index({ 'modules.moduleLead': 1 });      // Find modules led by specific user
-projectSchema.index({ 'modules.teamMembers': 1 });     // Find modules where user is team member
 projectSchema.index({ 'modules.tickets.assignedDeveloper': 1 }); // Find tickets assigned to specific developer
 projectSchema.index({ 'modules.tickets.status': 1 });  // Query tickets by their current status
 projectSchema.index({ 'modules.tickets.sprintId': 1 }); // Find tickets in specific sprint
@@ -317,11 +307,11 @@ projectSchema.index({ 'modules.tickets.type': 1 });    // Filter tickets by type
 // Export schema and constants for use in other modules
 export {
   projectSchema,           // Main schema for creating Project model
+  moduleSchema,            // Embedded module schema (accessible via Project.modules)
   PROJECT_STATUS,          // Available project status options
   TICKET_TYPES,           // Available ticket types
   TICKET_PRIORITIES,      // Available priority levels  
   TICKET_STATUS,          // Available ticket status options
+  MODULE_STATUS,          // Available module status options
   DEFAULT_KANBAN_COLUMNS, // CONSIDER REMOVING: Redundant with kanban schema
-  // moduleSchema,            // Embedded module schema (accessible via Project.modules)
-               // Embedded ticket schema (accessible via Project.modules.tickets)
 };

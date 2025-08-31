@@ -174,7 +174,7 @@ const bugTrackerSchema = new mongoose.Schema({
 // Indexes for efficient queries
 bugTrackerSchema.index({ projectId: 1, status: 1 });    // Find bugs by project and status
 bugTrackerSchema.index({ ticketId: 1 });                // Find bugs for specific ticket
-bugTrackerSchema.index({ bugNumber: 1 });               // Quick lookup by bug number
+// Note: bugNumber index is automatically created by unique: true constraint
 bugTrackerSchema.index({ severity: 1 });                // Filter by severity level
 // RESTORED: Index for assignment queries
 bugTrackerSchema.index({ assignedTo: 1 });              // Find bugs assigned to specific developer

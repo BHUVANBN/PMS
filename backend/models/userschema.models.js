@@ -86,12 +86,7 @@ const userSchema = new mongoose.Schema({
   timestamps: true  // Automatically adds 'createdAt' and 'updatedAt' fields to track account creation and modifications
 });
 
-// Index for quickly finding users by their username (used during login)
-userSchema.index({ username: 1 });
-
-// Index for quickly finding users by their email address (used for account recovery, notifications)
-userSchema.index({ email: 1 });
-
+// Note: username and email indexes are automatically created by unique: true constraint
 // Index for quickly finding users by their role (useful for getting all managers, developers, etc.)
 userSchema.index({ role: 1 });
 

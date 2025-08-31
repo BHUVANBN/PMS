@@ -1,0 +1,37 @@
+import express from 'express';
+import dotenv from 'dotenv';
+
+import { connectDB } from './db/connectDB.js';
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/auth.route.js';
+import adminRoutes from './routes/admin.route.js';
+import managerRoutes from './routes/manager.route.js';
+import developerRoutes from './routes/developer.route.js';
+import testerRoutes from './routes/tester.route.js';
+import employeeRoutes from './routes/employee.route.js';
+import hrRoutes from './routes/hr.route.js';
+import { attachCookieParser } from './controllers/auth.controller.js';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(express.json());
+
+
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/manager', managerRoutes);
+app.use('/api/developer', developerRoutes);
+app.use('/api/tester', testerRoutes);
+app.use('/api/employee', employeeRoutes);
+app.use('/api/hr', hrRoutes);
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
+
+app.listen(PORT, async () => {
+    await connectDB();
+    console.log(`Server running on port ${PORT}`);
+});

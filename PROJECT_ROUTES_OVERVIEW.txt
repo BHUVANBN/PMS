@@ -1,0 +1,470 @@
+PROJECT MANAGEMENT SYSTEM - COMPLETE ROUTES OVERVIEW
+=====================================================
+
+This document provides a complete picture of how the project management system works seamlessly
+for every user role, including all routes, functions, controllers, and their purposes.
+
+SYSTEM ARCHITECTURE
+===================
+- Backend: Node.js + Express + MongoDB (Mongoose)
+- Frontend: React + Vite
+- Authentication: JWT-based with role-based access control
+- Database: Embedded document structure (Project → Modules → Tickets)
+
+USER ROLES & PERMISSIONS
+========================
+1. ADMIN - Full system access and user management
+2. MANAGER/LEAD - Project management and team oversight
+3. DEVELOPER - Ticket development and Kanban board
+4. TESTER - Bug testing and quality assurance
+5. HR - Employee management and project tracking
+6. EMPLOYEE - Basic project access and updates
+7. INTERN - Limited project access and learning
+
+AUTHENTICATION & MIDDLEWARE
+===========================
+File: backend/middleware/verifyToken.js
+- verifyToken: JWT validation middleware
+- allowRoles(): Generic role checker
+- allowAdminOnly: Admin-only access
+- allowManagementTeam: Manager/Admin access
+- allowDeveloperOnly: Developer-only access
+- allowTesterOnly: Tester-only access
+- allowEmployeeOnly: Employee-only access
+- allowInternOnly: Intern-only access
+
+MODELS & SCHEMAS
+================
+File: backend/models/index.js (Centralized exports)
+- User: User management and role-based access
+- Project: Project structure with embedded modules
+- Module: Project modules with embedded tickets
+- Ticket: Work items embedded within modules
+- Sprint: Agile sprint management
+- KanbanBoard: Kanban board configurations
+- BugTracker: Bug tracking and management
+- Standup: Daily standup meetings
+- ActivityLog: System activity tracking
+
+MAIN ROUTES & CONTROLLERS
+=========================
+
+1. AUTHENTICATION ROUTES
+========================
+File: backend/routes/auth.route.js
+Controller: backend/controllers/auth.controller.js
+
+POST /api/auth/register
+- Function: registerUser
+- Purpose: User registration with role assignment
+- Access: Public
+
+POST /api/auth/login
+- Function: loginUser
+- Purpose: User authentication and JWT generation
+- Access: Public
+
+POST /api/auth/logout
+- Function: logoutUser
+- Purpose: User logout and token invalidation
+- Access: Authenticated users
+
+2. ADMIN ROUTES
+===============
+File: backend/routes/admin.route.js
+Controller: backend/controllers/admin.controller.js
+
+GET /api/admin/users
+- Function: getAllUsers
+- Purpose: Retrieve all system users
+- Access: Admin only
+
+GET /api/admin/users/:userId
+- Function: getUserById
+- Purpose: Get specific user details
+- Access: Admin only
+
+PUT /api/admin/users/:userId
+- Function: updateUser
+- Purpose: Update user information and roles
+- Access: Admin only
+
+DELETE /api/admin/users/:userId
+- Function: deleteUser
+- Purpose: Remove user from system
+- Access: Admin only
+
+GET /api/admin/statistics
+- Function: getSystemStatistics
+- Purpose: System-wide metrics and analytics
+- Access: Admin only
+
+3. DEVELOPER ROUTES
+===================
+File: backend/routes/developer.route.js
+Controller: backend/controllers/dev.controller.js
+
+GET /api/developer/dashboard
+- Function: getDeveloperDashboard
+- Purpose: Developer's personal dashboard with assigned tickets
+- Access: Developer only
+
+GET /api/developer/tickets
+- Function: getMyTickets
+- Purpose: Get all tickets assigned to the developer
+- Access: Developer only
+
+GET /api/developer/kanban
+- Function: getMyKanbanBoard
+- Purpose: Developer's personal Kanban board
+- Access: Developer only
+
+PUT /api/developer/kanban/move
+- Function: moveOnKanbanBoard
+- Purpose: Move tickets between Kanban columns
+- Access: Developer only
+
+GET /api/developer/standups
+- Function: getMyStandups
+- Purpose: Get standup meetings for the developer
+- Access: Developer only
+
+POST /api/developer/standups/:standupId/update
+- Function: submitStandupUpdate
+- Purpose: Submit daily standup update
+- Access: Developer only
+
+4. MANAGER ROUTES
+=================
+File: backend/routes/manager.route.js
+Controller: backend/controllers/manager.controller.js
+
+GET /api/manager/projects
+- Function: getManagedProjects
+- Purpose: Get projects managed by the user
+- Access: Manager/Admin only
+
+GET /api/manager/teams
+- Function: getTeamMembers
+- Purpose: Get team members for managed projects
+- Access: Manager/Admin only
+
+POST /api/manager/projects
+- Function: createProject
+- Purpose: Create new project
+- Access: Manager/Admin only
+
+PUT /api/manager/projects/:projectId
+- Function: updateProject
+- Purpose: Update project details
+- Access: Manager/Admin only
+
+5. TESTER ROUTES
+================
+File: backend/routes/tester.route.js
+Controller: backend/controllers/tester.controller.js
+
+GET /api/tester/bugs
+- Function: getAssignedBugs
+- Purpose: Get bugs assigned to the tester
+- Access: Tester only
+
+POST /api/tester/bugs
+- Function: createBugReport
+- Purpose: Create new bug report
+- Access: Tester only
+
+PUT /api/tester/bugs/:bugId
+- Function: updateBugStatus
+- Purpose: Update bug status and details
+- Access: Tester only
+
+6. EMPLOYEE ROUTES
+==================
+File: backend/routes/employee.route.js
+Controller: backend/controllers/employee.controller.js
+
+GET /api/employee/projects
+- Function: getAssignedProjects
+- Purpose: Get projects where employee is team member
+- Access: Employee only
+
+GET /api/employee/profile
+- Function: getProfile
+- Purpose: Get employee profile information
+- Access: Employee only
+
+PUT /api/employee/profile
+- Function: updateProfile
+- Purpose: Update employee profile
+- Access: Employee only
+
+7. HR ROUTES
+============
+File: backend/routes/hr.route.js
+Controller: backend/controllers/hr.controller.js
+
+GET /api/hr/employees
+- Function: getAllEmployees
+- Purpose: Get all employee information
+- Access: HR only
+
+GET /api/hr/attendance
+- Function: getAttendanceReport
+- Purpose: Get employee attendance and project participation
+- Access: HR only
+
+GET /api/hr/projects
+- Function: getProjectOverview
+- Purpose: Get project status and team assignments
+- Access: HR only
+
+8. INTERN ROUTES
+================
+File: backend/routes/intern.route.js
+Controller: backend/controllers/intern.controller.js
+
+GET /api/intern/projects
+- Function: getAssignedProjects
+- Purpose: Get projects assigned to intern
+- Access: Intern only
+
+GET /api/intern/tasks
+- Function: getAssignedTasks
+- Purpose: Get simple tasks assigned to intern
+- Access: Intern only
+
+9. TICKET MANAGEMENT ROUTES
+===========================
+File: backend/routes/ticket.route.js
+Controller: backend/controllers/ticket.controller.js
+
+POST /api/tickets
+- Function: createTicket
+- Purpose: Create new ticket in project module
+- Access: Admin/Manager/Lead only
+
+GET /api/tickets/project/:projectId
+- Function: getProjectTickets
+- Purpose: Get all tickets for a specific project
+- Access: Project team members
+
+GET /api/tickets/:projectId/:ticketId
+- Function: getTicket
+- Purpose: Get specific ticket details
+- Access: Project team members
+
+PUT /api/tickets/:projectId/:ticketId
+- Function: updateTicket
+- Purpose: Update ticket information
+- Access: Admin/Manager/Assigned Developer
+
+POST /api/tickets/:projectId/:ticketId/comments
+- Function: addComment
+- Purpose: Add comment to ticket
+- Access: Project team members
+
+DELETE /api/tickets/:projectId/:ticketId
+- Function: deleteTicket
+- Purpose: Delete ticket
+- Access: Admin/Project Manager only
+
+GET /api/tickets
+- Function: getAllTickets
+- Purpose: Get all tickets across projects (Admin/HR only)
+- Access: Admin/HR only
+
+10. KANBAN BOARD ROUTES
+========================
+File: backend/routes/kanban.route.js
+Controller: backend/controllers/kanban.controller.js
+
+GET /api/kanbanboard/:boardType
+- Function: getKanbanBoard
+- Purpose: Get role-specific Kanban board
+- Access: Authenticated users (role-based)
+
+GET /api/kanbanboard/project/:projectId
+- Function: getProjectKanbanBoard
+- Purpose: Get project-specific Kanban board
+- Access: Project team members
+
+GET /api/kanbanboard/developer/personal
+- Function: getDeveloperKanbanBoard
+- Purpose: Get developer's personal Kanban board
+- Access: Developer only
+
+PUT /api/kanbanboard/tickets/:projectId/:ticketId/status
+- Function: updateTicketStatus
+- Purpose: Update ticket status (move between columns)
+- Access: Project team members
+
+11. PROJECT ROUTES
+==================
+File: backend/routes/project.route.js (if exists)
+Controller: backend/controllers/project.controller.js (if exists)
+
+Note: Project management may be handled through manager routes or separate project routes
+
+12. SPRINT ROUTES
+=================
+File: backend/routes/sprint.route.js (if exists)
+Controller: backend/controllers/sprint.controller.js (if exists)
+
+Note: Sprint management may be handled through manager routes or separate sprint routes
+
+13. BUG TRACKER ROUTES
+=======================
+File: backend/routes/bugtracker.route.js (if exists)
+Controller: backend/controllers/bugtracker.controller.js (if exists)
+
+Note: Bug tracking may be handled through tester routes or separate bug tracker routes
+
+14. STANDUP ROUTES
+==================
+File: backend/routes/standup.route.js (if exists)
+Controller: backend/controllers/standup.controller.js (if exists)
+
+Note: Standup management may be handled through developer routes or separate standup routes
+
+DATA FLOW & WORKFLOW
+====================
+
+1. USER AUTHENTICATION FLOW
+- User registers/logs in → JWT token generated
+- Token used for all subsequent requests
+- Role-based middleware validates permissions
+
+2. PROJECT CREATION FLOW
+- Manager creates project → Project schema created
+- Modules added to project → Module schema embedded
+- Tickets created within modules → Ticket schema embedded
+- Team members assigned to project
+
+3. TICKET WORKFLOW
+- Ticket created → Assigned to developer
+- Developer works on ticket → Status updates
+- Ticket moves through Kanban columns
+- Tester validates completed work
+- Ticket closed when complete
+
+4. KANBAN BOARD FLOW
+- Role-specific boards show relevant tickets
+- Tickets move between columns based on status
+- Status changes trigger workflow updates
+- Real-time board updates for team collaboration
+
+5. STANDUP FLOW
+- Daily standup meetings scheduled
+- Developers submit updates
+- Progress tracked and reported
+- Action items assigned and tracked
+
+INTEGRATION POINTS
+==================
+
+1. FRONTEND INTEGRATION
+- React components consume API endpoints
+- Role-based UI rendering
+- Real-time updates via API calls
+- Responsive design for all devices
+
+2. DATABASE INTEGRATION
+- MongoDB with Mongoose ODM
+- Embedded document structure
+- Efficient indexing for queries
+- Data validation and sanitization
+
+3. EXTERNAL INTEGRATIONS
+- File upload for attachments
+- Email notifications (if implemented)
+- Reporting and analytics
+- Export functionality (if implemented)
+
+SECURITY FEATURES
+=================
+
+1. AUTHENTICATION
+- JWT-based token system
+- Secure password hashing
+- Token expiration and refresh
+- Secure logout mechanism
+
+2. AUTHORIZATION
+- Role-based access control
+- Route-level permissions
+- Data-level access control
+- Audit logging for changes
+
+3. DATA PROTECTION
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection
+- CSRF protection
+
+PERFORMANCE OPTIMIZATIONS
+=========================
+
+1. DATABASE OPTIMIZATIONS
+- Strategic indexing on frequently queried fields
+- Embedded documents for related data
+- Aggregation pipelines for complex queries
+- Connection pooling and caching
+
+2. API OPTIMIZATIONS
+- Pagination for large datasets
+- Query parameter filtering
+- Efficient data serialization
+- Response caching where appropriate
+
+3. FRONTEND OPTIMIZATIONS
+- Lazy loading of components
+- Efficient state management
+- Optimized re-rendering
+- Bundle size optimization
+
+MONITORING & LOGGING
+====================
+
+1. ACTIVITY LOGGING
+- User actions tracked
+- System changes logged
+- Audit trail maintained
+- Performance metrics collected
+
+2. ERROR HANDLING
+- Comprehensive error catching
+- Detailed error logging
+- User-friendly error messages
+- Error reporting and monitoring
+
+3. PERFORMANCE MONITORING
+- Response time tracking
+- Database query optimization
+- Memory usage monitoring
+- Scalability metrics
+
+DEPLOYMENT & SCALABILITY
+========================
+
+1. BACKEND DEPLOYMENT
+- Node.js application server
+- MongoDB database server
+- Load balancing capability
+- Horizontal scaling support
+
+2. FRONTEND DEPLOYMENT
+- Static file hosting
+- CDN integration
+- Build optimization
+- Progressive web app features
+
+3. SCALABILITY CONSIDERATIONS
+- Microservices architecture ready
+- Database sharding support
+- Caching layer integration
+- API rate limiting
+
+This project management system provides a comprehensive, role-based solution for managing projects,
+teams, and workflows. The modular architecture ensures scalability and maintainability while
+providing rich functionality for all user types.

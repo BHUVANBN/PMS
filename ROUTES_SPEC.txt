@@ -1,0 +1,292 @@
+Project Management System — Routes & Pages Specification (all roles, all features)
+
+Scope
+- Covers backend API endpoints and frontend page routes for: Auth, Users (Admin/HR), Projects, Tickets, Kanban Boards, Sprints, Standups, Bug Tracker, Activity Logs.
+- Enforces role-based access per backend/middleware/verifyToken.js and roles in backend/models/userschema.models.js.
+- Reflects existing routes and proposes missing endpoints aligned to models for full feature coverage.
+
+Conventions
+- Auth: verifyToken, role gates: allowRoles(), allowAdminOnly, allowHRAndAbove, etc.
+- Role strings: admin, manager, developer, tester, employee, hr, marketing, sales, intern.
+- Ticket data is embedded under Project.tickets; BugTracker is a separate collection.
+- Kanban is a separate collection keyed by project and optionally sprint/developer.
+- Standup and Sprint are separate collections keyed by project.
+- ActivityLog is a separate collection keyed by project and entity.
+
+Legend
+METHOD  PATH  [middleware] — purpose → visible roles → frontend page (if applicable)
+
+1) Authentication
+POST   /api/auth/login                — login (sets cookie token, returns role)
+POST   /api/auth/logout               — logout (clears cookie)
+POST   /api/auth/register             — self-register (employee default)
+
+Frontend pages
+- GET   /login                        — LoginPage
+- GET   /register                     — RegisterPage (optional; admins/HR can create users too)
+- GET   /logout                       — Redirect to /login after logout
+- After login, redirect by role:
+  admin      → /admin/dashboard
+  hr         → /hr/dashboard
+  manager    → /manager/dashboard
+  developer  → /dev/dashboard
+  tester     → /qa/dashboard
+  employee   → /employee/dashboard
+  marketing  → /marketing/dashboard
+  sales      → /sales/dashboard
+  intern     → /intern/dashboard
+
+2) Admin (system-level user/ops)
+GET    /api/admin/me        [verifyToken, allowAdminOnly] — whoami
+POST   /api/admin/users     [verifyToken, allowAdminOnly] — create user (any role)
+POST   /api/admin/users/hr  [verifyToken, allowAdminOnly] — create HR user
+GET    /api/admin/users     [verifyToken, allowAdminOnly] — list all users
+GET    /api/admin/users/role/:role [verifyToken, allowAdminOnly] — list users by role
+PUT    /api/admin/users/:id [verifyToken, allowAdminOnly] — update user (profile/role)
+DELETE /api/admin/users/:id [verifyToken, allowAdminOnly] — deactivate/delete user
+PATCH  /api/admin/users/:id/reset-password [verifyToken, allowAdminOnly] — reset password
+GET    /api/admin/stats     [verifyToken, allowAdminOnly] — system metrics
+
+Frontend pages (Admin)
+- /admin/dashboard          — AdminDashboard
+- /admin/users              — UserListPage
+- /admin/users/new          — CreateUserPage
+- /admin/users/:id          — UserDetailPage
+- /admin/stats              — SystemStatsPage
+
+3) HR (people operations)
+GET    /api/hr/me                   [verifyToken, allowHRAndAbove]
+POST   /api/hr/employees            [verifyToken, allowHRAndAbove] — create employee (limited roles)
+GET    /api/hr/employees            [verifyToken, allowHRAndAbove] — list employees
+GET    /api/hr/employees/role/:role [verifyToken, allowHRAndAbove] — list employees by role
+PUT    /api/hr/employees/:id        [verifyToken, allowHRAndAbove] — update employee
+PATCH  /api/hr/employees/:id/toggle-status [verifyToken, allowHRAndAbove] — activate/deactivate
+GET    /api/hr/stats                [verifyToken, allowHRAndAbove] — HR metrics
+
+Frontend pages (HR)
+- /hr/dashboard              — HRDashboard
+- /hr/employees              — EmployeeListPage
+- /hr/employees/new          — EmployeeCreatePage
+- /hr/employees/:id          — EmployeeDetailPage
+- /hr/stats                  — HRStatsPage
+
+4) Manager (project/team ownership)
+GET    /api/manager/me       [verifyToken, allowRoles(manager, admin)]
+GET    /api/manager/team     [verifyToken, allowRoles(manager, admin)]
+
+Proposed project ownership endpoints (manager/admin)
+POST   /api/projects                       [verifyToken, allowRoles(manager, admin)] — create project
+GET    /api/projects                       [verifyToken] — list visible projects (team member or manager/admin)
+GET    /api/projects/:projectId            [verifyToken] — get project if member or manager/admin
+PUT    /api/projects/:projectId            [verifyToken, allowRoles(manager, admin)] — update project
+DELETE /api/projects/:projectId            [verifyToken, allowRoles(manager, admin)] — archive/delete project
+
+Membership and assignment (manager/admin)
+PATCH  /api/projects/:projectId/members            [verifyToken, allowRoles(manager, admin)] — add/remove members
+PATCH  /api/projects/:projectId/manager            [verifyToken, allowRoles(admin)] — reassign manager
+
+Frontend pages (Manager)
+- /manager/dashboard         — ManagerDashboard
+- /projects                  — ProjectListPage
+- /projects/new              — ProjectCreatePage
+- /projects/:projectId       — ProjectOverviewPage
+- /projects/:projectId/settings — ProjectSettingsPage
+- /projects/:projectId/team  — ProjectTeamPage
+
+5) Tickets (embedded in Project.tickets)
+GET    /api/projects/:projectId/tickets            [verifyToken] — list tickets (project members)
+POST   /api/projects/:projectId/tickets            [verifyToken, allowRoles(manager, admin)] — create ticket
+GET    /api/projects/:projectId/tickets/:ticketId  [verifyToken] — get ticket if member
+PUT    /api/projects/:projectId/tickets/:ticketId  [verifyToken, allowRoles(manager, admin)] — update ticket fields
+PATCH  /api/projects/:projectId/tickets/:ticketId/status [verifyToken, allowRoles(manager, developer, tester, admin)] — move status
+PATCH  /api/projects/:projectId/tickets/:ticketId/assign/developer [verifyToken, allowRoles(manager, admin)] — assign dev
+PATCH  /api/projects/:projectId/tickets/:ticketId/assign/tester    [verifyToken, allowRoles(manager, admin)] — assign tester
+POST   /api/projects/:projectId/tickets/:ticketId/comments         [verifyToken] — add comment
+DELETE /api/projects/:projectId/tickets/:ticketId                  [verifyToken, allowRoles(manager, admin)] — delete ticket
+
+Developer self-service
+GET    /api/my/tickets                         [verifyToken, allowRoles(developer, tester, employee, intern)] — tickets assigned to me
+
+Frontend pages (Tickets)
+- /projects/:projectId/tickets                 — TicketListPage
+- /projects/:projectId/tickets/new             — TicketCreatePage (manager/admin)
+- /projects/:projectId/tickets/:ticketId       — TicketDetailPage
+
+6) Kanban Boards (backend/models/kanbanSchema.models.js)
+Board CRUD
+POST   /api/projects/:projectId/kanban/boards             [verifyToken, allowRoles(manager, admin)] — create board (main/sprint/dev)
+GET    /api/projects/:projectId/kanban/boards             [verifyToken] — list boards for project (member only)
+GET    /api/projects/:projectId/kanban/boards/:boardId    [verifyToken] — get board (member)
+PUT    /api/projects/:projectId/kanban/boards/:boardId    [verifyToken, allowRoles(manager, admin)] — rename/update settings
+DELETE /api/projects/:projectId/kanban/boards/:boardId    [verifyToken, allowRoles(manager, admin)] — delete board
+
+Columns & WIP
+POST   /api/kanban/boards/:boardId/columns                [verifyToken, allowRoles(manager, admin)] — add column
+PATCH  /api/kanban/boards/:boardId/columns/:columnId      [verifyToken, allowRoles(manager, admin)] — update name/order/wipLimit
+DELETE /api/kanban/boards/:boardId/columns/:columnId      [verifyToken, allowRoles(manager, admin)] — remove column
+
+Move tickets on board
+PATCH  /api/kanban/boards/:boardId/move                   [verifyToken, allowRoles(manager, developer, tester, admin)] — move ticket: {ticketId, fromColumnId, toColumnId, toIndex}
+
+Frontend pages (Kanban)
+- /projects/:projectId/boards/main                        — MainKanbanPage
+- /projects/:projectId/boards/:boardId                    — KanbanBoardPage
+- Developer personal view: /projects/:projectId/boards/dev/:developerId — DevBoardPage
+- Sprint board: /projects/:projectId/boards/sprint/:sprintId — SprintBoardPage
+
+7) Sprints (backend/models/sprintSchema.models.js)
+CRUD
+POST   /api/projects/:projectId/sprints                   [verifyToken, allowRoles(manager, admin)] — create sprint
+GET    /api/projects/:projectId/sprints                   [verifyToken] — list sprints (project members)
+GET    /api/projects/:projectId/sprints/:sprintId         [verifyToken] — get sprint
+PUT    /api/projects/:projectId/sprints/:sprintId         [verifyToken, allowRoles(manager, admin)] — update sprint
+DELETE /api/projects/:projectId/sprints/:sprintId         [verifyToken, allowRoles(manager, admin)] — delete sprint
+
+Membership & Assignment
+PATCH  /api/sprints/:sprintId/assign-developers           [verifyToken, allowRoles(manager, admin)] — set sprint devs
+PATCH  /api/sprints/:sprintId/tickets                     [verifyToken, allowRoles(manager, admin)] — add/remove ticketIds
+PATCH  /api/sprints/:sprintId/status                      [verifyToken, allowRoles(manager, admin)] — update status (planning/active/completed/cancelled)
+
+Frontend pages (Sprints)
+- /projects/:projectId/sprints                            — SprintListPage
+- /projects/:projectId/sprints/new                        — SprintCreatePage
+- /projects/:projectId/sprints/:sprintId                  — SprintDetailPage
+
+8) Standups (backend/models/standupSchema.models.js)
+CRUD
+POST   /api/projects/:projectId/standups                  [verifyToken, allowRoles(manager, admin)] — schedule standup
+GET    /api/projects/:projectId/standups                  [verifyToken] — list standups
+GET    /api/projects/:projectId/standups/:standupId       [verifyToken] — get standup
+PATCH  /api/projects/:projectId/standups/:standupId       [verifyToken, allowRoles(manager, admin)] — update status, attendees
+DELETE /api/projects/:projectId/standups/:standupId       [verifyToken, allowRoles(manager, admin)] — cancel/delete standup
+
+Updates & Tasks in standup
+POST   /api/standups/:standupId/updates                   [verifyToken, allowRoles(manager, developer, tester, intern, employee, admin)] — add member update + tasks
+PATCH  /api/standups/:standupId/updates/:updateId         [verifyToken, allowRoles(manager, admin, developer, tester, intern, employee)] — edit own update (manager/admin any)
+DELETE /api/standups/:standupId/updates/:updateId         [verifyToken, allowRoles(manager, admin)] — remove update
+
+Frontend pages (Standups)
+- /projects/:projectId/standups                           — StandupListPage
+- /projects/:projectId/standups/:standupId                — StandupDetailPage
+
+9) Bug Tracker (backend/models/bugTrackerSchema.models.js)
+CRUD
+POST   /api/projects/:projectId/bugs                      [verifyToken, allowRoles(tester, manager, admin)] — report bug (reportedBy set)
+GET    /api/projects/:projectId/bugs                      [verifyToken] — list bugs (project member)
+GET    /api/projects/:projectId/bugs/:bugId               [verifyToken] — get bug
+PUT    /api/projects/:projectId/bugs/:bugId               [verifyToken, allowRoles(tester, manager, admin)] — update bug fields
+PATCH  /api/projects/:projectId/bugs/:bugId/assign        [verifyToken, allowRoles(manager, admin)] — assign developer
+PATCH  /api/projects/:projectId/bugs/:bugId/status        [verifyToken, allowRoles(tester, developer, manager, admin)] — status flow new→assigned→in_progress→resolved→closed/reopened
+POST   /api/projects/:projectId/bugs/:bugId/comments      [verifyToken] — comment thread
+
+Link bug to project ticket
+PATCH  /api/projects/:projectId/tickets/:ticketId/link-bug/:bugId [verifyToken, allowRoles(manager, admin)] — set ticket.bugTrackerId
+
+Frontend pages (Bug Tracking)
+- /projects/:projectId/bugs                               — BugListPage
+- /projects/:projectId/bugs/new                           — BugCreatePage (tester/manager/admin)
+- /projects/:projectId/bugs/:bugId                        — BugDetailPage
+
+10) Activity Logs (backend/models/activityLogSchema.models.js)
+Create log entries (invoked by backend on events)
+POST   /api/projects/:projectId/activity-logs             [verifyToken] — create log (internal use by server; restrict to server-side or admin)
+
+Query logs
+GET    /api/projects/:projectId/activity-logs             [verifyToken, allowRoles(manager, admin)] — list logs (filter by entityType/action/date)
+GET    /api/projects/:projectId/activity-logs/:entityType/:entityId [verifyToken, allowRoles(manager, admin)] — logs for entity
+
+Frontend pages (Activity)
+- /projects/:projectId/activity                           — ActivityLogPage (manager/admin)
+
+11) General user self endpoints
+GET    /api/me                          [verifyToken] — whoami
+GET    /api/my/projects                 [verifyToken] — projects where user is team member
+GET    /api/my/tickets                  [verifyToken] — tickets assigned to me (across projects)
+GET    /api/my/bugs                     [verifyToken] — bugs reportedBy me or assignedTo me
+
+Frontend pages
+- /dashboard                            — Redirects to role dashboard
+- /my/work                              — MyWorkPage (tickets, bugs, standups today)
+
+12) Role-specific navigation and permissions
+Admin
+- Full access to Admin + Manager features; view all projects, users, boards, sprints, standups, bugs, logs.
+- Pages: /admin/* and all /projects/* views.
+
+HR
+- People ops only; no project data by default.
+- Pages: /hr/*.
+
+Manager
+- Own/manage projects; full CRUD on projects, tickets, sprints, boards, standups; can assign dev/tester; view activity logs.
+- Pages: /manager/* and /projects/* for owned projects.
+
+Developer
+- Read project; update tickets assigned; move tickets on Kanban; add comments; participate standups; update bug status to resolved when fixed.
+- Pages: /dev/dashboard, /projects/* (member), /my/work.
+
+Tester
+- Read project; create/update bugs; move bug statuses; comment; verify/close; view tickets when assigned as tester; move tickets to testing/done when verified (if allowed by policy).
+- Pages: /qa/dashboard, /projects/:projectId/bugs/*, /my/work.
+
+Employee (generic)
+- Limited read on assigned work; participate in standups if added; may have tickets assigned.
+- Pages: /employee/dashboard, /my/work.
+
+Marketing, Sales, Intern
+- Similar to employee; project access only if added as team member; can participate in standups if added.
+- Pages: /marketing/dashboard, /sales/dashboard, /intern/dashboard.
+
+13) Page-to-API mapping examples
+LoginPage (/login)
+- POST /api/auth/login → redirect to role dashboard
+
+ProjectOverviewPage (/projects/:projectId)
+- GET /api/projects/:projectId
+- GET /api/projects/:projectId/tickets?status=...
+- GET /api/projects/:projectId/bugs?status=...
+- GET /api/projects/:projectId/sprints
+
+KanbanBoardPage (/projects/:projectId/boards/:boardId)
+- GET /api/projects/:projectId/kanban/boards/:boardId
+- PATCH /api/kanban/boards/:boardId/move (drag-and-drop)
+
+TicketDetailPage (/projects/:projectId/tickets/:ticketId)
+- GET /api/projects/:projectId/tickets/:ticketId
+- PATCH /api/projects/:projectId/tickets/:ticketId/status
+- POST /api/projects/:projectId/tickets/:ticketId/comments
+
+BugDetailPage (/projects/:projectId/bugs/:bugId)
+- GET /api/projects/:projectId/bugs/:bugId
+- PATCH /api/projects/:projectId/bugs/:bugId/status
+- PATCH /api/projects/:projectId/bugs/:bugId/assign (manager/admin)
+- POST /api/projects/:projectId/bugs/:bugId/comments
+
+StandupDetailPage (/projects/:projectId/standups/:standupId)
+- GET /api/projects/:projectId/standups/:standupId
+- POST /api/standups/:standupId/updates
+
+14) Security notes
+- All non-auth routes must include verifyToken.
+- Use allowRoles(...) shortcuts from middleware/verifyToken.js for role-based access.
+- Server should auto-create ActivityLog entries for key actions (ticket/bug status changes, assignments, Kanban moves, sprint status changes, comments).
+
+15) Suggested routers (backend)
+- /api/auth → backend/routes/auth.route.js (exists)
+- /api/admin → backend/routes/admin.route.js (exists)
+- /api/hr → backend/routes/hr.route.js (exists)
+- /api/manager → backend/routes/manager.route.js (exists)
+- /api/developer → backend/routes/developer.route.js (exists)
+- /api/tester → backend/routes/tester.route.js (exists)
+- /api/employee → backend/routes/employee.route.js (exists)
+- /api/intern → backend/routes/intern.route.js (exists)
+- New routers to add:
+  • /api/projects (projects + nested tickets)
+  • /api/kanban (board ops)
+  • /api/sprints
+  • /api/standups
+  • /api/bugs
+  • /api/activity-logs (read-only for manager/admin)
+
+This file is authoritative for initial implementation. Adjust as the UI evolves.
+

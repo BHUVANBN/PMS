@@ -1,9 +1,14 @@
-import Login from './pages/Login.jsx'
+import React from 'react';
+import { AuthProvider } from './context/AuthContext';
+import AppRoutes from './routes/AppRoutes';
+import './App.css';
 
 function App() {
   return (
-    <Login />
-  )
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

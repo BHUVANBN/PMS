@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api.js';
+import { useAuthContext } from '../../context/useAuthContext';
+import api from '../../services/api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login } = useAuthContext();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -28,52 +30,53 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const response = await api.auth.login({ username: formData.email, password: formData.password });
-      
-      // Store user data in localStorage
-      localStorage.setItem('user', JSON.stringify({ 
-        role: response.role,
-        token: response.token 
-      }));
-      localStorage.setItem('isAuthenticated', 'true');
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+      // Real authentication via backend
+      if (formData.email && formData.password) {
+        const result = await api.auth.login({
+          username: formData.email,
+          password: formData.password,
+        });
+
+        // Backend returns { message, token, role }
+        if (!result || !result.role) {
+          throw new Error('Invalid server response');
+        }
+
+        const userData = {
+          id: undefined,
+          email: formData.email,
+          name: formData.email.split('@')[0],
+          role: result.role
+        };
+        login(userData);
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
+        
+        // Redirect based on user role
+        switch (userData.role) {
+          case 'admin':
+            navigate('/admin/dashboard');
+            break;
+          case 'hr':
+            navigate('/hr/dashboard');
+            break;
+          case 'manager':
+            navigate('/manager/dashboard');
+            break;
+          case 'developer':
+            navigate('/developer/dashboard');
+            break;
+          case 'tester':
+            navigate('/tester/dashboard');
+            break;
+          default:
+            navigate('/admin/dashboard');
+        }
       } else {
-        localStorage.removeItem('rememberMe');
-      }
-      
-      // Redirect based on user role
-      const { role } = response;
-      switch (role) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'hr':
-          navigate('/hr/dashboard');
-          break;
-        case 'manager':
-          navigate('/manager/dashboard');
-          break;
-        case 'developer':
-          navigate('/developer/dashboard');
-          break;
-        case 'tester':
-          navigate('/tester/dashboard');
-          break;
-        case 'employee':
-          navigate('/employee/dashboard');
-          break;
-        case 'marketing':
-          navigate('/marketing/dashboard');
-          break;
-        case 'sales':
-          navigate('/sales/dashboard');
-          break;
-        case 'intern':
-          navigate('/intern/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
+        throw new Error('Please enter both email and password');
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
@@ -150,10 +153,6 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: 16, background: '#1f2937', color: '#e5e7eb', padding: '10px 12px', borderRadius: 8, fontSize: 12 }}>
-          You can enter your email here. We'll sign you in using the associated username on the server.
-        </div>
-
         <div style={{ marginTop: 12, textAlign: 'center', fontSize: 14, color: '#e5e7eb' }}>
           Don't have an account? <a href="#" style={{ color: '#93c5fd' }}>Contact your administrator</a>
         </div>
@@ -161,5 +160,6 @@ const LoginPage = () => {
     </div>
   );
 };
+
 
 export default LoginPage;

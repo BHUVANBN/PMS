@@ -20,6 +20,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
+// Attach cookie parser early so auth can read cookies
+app.use(cookieParser());
 
 
 app.use('/api/auth', authRoutes);

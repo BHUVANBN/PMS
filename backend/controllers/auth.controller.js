@@ -21,7 +21,11 @@ export const login = async (req, res) => {
 		if (!username || !password) {
 			return res.status(400).json({ message: 'username and password are required' });
 		}
-		const user = await User.findOne({ username, isActive: true });
+		// Allow login with either username or email
+		const user = await User.findOne({ 
+			$or: [{ username }, { email: username }], 
+			isActive: true 
+		});
 		if (!user) {
 			return res.status(401).json({ message: 'Invalid credentials' });
 		}

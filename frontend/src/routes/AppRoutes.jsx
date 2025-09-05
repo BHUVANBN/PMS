@@ -23,6 +23,7 @@ import UserCreatePage from '../pages/admin/UserCreatePage';
 import SystemStatsPage from '../pages/admin/SystemStatsPage';
 import UserDetailPage from '../pages/admin/UserDetailPage';
 import SystemSettingsPage from '../pages/admin/SystemSettingsPage';
+import ProjectUsersPage from '../pages/admin/ProjectUsersPage';
 
 // HR Pages
 import EmployeeListPage from '../pages/hr/EmployeeListPage';
@@ -136,6 +137,16 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin']}>
             <Layout user={user} onLogout={logout}>
               <SystemSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users/project-wise"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout user={user} onLogout={logout}>
+              <ProjectUsersPage />
             </Layout>
           </ProtectedRoute>
         }

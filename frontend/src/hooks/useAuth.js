@@ -9,32 +9,66 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Prefer local state first to decide which endpoint to validate against
+        // Check if user is stored in localStorage
         const storedUserJson = localStorage.getItem('user');
         const isAuth = localStorage.getItem('isAuthenticated') === 'true';
+        
         if (storedUserJson && isAuth) {
           const storedUser = JSON.parse(storedUserJson);
-          setUser(storedUser);
-          setIsAuthenticated(true);
-          // Best-effort validation against role-specific endpoint (if available)
+          
+          // Try to validate with the general /api/me endpoint first
           try {
-            const role = storedUser.role;
-            if (role === 'admin') await api.admin.getMe();
-            else if (role === 'hr') await api.hr.getMe();
-            else if (role === 'manager') await api.manager.getMe();
-            else if (role === 'developer') await api.developer.getMe();
-            else if (role === 'tester') await api.tester.getMe();
-            else if (role === 'employee') await api.employee.getMe();
-          } catch (_) {
-            // If validation fails, clear session
-            setUser(null);
-            setIsAuthenticated(false);
-            localStorage.removeItem('user');
-            localStorage.removeItem('isAuthenticated');
+            const response = await api.user.getMe();
+            if (response && response.user) {
+              // Update user data with fresh data from server
+              setUser(response.user);
+              setIsAuthenticated(true);
+              localStorage.setItem('user', JSON.stringify(response.user));
+            } else {
+              throw new Error('Invalid response');
+            }
+          } catch (error) {
+            console.warn('Auth validation failed:', error);
+            // If validation fails, try role-specific endpoint as fallback
+            try {
+              const role = storedUser.role;
+              let response;
+              
+              if (role === 'admin') response = await api.admin.getMe();
+              else if (role === 'hr') response = await api.hr.getMe();
+              else if (role === 'manager') response = await api.manager.getMe();
+              else if (role === 'developer') response = await api.developer.getMe();
+              else if (role === 'tester') response = await api.tester.getMe();
+              else if (role === 'employee') response = await api.employee.getMe();
+              
+              if (response && response.user) {
+                setUser(response.user);
+                setIsAuthenticated(true);
+                localStorage.setItem('user', JSON.stringify(response.user));
+              } else {
+                throw new Error('Role-specific validation failed');
+              }
+            } catch (roleError) {
+              console.warn('Role-specific auth validation failed:', roleError);
+              // If both validations fail, clear session
+              setUser(null);
+              setIsAuthenticated(false);
+              localStorage.removeItem('user');
+              localStorage.removeItem('isAuthenticated');
+            }
           }
-          return;
+        } else {
+          // No stored user, not authenticated
+          setUser(null);
+          setIsAuthenticated(false);
+          localStorage.removeItem('user');
+          localStorage.removeItem('isAuthenticated');
         }
-        // Not authenticated
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // On any error, clear session to be safe
+        setUser(null);
+        setIsAuthenticated(false);
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {

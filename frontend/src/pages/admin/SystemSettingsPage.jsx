@@ -22,7 +22,29 @@ const SystemSettingsPage = () => {
     sessionTimeout: '',
     passwordMinLength: '',
     requireSpecialChars: false,
-    enableTwoFactor: false
+    enableTwoFactor: false,
+    // Access Control
+    defaultUserRole: '',
+    maxConcurrentLogins: '',
+    accountLockoutAfterAttempts: '',
+    // API & Integrations
+    enableApiAccess: false,
+    apiRateLimitPerUser: '',
+    webhookSigningSecret: '',
+    // Backup & Recovery
+    enableAutomaticBackups: false,
+    backupFrequency: '',
+    dataRetentionPeriod: '',
+    // Email & Communication
+    smtpHost: '',
+    smtpPort: '',
+    smtpUsername: '',
+    smtpPassword: '',
+    supportEmailAddress: '',
+    // Audit & Logging
+    enableAuditLogs: false,
+    logRetentionPeriod: '',
+    enableErrorReporting: false
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,11 +87,35 @@ const SystemSettingsPage = () => {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    try {
+      setSaving(true);
+      await api.post('/admin/settings/test-email', {
+        to: settings.supportEmailAddress,
+        smtpHost: settings.smtpHost,
+        smtpPort: settings.smtpPort,
+        smtpUsername: settings.smtpUsername,
+        smtpPassword: settings.smtpPassword
+      });
+      alert('Test email sent successfully!');
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      alert('Error sending test email. Please check your SMTP settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const tabs = [
     { id: 'general', label: 'General' },
     { id: 'security', label: 'Security' },
     { id: 'notifications', label: 'Notifications' },
-    { id: 'files', label: 'File Management' }
+    { id: 'files', label: 'File Management' },
+    { id: 'access-control', label: 'Access Control' },
+    { id: 'api-integrations', label: 'API & Integrations' },
+    { id: 'backup-recovery', label: 'Backup & Recovery' },
+    { id: 'email-communication', label: 'Email & Communication' },
+    { id: 'audit-logging', label: 'Audit & Logging' }
   ];
 
   if (loading) {
@@ -305,6 +351,283 @@ const SystemSettingsPage = () => {
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                     <div className="bg-blue-600 h-2 rounded-full" style={{ width: '5%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Access Control Settings */}
+          {activeTab === 'access-control' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Select
+                  label="Default User Role"
+                  name="defaultUserRole"
+                  value={settings.defaultUserRole}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: 'viewer', label: 'Viewer' },
+                    { value: 'member', label: 'Member' },
+                    { value: 'manager', label: 'Manager' },
+                    { value: 'admin', label: 'Admin' }
+                  ]}
+                />
+                <Input
+                  label="Max Concurrent Logins"
+                  name="maxConcurrentLogins"
+                  type="number"
+                  value={settings.maxConcurrentLogins}
+                  onChange={handleInputChange}
+                  placeholder="5"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Account Lockout After Failed Attempts"
+                  name="accountLockoutAfterAttempts"
+                  type="number"
+                  value={settings.accountLockoutAfterAttempts}
+                  onChange={handleInputChange}
+                  placeholder="5"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* API & Integrations Settings */}
+          {activeTab === 'api-integrations' && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Checkbox
+                  label="Enable API Access"
+                  name="enableApiAccess"
+                  checked={settings.enableApiAccess}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="API Rate Limit per User"
+                  name="apiRateLimitPerUser"
+                  type="number"
+                  value={settings.apiRateLimitPerUser}
+                  onChange={handleInputChange}
+                  placeholder="1000"
+                />
+                <Input
+                  label="Webhook Signing Secret"
+                  name="webhookSigningSecret"
+                  type="password"
+                  value={settings.webhookSigningSecret}
+                  onChange={handleInputChange}
+                  placeholder="Enter webhook signing secret"
+                />
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  API Information
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">API Version</span>
+                    <span className="text-gray-900 dark:text-white font-medium">v1.0</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Base URL</span>
+                    <span className="text-gray-900 dark:text-white font-medium">/api/v1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Backup & Recovery Settings */}
+          {activeTab === 'backup-recovery' && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Checkbox
+                  label="Enable Automatic Backups"
+                  name="enableAutomaticBackups"
+                  checked={settings.enableAutomaticBackups}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Select
+                  label="Backup Frequency"
+                  name="backupFrequency"
+                  value={settings.backupFrequency}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: 'daily', label: 'Daily' },
+                    { value: 'weekly', label: 'Weekly' },
+                    { value: 'monthly', label: 'Monthly' }
+                  ]}
+                />
+                <Input
+                  label="Data Retention Period (days)"
+                  name="dataRetentionPeriod"
+                  type="number"
+                  value={settings.dataRetentionPeriod}
+                  onChange={handleInputChange}
+                  placeholder="30"
+                />
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Backup Status
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Last Backup</span>
+                    <span className="text-gray-900 dark:text-white font-medium">2024-01-15 02:00 AM</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Next Backup</span>
+                    <span className="text-gray-900 dark:text-white font-medium">2024-01-16 02:00 AM</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Backup Size</span>
+                    <span className="text-gray-900 dark:text-white font-medium">1.2 GB</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Email & Communication Settings */}
+          {activeTab === 'email-communication' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="SMTP Host"
+                  name="smtpHost"
+                  value={settings.smtpHost}
+                  onChange={handleInputChange}
+                  placeholder="smtp.gmail.com"
+                />
+                <Input
+                  label="SMTP Port"
+                  name="smtpPort"
+                  type="number"
+                  value={settings.smtpPort}
+                  onChange={handleInputChange}
+                  placeholder="587"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="SMTP Username"
+                  name="smtpUsername"
+                  value={settings.smtpUsername}
+                  onChange={handleInputChange}
+                  placeholder="your-email@company.com"
+                />
+                <Input
+                  label="SMTP Password"
+                  name="smtpPassword"
+                  type="password"
+                  value={settings.smtpPassword}
+                  onChange={handleInputChange}
+                  placeholder="Enter SMTP password"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Support Email Address"
+                  name="supportEmailAddress"
+                  type="email"
+                  value={settings.supportEmailAddress}
+                  onChange={handleInputChange}
+                  placeholder="support@company.com"
+                />
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleSendTestEmail}
+                    loading={saving}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Send Test Email
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Email Templates
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Welcome Email</span>
+                    <Badge variant="success">Active</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Password Reset</span>
+                    <Badge variant="success">Active</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Project Notifications</span>
+                    <Badge variant="warning">Disabled</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Audit & Logging Settings */}
+          {activeTab === 'audit-logging' && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Checkbox
+                  label="Enable Audit Logs"
+                  name="enableAuditLogs"
+                  checked={settings.enableAuditLogs}
+                  onChange={handleInputChange}
+                />
+                <Checkbox
+                  label="Enable Error Reporting"
+                  name="enableErrorReporting"
+                  checked={settings.enableErrorReporting}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Log Retention Period (days)"
+                  name="logRetentionPeriod"
+                  type="number"
+                  value={settings.logRetentionPeriod}
+                  onChange={handleInputChange}
+                  placeholder="90"
+                />
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Log Statistics
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Total Log Entries</span>
+                    <span className="text-gray-900 dark:text-white font-medium">15,432</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Error Logs (24h)</span>
+                    <span className="text-gray-900 dark:text-white font-medium">23</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 dark:text-gray-300">Audit Events (24h)</span>
+                    <span className="text-gray-900 dark:text-white font-medium">1,247</span>
                   </div>
                 </div>
               </div>

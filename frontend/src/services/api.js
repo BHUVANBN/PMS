@@ -23,12 +23,26 @@ const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
     
+    // Handle authentication errors
+    if (response.status === 401) {
+      // Clear local storage and redirect to login
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
+      throw new Error('Authentication token missing or expired. Please log in again.');
+    }
+    
     // Handle non-JSON responses (e.g., logout)
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
       
       if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 401) {
+          localStorage.removeItem('user');
+          localStorage.removeItem('isAuthenticated');
+          throw new Error('Authentication failed. Please log in again.');
+        }
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
       
@@ -37,6 +51,11 @@ const apiRequest = async (endpoint, options = {}) => {
     
     // For non-JSON responses, just check if response is ok
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('isAuthenticated');
+        throw new Error('Authentication failed. Please log in again.');
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     

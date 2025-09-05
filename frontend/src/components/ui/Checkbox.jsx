@@ -11,32 +11,9 @@ const Checkbox = ({
   className = '',
   ...props
 }) => {
-  const checkboxStyles = {
-    width: '16px',
-    height: '16px',
-    accentColor: '#4f46e5',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1
-  };
-
-  const labelStyles = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#e5e7eb',
-    cursor: disabled ? 'not-allowed' : 'pointer'
-  };
-
-  const errorStyles = {
-    color: '#ef4444',
-    fontSize: '12px',
-    marginTop: '4px'
-  };
-
   return (
     <div className={className}>
-      <label htmlFor={id || name} style={labelStyles}>
+      <label htmlFor={id || name} className={`flex items-center gap-2 text-sm text-gray-200 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
         <input
           type="checkbox"
           id={id || name}
@@ -44,12 +21,12 @@ const Checkbox = ({
           checked={checked}
           onChange={onChange}
           disabled={disabled}
-          style={checkboxStyles}
+          className={`w-4 h-4 accent-indigo-500 ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
           {...props}
         />
         {label}
       </label>
-      {error && <div style={errorStyles}>{error}</div>}
+      {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
     </div>
   );
 };

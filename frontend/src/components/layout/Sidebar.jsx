@@ -5,37 +5,6 @@ const Sidebar = ({ user, isOpen = true, isMobile = false, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const sidebarStyles = {
-    width: '250px',
-    backgroundColor: '#0f172a',
-    borderRight: '1px solid #374151',
-    minHeight: '100vh',
-    padding: '20px 0',
-    color: '#e5e7eb',
-    position: isMobile ? 'fixed' : 'sticky',
-    top: 0,
-    left: isMobile ? (isOpen ? '0' : '-250px') : '0',
-    zIndex: 40,
-    transition: 'left 0.3s ease',
-    overflowY: 'auto',
-    flexShrink: 0
-  };
-
-  const menuItemStyles = {
-    padding: '12px 20px',
-    cursor: 'pointer',
-    borderLeft: '3px solid transparent',
-    transition: 'all 0.2s ease-in-out',
-    fontSize: '14px'
-  };
-
-  const activeMenuItemStyles = {
-    ...menuItemStyles,
-    backgroundColor: '#1e293b',
-    borderLeftColor: '#4f46e5',
-    color: '#4f46e5'
-  };
-
   const getMenuItems = (role) => {
     const commonItems = [
       { path: `/${role}/dashboard`, label: 'Dashboard', icon: '📊' }
@@ -82,25 +51,44 @@ const Sidebar = ({ user, isOpen = true, isMobile = false, onClose }) => {
     }
   };
 
+  const sidebarClasses = `
+    w-64 bg-slate-900 border-r border-gray-700 min-h-screen py-5 text-gray-200
+    ${isMobile ? 'fixed' : 'sticky'} top-0 z-40 transition-all duration-300 ease-in-out
+    overflow-y-auto flex-shrink-0
+    ${isMobile ? (isOpen ? 'left-0' : '-left-64') : 'left-0'}
+  `;
+
   return (
-    <div style={sidebarStyles}>
-      <div style={{ padding: '0 20px', marginBottom: '20px' }}>
-        <h3 style={{ margin: 0, fontSize: '16px', color: '#9ca3af' }}>
+    <div className={sidebarClasses}>
+      <div className="px-5 mb-5">
+        <h3 className="m-0 text-base text-gray-400">
           {user?.role?.toUpperCase()} PANEL
         </h3>
       </div>
       
       <nav>
-        {menuItems.map((item) => (
-          <div
-            key={item.path}
-            style={location.pathname === item.path ? activeMenuItemStyles : menuItemStyles}
-            onClick={() => handleNavigation(item.path)}
-          >
-            <span style={{ marginRight: '8px' }}>{item.icon}</span>
-            {item.label}
-          </div>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          const menuItemClasses = `
+            px-5 py-3 cursor-pointer border-l-3 border-transparent
+            transition-all duration-200 ease-in-out text-sm
+            ${isActive 
+              ? 'bg-slate-800 border-l-indigo-500 text-indigo-500' 
+              : 'hover:bg-slate-800 hover:text-gray-300'
+            }
+          `;
+          
+          return (
+            <div
+              key={item.path}
+              className={menuItemClasses}
+              onClick={() => handleNavigation(item.path)}
+            >
+              <span className="mr-2">{item.icon}</span>
+              {item.label}
+            </div>
+          );
+        })}
       </nav>
     </div>
   );

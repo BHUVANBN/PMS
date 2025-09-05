@@ -8,43 +8,24 @@ const Card = ({
   padding = 'md',
   ...props
 }) => {
-  const paddingStyles = {
-    sm: '16px',
-    md: '24px',
-    lg: '32px'
+  const paddingClasses = {
+    sm: 'p-4',
+    md: 'p-6',
+    lg: 'p-8'
   };
 
-  const cardStyles = {
-    backgroundColor: '#111827',
-    borderRadius: '8px',
-    border: '1px solid #374151',
-    color: '#e5e7eb',
-    padding: paddingStyles[padding]
-  };
-
-  const headerStyles = {
-    marginBottom: title || subtitle ? '16px' : '0'
-  };
-
-  const titleStyles = {
-    margin: '0 0 4px 0',
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#e5e7eb'
-  };
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: '14px',
-    color: '#9ca3af'
-  };
+  const cardClasses = `
+    bg-gray-900 rounded-lg border border-gray-700 text-gray-200
+    ${paddingClasses[padding]}
+    ${className}
+  `;
 
   return (
-    <div style={cardStyles} className={className} {...props}>
+    <div className={cardClasses} {...props}>
       {(title || subtitle) && (
-        <div style={headerStyles}>
-          {title && <h3 style={titleStyles}>{title}</h3>}
-          {subtitle && <p style={subtitleStyles}>{subtitle}</p>}
+        <div className={`${title || subtitle ? 'mb-4' : 'mb-0'}`}>
+          {title && <h3 className="m-0 mb-1 text-lg font-semibold text-gray-200">{title}</h3>}
+          {subtitle && <p className="m-0 text-sm text-gray-400">{subtitle}</p>}
         </div>
       )}
       {children}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
-import { useResponsive, getResponsiveSpacing } from '../../utils/responsive';
+import { useResponsive } from '../../utils/responsive';
 
 const Header = ({ user, onLogout, onMenuClick, showMenuButton = false }) => {
   const navigate = useNavigate();
@@ -15,73 +15,24 @@ const Header = ({ user, onLogout, onMenuClick, showMenuButton = false }) => {
     navigate('/login');
   };
 
-  const headerStyles = {
-    backgroundColor: '#111827',
-    borderBottom: '1px solid #374151',
-    padding: `16px ${getResponsiveSpacing('md', screenSize)}`,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    color: '#e5e7eb',
-    position: 'sticky',
-    top: 0,
-    zIndex: 30,
-    width: '100%',
-    boxSizing: 'border-box'
-  };
-
-  const leftSectionStyles = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  };
-
-  const menuButtonStyles = {
-    background: 'none',
-    border: 'none',
-    color: '#e5e7eb',
-    fontSize: '20px',
-    cursor: 'pointer',
-    padding: '8px',
-    borderRadius: '4px',
-    display: showMenuButton ? 'block' : 'none'
-  };
-
-  const logoStyles = {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#4f46e5'
-  };
-
-  const userInfoStyles = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px'
-  };
-
-  const userNameStyles = {
-    fontSize: '14px',
-    color: '#9ca3af'
-  };
-
   return (
-    <header style={headerStyles}>
-      <div style={leftSectionStyles}>
+    <header className="bg-gray-900 border-b border-gray-700 px-4 md:px-6 flex justify-between items-center text-gray-200 sticky top-0 z-30 w-full box-border">
+      <div className="flex items-center gap-4">
         <button 
-          style={menuButtonStyles}
+          className={`bg-transparent border-none text-gray-200 text-xl cursor-pointer p-2 rounded ${showMenuButton ? 'block' : 'hidden'}`}
           onClick={onMenuClick}
           aria-label="Toggle menu"
         >
           ☰
         </button>
-        <div style={logoStyles}>
+        <div className="text-xl font-bold text-indigo-500">
           {screenSize === 'xs' ? 'PMS' : 'Project Management System'}
         </div>
       </div>
       
       {user && (
-        <div style={userInfoStyles}>
-          <span style={userNameStyles}>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">
             {screenSize === 'xs' ? user.role : `Welcome, ${user.role || 'User'}`}
           </span>
           <Button 

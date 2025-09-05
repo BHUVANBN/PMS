@@ -15,40 +15,22 @@ const Input = ({
   autoComplete,
   ...props
 }) => {
-  const inputStyles = {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: '8px',
-    border: error ? '1px solid #ef4444' : '1px solid #374151',
-    backgroundColor: '#0b1220',
-    color: '#e5e7eb',
-    fontSize: '16px',
-    outline: 'none',
-    transition: 'border-color 0.2s ease-in-out',
-    opacity: disabled ? 0.6 : 1,
-    cursor: disabled ? 'not-allowed' : 'text'
-  };
-
-  const labelStyles = {
-    display: 'block',
-    marginBottom: '6px',
-    fontSize: '14px',
-    color: '#e5e7eb',
-    fontWeight: '500'
-  };
-
-  const errorStyles = {
-    color: '#ef4444',
-    fontSize: '12px',
-    marginTop: '4px'
-  };
+  const inputClasses = `
+    w-full px-3 py-2.5 rounded-lg border text-base outline-none
+    transition-colors duration-200 ease-in-out
+    ${error 
+      ? 'border-red-500 bg-slate-800 text-gray-200' 
+      : 'border-gray-700 bg-slate-800 text-gray-200 focus:border-indigo-500'
+    }
+    ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-text'}
+  `;
 
   return (
     <div className={className}>
       {label && (
-        <label htmlFor={id || name} style={labelStyles}>
+        <label htmlFor={id || name} className="block mb-1.5 text-sm text-gray-200 font-medium">
           {label}
-          {required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
       <input
@@ -61,10 +43,10 @@ const Input = ({
         disabled={disabled}
         required={required}
         autoComplete={autoComplete}
-        style={inputStyles}
+        className={inputClasses}
         {...props}
       />
-      {error && <div style={errorStyles}>{error}</div>}
+      {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
     </div>
   );
 };

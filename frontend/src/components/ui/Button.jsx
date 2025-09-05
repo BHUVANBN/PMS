@@ -11,84 +11,43 @@ const Button = ({
   className = '',
   ...props 
 }) => {
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '8px',
-    fontWeight: '600',
-    border: 'none',
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s ease-in-out',
-    outline: 'none',
-    textDecoration: 'none'
+  const baseClasses = 'inline-flex items-center justify-center rounded-lg font-semibold border-none outline-none no-underline transition-all duration-200 ease-in-out';
+
+  const variantClasses = {
+    primary: disabled 
+      ? 'bg-indigo-400 text-white border-indigo-400' 
+      : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700',
+    secondary: 'bg-transparent text-indigo-600 border border-indigo-600 hover:bg-indigo-50',
+    danger: disabled 
+      ? 'bg-red-400 text-white border-red-400' 
+      : 'bg-red-500 text-white border-red-500 hover:bg-red-600',
+    success: disabled 
+      ? 'bg-emerald-400 text-white border-emerald-400' 
+      : 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600',
+    ghost: 'bg-transparent text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-100'
   };
 
-  const variants = {
-    primary: {
-      backgroundColor: disabled ? '#6366f1' : '#4f46e5',
-      color: '#ffffff',
-      border: '1px solid #4f46e5'
-    },
-    secondary: {
-      backgroundColor: 'transparent',
-      color: '#4f46e5',
-      border: '1px solid #4f46e5'
-    },
-    danger: {
-      backgroundColor: disabled ? '#dc2626' : '#ef4444',
-      color: '#ffffff',
-      border: '1px solid #ef4444'
-    },
-    success: {
-      backgroundColor: disabled ? '#059669' : '#10b981',
-      color: '#ffffff',
-      border: '1px solid #10b981'
-    },
-    ghost: {
-      backgroundColor: 'transparent',
-      color: '#6b7280',
-      border: '1px solid transparent'
-    }
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-sm min-h-8',
+    md: 'px-4 py-2.5 text-base min-h-10',
+    lg: 'px-5 py-3 text-lg min-h-12'
   };
 
-  const sizes = {
-    sm: {
-      padding: '6px 12px',
-      fontSize: '14px',
-      minHeight: '32px'
-    },
-    md: {
-      padding: '10px 16px',
-      fontSize: '16px',
-      minHeight: '40px'
-    },
-    lg: {
-      padding: '12px 20px',
-      fontSize: '18px',
-      minHeight: '48px'
-    }
-  };
+  const disabledClasses = disabled || loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer';
 
-  const buttonStyles = {
-    ...baseStyles,
-    ...variants[variant],
-    ...sizes[size],
-    opacity: disabled ? 0.6 : 1
-  };
+  const buttonClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`;
 
   return (
     <button
       type={type}
       disabled={disabled || loading}
       onClick={onClick}
-      style={buttonStyles}
-      className={className}
+      className={buttonClasses}
       {...props}
     >
       {loading && (
         <svg
-          style={{ marginRight: '8px', animation: 'spin 1s linear infinite', width: '16px', height: '16px' }}
+          className="mr-2 animate-spin w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
         >

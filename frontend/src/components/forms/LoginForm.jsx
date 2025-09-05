@@ -73,7 +73,7 @@ const LoginForm = ({ onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Input
         type="email"
         name="email"
@@ -86,27 +86,19 @@ const LoginForm = ({ onSuccess }) => {
         error={error && error.includes('email') ? error : ''}
       />
 
-      <div style={{ marginTop: '16px' }}>
-        <Input
-          type="password"
-          name="password"
-          label="Password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Enter your password"
-          autoComplete="current-password"
-          required
-          error={error && error.includes('password') ? error : ''}
-        />
-      </div>
+      <Input
+        type="password"
+        name="password"
+        label="Password"
+        value={formData.password}
+        onChange={handleChange}
+        placeholder="Enter your password"
+        autoComplete="current-password"
+        required
+        error={error && error.includes('password') ? error : ''}
+      />
 
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        marginTop: '16px',
-        marginBottom: '16px'
-      }}>
+      <div className="flex items-center justify-between mt-4 mb-4">
         <Checkbox
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
@@ -114,25 +106,14 @@ const LoginForm = ({ onSuccess }) => {
         />
         <a 
           href="/forgot-password" 
-          style={{ 
-            fontSize: '14px', 
-            color: '#93c5fd', 
-            textDecoration: 'none' 
-          }}
+          className="text-sm text-blue-300 no-underline hover:text-blue-200"
         >
           Forgot your password?
         </a>
       </div>
 
       {error && !error.includes('email') && !error.includes('password') && (
-        <div style={{ 
-          background: '#7f1d1d', 
-          color: '#fecaca', 
-          padding: '10px 12px', 
-          borderRadius: '8px', 
-          marginBottom: '12px',
-          fontSize: '14px'
-        }}>
+        <div className="bg-red-900 text-red-200 px-3 py-2.5 rounded-lg mb-3 text-sm">
           {error}
         </div>
       )}
@@ -143,7 +124,7 @@ const LoginForm = ({ onSuccess }) => {
         size="lg"
         loading={loading}
         disabled={loading}
-        style={{ width: '100%' }}
+        className="w-full"
       >
         {loading ? 'Signing in...' : 'Sign in'}
       </Button>

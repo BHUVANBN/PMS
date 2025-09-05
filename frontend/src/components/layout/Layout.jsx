@@ -8,49 +8,11 @@ const Layout = ({ children, user, onLogout }) => {
   const screenSize = useResponsive();
   const isMobile = screenSize === 'xs' || screenSize === 'sm';
 
-  const layoutStyles = {
-    display: 'flex',
-    minHeight: '100vh',
-    width: '100%',
-    backgroundColor: '#0f172a',
-    position: 'relative',
-    margin: 0
-  };
-
-  const mainContentStyles = {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    width: '100%'
-  };
-
-  const contentAreaStyles = {
-    flex: 1,
-    padding: 0,
-    overflow: 'auto',
-    backgroundColor: '#0f172a',
-    width: '100%',
-    minHeight: 0,
-    boxSizing: 'border-box'
-  };
-
-  const overlayStyles = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 40,
-    display: isMobile && sidebarOpen ? 'block' : 'none'
-  };
-
   return (
-    <div style={layoutStyles}>
+    <div className="flex min-h-screen w-full bg-slate-900 relative m-0">
       {/* Mobile overlay */}
       <div 
-        style={overlayStyles} 
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 ${isMobile && sidebarOpen ? 'block' : 'hidden'}`}
         onClick={() => setSidebarOpen(false)}
       />
       
@@ -63,14 +25,14 @@ const Layout = ({ children, user, onLogout }) => {
         />
       )}
       
-      <div style={mainContentStyles}>
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         <Header 
           user={user} 
           onLogout={onLogout}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           showMenuButton={isMobile}
         />
-        <main style={contentAreaStyles}>
+        <main className="flex-1 p-0 overflow-auto bg-slate-900 w-full min-h-0 box-border">
           {children}
         </main>
       </div>

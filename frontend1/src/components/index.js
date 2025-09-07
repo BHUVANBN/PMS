@@ -11,5 +11,11 @@ export * from './kanban/index.js';
 // Export all dashboard components
 export * from './dashboards/index.js';
 
+// Export all table components
+export * from './tables/index.js';
+
+// Export all UI building blocks
+export * from './ui/index.js';
+
 // Export example components
 export { default as ComponentShowcase } from './examples/ComponentShowcase.jsx';

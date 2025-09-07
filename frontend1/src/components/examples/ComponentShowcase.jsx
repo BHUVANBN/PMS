@@ -37,6 +37,26 @@ import {
   TicketStatusChart,
   ProjectProgressChart
 } from '../dashboards/index.js';
+import {
+  DataTable,
+  UserTable,
+  ProjectTable,
+  TicketTable
+} from '../tables/index.js';
+import {
+  Button,
+  PrimaryButton,
+  SecondaryButton,
+  Input,
+  SearchInput,
+  Select,
+  Checkbox,
+  Badge,
+  StatusBadge,
+  PriorityBadge,
+  Tooltip,
+  InfoTooltip
+} from '../ui/index.js';
 
 const ComponentShowcase = () => {
   const [activeTab, setActiveTab] = useState('layout');
@@ -47,6 +67,10 @@ const ComponentShowcase = () => {
   const [loading, setLoading] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [selectValue, setSelectValue] = useState('');
+  const [checkboxValue, setCheckboxValue] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -437,6 +461,220 @@ const ComponentShowcase = () => {
     );
   };
 
+  const renderTablesSection = () => {
+    const sampleUsers = [
+      { _id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com', role: 'developer', department: 'Engineering', status: 'active', createdAt: new Date(), lastLogin: new Date() },
+      { _id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', role: 'manager', department: 'Engineering', status: 'active', createdAt: new Date(), lastLogin: new Date() }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Table Components</h3>
+          
+          <div className="space-y-8">
+            <div>
+              <h4 className="font-medium mb-3">User Table</h4>
+              <UserTable 
+                showActions={false}
+                selectable={false}
+                className="max-h-64 overflow-hidden"
+              />
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-3">Generic Data Table</h4>
+              <DataTable
+                data={sampleUsers}
+                columns={[
+                  { key: 'firstName', title: 'First Name' },
+                  { key: 'lastName', title: 'Last Name' },
+                  { key: 'email', title: 'Email' },
+                  { key: 'role', title: 'Role', type: 'badge' }
+                ]}
+                pagination={false}
+                className="max-h-48"
+              />
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Table Features</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✅ Sortable columns with visual indicators</li>
+                <li>✅ Global search and filtering</li>
+                <li>✅ Row selection with bulk actions</li>
+                <li>✅ Pagination with page size options</li>
+                <li>✅ Custom cell renderers and badges</li>
+                <li>✅ Loading states and error handling</li>
+                <li>✅ Responsive design with horizontal scroll</li>
+                <li>✅ Specialized tables for Users, Projects, Tickets</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderUISection = () => {
+    const sampleOptions = [
+      { value: 'option1', label: 'Option 1' },
+      { value: 'option2', label: 'Option 2' },
+      { value: 'option3', label: 'Option 3' }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">UI Building Blocks</h3>
+          
+          <div className="space-y-8">
+            {/* Buttons */}
+            <div>
+              <h4 className="font-medium mb-3">Buttons</h4>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <PrimaryButton>Primary</PrimaryButton>
+                <SecondaryButton>Secondary</SecondaryButton>
+                <Button variant="success">Success</Button>
+                <Button variant="danger">Danger</Button>
+                <Button variant="warning">Warning</Button>
+                <Button variant="outline">Outline</Button>
+                <Button variant="ghost">Ghost</Button>
+                <Button variant="link">Link</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="xs">Extra Small</Button>
+                <Button size="sm">Small</Button>
+                <Button size="md">Medium</Button>
+                <Button size="lg">Large</Button>
+                <Button loading>Loading</Button>
+                <Button disabled>Disabled</Button>
+              </div>
+            </div>
+
+            {/* Inputs */}
+            <div>
+              <h4 className="font-medium mb-3">Input Fields</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Basic Input"
+                  placeholder="Enter text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                />
+                <SearchInput
+                  label="Search Input"
+                  placeholder="Search..."
+                />
+                <Input
+                  label="Input with Error"
+                  placeholder="Error state"
+                  error="This field is required"
+                />
+                <Input
+                  label="Input with Help"
+                  placeholder="With helper text"
+                  helperText="This is helper text"
+                />
+              </div>
+            </div>
+
+            {/* Select */}
+            <div>
+              <h4 className="font-medium mb-3">Select Dropdown</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Basic Select"
+                  options={sampleOptions}
+                  value={selectValue}
+                  onChange={setSelectValue}
+                  placeholder="Choose an option"
+                />
+                <Select
+                  label="Searchable Select"
+                  options={sampleOptions}
+                  searchable
+                  placeholder="Search options"
+                />
+              </div>
+            </div>
+
+            {/* Checkboxes */}
+            <div>
+              <h4 className="font-medium mb-3">Checkboxes & Switches</h4>
+              <div className="space-y-3">
+                <Checkbox
+                  checked={checkboxValue}
+                  onChange={(e) => setCheckboxValue(e.target.checked)}
+                  label="Basic Checkbox"
+                  description="This is a description for the checkbox"
+                />
+                <Checkbox
+                  checked={true}
+                  label="Checked State"
+                  color="green"
+                />
+                <Checkbox
+                  checked={false}
+                  disabled
+                  label="Disabled Checkbox"
+                />
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div>
+              <h4 className="font-medium mb-3">Badges</h4>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge>Default</Badge>
+                <Badge variant="primary">Primary</Badge>
+                <Badge variant="success">Success</Badge>
+                <Badge variant="danger">Danger</Badge>
+                <Badge variant="warning">Warning</Badge>
+                <Badge variant="outline">Outline</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge status="active" />
+                <PriorityBadge priority="high" />
+                <Badge variant="primary" removable onRemove={() => console.log('Removed')}>Removable</Badge>
+              </div>
+            </div>
+
+            {/* Tooltips */}
+            <div>
+              <h4 className="font-medium mb-3">Tooltips</h4>
+              <div className="flex flex-wrap gap-4">
+                <Tooltip content="This is a tooltip">
+                  <Button variant="outline">Hover me</Button>
+                </Tooltip>
+                <InfoTooltip content="This provides additional information">
+                  Information with icon
+                </InfoTooltip>
+                <Tooltip content="Click tooltip" trigger="click">
+                  <Button variant="outline">Click me</Button>
+                </Tooltip>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">UI Component Features</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✅ Consistent design system with multiple variants</li>
+                <li>✅ Comprehensive form controls with validation</li>
+                <li>✅ Accessible components with proper ARIA labels</li>
+                <li>✅ Responsive design and mobile-friendly</li>
+                <li>✅ Loading states and disabled states</li>
+                <li>✅ Customizable colors, sizes, and styles</li>
+                <li>✅ Specialized components for common use cases</li>
+                <li>✅ Interactive tooltips and confirmation dialogs</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <ErrorBoundary>
       <div className="max-w-6xl mx-auto p-6">
@@ -456,7 +694,9 @@ const ComponentShowcase = () => {
               { id: 'errors', label: 'Error Handling' },
               { id: 'forms', label: 'Forms' },
               { id: 'kanban', label: 'Kanban' },
-              { id: 'dashboards', label: 'Dashboards' }
+              { id: 'dashboards', label: 'Dashboards' },
+              { id: 'tables', label: 'Tables' },
+              { id: 'ui', label: 'UI Components' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -483,6 +723,8 @@ const ComponentShowcase = () => {
           {activeTab === 'forms' && renderFormsSection()}
           {activeTab === 'kanban' && renderKanbanSection()}
           {activeTab === 'dashboards' && renderDashboardsSection()}
+          {activeTab === 'tables' && renderTablesSection()}
+          {activeTab === 'ui' && renderUISection()}
         </div>
 
         {/* Modals */}

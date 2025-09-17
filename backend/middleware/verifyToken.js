@@ -14,7 +14,16 @@ export const verifyToken = (req, res, next) => {
 			return res.status(401).json({ message: 'Authentication token missing' });
 		}
 		const payload = jwt.verify(token, process.env.JWT_SECRET);
-		req.user = { id: payload.id, role: payload.role, username: payload.username };
+		// Normalize user object for downstream controllers
+		req.user = {
+			_id: payload.id, // ensure _id exists for comparisons like req.user._id
+			id: payload.id,
+			role: payload.role,
+			username: payload.username
+		};
+		// Also expose role fields expected by controllers
+		req.userRole = payload.role;
+		req.effectiveRole = payload.role; // if you need intern actualRole, use roleAuth.verifyToken instead
 		next();
 	} catch (error) {
 		return res.status(401).json({ message: 'Invalid or expired token' });
@@ -70,4 +79,3 @@ export const allowDepartmentRoles = allowRoles('admin', 'hr', 'marketing', 'sale
 export const allowTechnicalRoles = allowRoles('admin', 'manager', 'developer', 'tester'); // Technical roles
 export const allowNonTechnicalRoles = allowRoles('admin', 'manager', 'employee', 'hr', 'marketing', 'sales'); // Non-technical roles
 export const allowAllAuthenticated = allowRoles('admin', 'manager', 'developer', 'tester', 'employee', 'hr', 'marketing', 'sales'); // Any authenticated user
-

@@ -13,7 +13,8 @@ import employeeRoutes from './routes/employee.route.js';
 import hrRoutes from './routes/hr.route.js';
 import ticketRoutes from './routes/ticket.route.js';
 import kanbanRoutes from './routes/kanban.route.js';
-import { attachCookieParser } from './controllers/auth.controller.js';
+import analyticsRoutes from './routes/analytics.route.js';
+import userRoutes from './routes/user.route.js';
 
 dotenv.config();
 
@@ -42,6 +43,9 @@ app.use('/api/employee', employeeRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/kanbanboard', kanbanRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/users', userRoutes);
+
 app.get('/', (req, res) => {
     res.send('API is running...');
 });

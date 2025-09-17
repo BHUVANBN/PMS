@@ -13,14 +13,6 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(verifyToken);
 
-// Get Kanban board for specific role/context
-// Usage: GET /api/kanbanboard/developer
-//        GET /api/kanbanboard/tester  
-//        GET /api/kanbanboard/lead
-//        GET /api/kanbanboard/hr
-//        GET /api/kanbanboard/admin
-router.get('/:boardType', getKanbanBoard);
-
 // Get project-specific kanban board
 // Usage: GET /api/kanbanboard/project/:projectId
 router.get('/project/:projectId', getProjectKanbanBoard);
@@ -33,5 +25,9 @@ router.get('/developer/personal', getDeveloperKanbanBoard);
 // Usage: PUT /api/kanbanboard/tickets/:projectId/:ticketId/status
 // Body: { status: 'in_progress', comment: 'Optional comment' }
 router.put('/tickets/:projectId/:ticketId/status', updateTicketStatus);
+
+// Get Kanban board for specific role/context (catch-all)
+// Usage: GET /api/kanbanboard/developer | tester | lead | hr | admin
+router.get('/:boardType', getKanbanBoard);
 
 export default router;

@@ -4,15 +4,22 @@ import mongoose from 'mongoose';
 // Define the different roles (job types) that users can have in the system
 // Each role determines what permissions and access level a user has
 const USER_ROLES = {
-  ADMIN: 'admin', 
-  HR: 'hr' ,         // Full system access, can manage everything and everyone
-  MANAGER: 'manager',      // Can oversee projects and teams, manage assignments
+  ADMIN: 'admin',          // Full system access, can create HR accounts, view organization analytics
+  HR: 'hr',                // Full CRUD on employees, approve/reject leave, track standups
+  MANAGER: 'manager',      // Team Manager - creates projects, assigns tickets, manages teams
   DEVELOPER: 'developer',  // Can work on coding tasks and development tickets
   TESTER: 'tester',       // Can test software and report bugs/issues
-  EMPLOYEE: 'employee' ,
-  MARKETING: 'marketing' ,
-  SALES: 'sales' ,
-  INTERN: 'intern'
+  SALES: 'sales',         // Sales team members with Sprint→Kanban workflow
+  MARKETING: 'marketing', // Marketing team members with Sprint→Kanban workflow
+  INTERN: 'intern'        // Intern role - same workflow as assigned role but tagged differently
+};
+
+// User status for account management
+const USER_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  SUSPENDED: 'suspended',
+  PENDING: 'pending'
 };
 
 const userSchema = new mongoose.Schema({
@@ -43,7 +50,14 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,                        // Must be text
     enum: Object.values(USER_ROLES),     // Must be one of the predefined role values
-    default: USER_ROLES.EMPLOYEE         // If not specified, defaults to basic 'employee' role
+    required: true                       // Role is mandatory for proper access control
+  },
+  
+  // For interns - specify their actual working role
+  actualRole: {
+    type: String,
+    enum: Object.values(USER_ROLES),
+    default: null  // Only used when role is 'intern'
   },
   
   // User's first name (given name)
@@ -58,6 +72,82 @@ const userSchema = new mongoose.Schema({
     type: String,        // Must be text
     required: true,      // This field must be provided
     trim: true          // Automatically removes extra spaces from beginning and end
+  },
+  
+  // Employee ID for HR management
+  employeeId: {
+    type: String,
+    unique: true,
+    sparse: true  // Allows null values while maintaining uniqueness
+  },
+  
+  // Department/Team information
+  department: {
+    type: String,
+    trim: true
+  },
+  
+  // Job title
+  jobTitle: {
+    type: String,
+    trim: true
+  },
+  
+  // Manager/Supervisor reference
+  managerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
+  // Contact information
+  phone: {
+    type: String,
+    trim: true
+  },
+  
+  // Address information
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  
+  // Employment details
+  dateOfJoining: {
+    type: Date,
+    default: Date.now
+  },
+  
+  dateOfBirth: Date,
+  
+  // Leave balance tracking
+  leaveBalance: {
+    annualLeave: {
+      type: Number,
+      default: 21  // Default annual leave days
+    },
+    sickLeave: {
+      type: Number,
+      default: 10  // Default sick leave days
+    },
+    personalLeave: {
+      type: Number,
+      default: 5   // Default personal leave days
+    },
+    compensatoryLeave: {
+      type: Number,
+      default: 0   // Earned comp-off days
+    }
+  },
+  
+  // Whether the user account is currently active
+  status: {
+    type: String,
+    enum: Object.values(USER_STATUS),
+    default: USER_STATUS.ACTIVE
   },
   
   // Whether the user account is currently active (can log in and use the system)
@@ -80,7 +170,70 @@ const userSchema = new mongoose.Schema({
     ticketId: {
       type: mongoose.Schema.Types.ObjectId    // Ticket ID within the module's tickets array
     }
-  }]
+  }],
+  
+  // Teams this user belongs to
+  teams: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project'  // Reference to projects they're part of
+  }],
+  
+  // Skills and expertise (useful for task assignment)
+  skills: [String],
+  
+  // User preferences
+  preferences: {
+    timezone: {
+      type: String,
+      default: 'UTC'
+    },
+    notifications: {
+      email: {
+        type: Boolean,
+        default: true
+      },
+      inApp: {
+        type: Boolean,
+        default: true
+      }
+    },
+    dashboardLayout: {
+      type: String,
+      default: 'default'
+    }
+  },
+  
+  // Profile picture URL
+  profilePicture: {
+    type: String,
+    default: null
+  },
+  
+  // Last login tracking
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  
+  // Password reset token and expiry
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  
+  // Account verification
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  
+  emailVerificationToken: String,
+  
+  // Two-factor authentication
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  
+  twoFactorSecret: String
 }, {
   // Additional schema options
   timestamps: true  // Automatically adds 'createdAt' and 'updatedAt' fields to track account creation and modifications
@@ -93,13 +246,30 @@ userSchema.index({ role: 1 });
 // Index for quickly finding users who have tickets assigned to them
 userSchema.index({ 'assignedTickets.projectId': 1 });
 
-// Export the schema and role constants so other files can use them
-export{
-  userSchema,     // The database structure definition for user accounts
-  USER_ROLES      // The possible role values that can be assigned to users
-};
+// Index for employee management
+userSchema.index({ employeeId: 1 });
+userSchema.index({ managerId: 1 });
+userSchema.index({ department: 1 });
+userSchema.index({ status: 1 });
 
-// Note: This schema handles basic user information, authentication, and work assignments
-// The assignedTickets field creates a direct link between users and their current workload
-// For additional project relationships, other schemas will also reference
-// users by their unique ID to link them to sprints, standups, and project teams
+// Virtual for full name
+userSchema.virtual('fullName').get(function() {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Virtual to check if user is intern
+userSchema.virtual('isIntern').get(function() {
+  return this.role === USER_ROLES.INTERN;
+});
+
+// Virtual to get effective role (actual role for interns, role for others)
+userSchema.virtual('effectiveRole').get(function() {
+  return this.role === USER_ROLES.INTERN ? this.actualRole : this.role;
+});
+
+// Export the schema and role constants so other files can use them
+export {
+  userSchema,     // The database structure definition for user accounts
+  USER_ROLES,     // The possible role values that can be assigned to users
+  USER_STATUS     // User account status options
+};

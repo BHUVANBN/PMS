@@ -1,0 +1,381 @@
+I’ll generate a single plain text file you can save as routes-test.txt and use while testing in Postman or curl. It lists every route, required headers, roles, and sample request bodies with placeholders.
+
+Save everything between the lines below into a file named: routes-test.txt
+
+```
+PMS Backend Routes - Test Guide
+Base URL:
+- http://localhost:5000
+
+Auth & Headers:
+- Most endpoints require: Authorization: Bearer <JWT_TOKEN>
+- Content-Type: application/json for requests with a body
+- JWT token can also be sent via cookie named token
+
+Roles Used Across Endpoints:
+- admin, hr, manager, developer, tester, sales, marketing, intern
+
+Order of Testing (recommended):
+1) Auth → 2) Users → 3) Projects → 4) Modules → 5) Tickets
+6) Sprints → 7) Kanban → 8) Bug Tracker → 9) Analytics
+
+ID Placeholders you’ll collect as you go:
+- <token>       ← from Auth - Login
+- <userId>      ← from Users - Create/List/Get
+- <projectId>   ← from Projects - Create/Get
+- <moduleId>    ← from Modules - Add
+- <ticketId>    ← from Tickets - Add
+- <sprintId>    ← from Sprints - Create
+- <bugId>       ← from Bugs - Create
+
+--------------------------------------------------------------------------------
+1) AUTH ROUTES (no token required for register/login)
+--------------------------------------------------------------------------------
+
+[POST] /api/auth/register
+- Body:
+{
+  "username": "admin1",
+  "email": "admin1@example.com",
+  "password": "Admin@123",
+  "firstName": "System",
+  "lastName": "Admin",
+  "role": "admin"
+}
+- Notes: Creates an account and returns token. You may alternatively create an admin via DB if needed.
+
+[POST] /api/auth/login
+- Body:
+{
+  "username": "admin1",   // or email
+  "password": "Admin@123"
+}
+- Response: { token, role }
+- Action: Save token as <token>
+
+[POST] /api/auth/logout
+- Header: Authorization: Bearer <token>
+
+[GET] /
+- Quick health check. No auth required. Response: "API is running..."
+
+--------------------------------------------------------------------------------
+2) USER ROUTES (mostly Admin/HR; self can view/update own)
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/users
+- Roles: admin/hr
+- Body:
+{
+  "username": "dev1",
+  "email": "dev1@example.com",
+  "password": "Dev@12345",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "developer",
+  "phone": "+1-555-1111",
+  "department": "Engineering"
+}
+- Save response _id as <userId> (for developer user)
+
+[GET] /api/users?role=developer&page=1&limit=10
+- Roles: admin/hr
+
+[GET] /api/users/role/manager
+- Roles: admin/hr/manager
+- Lists active users by a specific role
+
+[GET] /api/users/stats/overview
+- Roles: admin/hr
+
+[GET] /api/users/<userId>
+- Roles: admin/hr or the user themselves
+
+[PUT] /api/users/<userId>
+- Roles: admin/hr or the user themselves
+- Body (examples):
+{
+  "phone": "+1-555-2222",
+  "department": "Platform Engineering",
+  "dateOfJoining": "2023-01-10"
+}
+
+[PATCH] /api/users/<userId>/password
+- Roles: admin (no currentPassword needed) or the user themselves
+- Body (self):
+{
+  "currentPassword": "Dev@12345",
+  "newPassword": "Dev@67890"
+}
+
+[PATCH] /api/users/<userId>/status
+- Roles: admin/hr
+- Body:
+{ "isActive": true }
+
+[PATCH] /api/users/<userId>/leave-balance
+- Roles: admin/hr
+- Body:
+{ "leaveBalance": { "annualLeave": 24, "sickLeave": 12 } }
+
+[DELETE] /api/users/<userId>
+- Roles: admin
+
+--------------------------------------------------------------------------------
+3) PROJECT ROUTES
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/projects
+- Roles: manager/admin
+- Body:
+{
+  "name": "Website Revamp",
+  "description": "Modernize the company website",
+  "startDate": "2025-01-10",
+  "status": "planning",
+  "projectManager": "<userId>",
+  "teamMembers": ["<userId>"]
+}
+- Save response _id as <projectId>
+
+[GET] /api/projects?status=planning&page=1&limit=10
+- Roles: authenticated users (permissions enforced per controller logic)
+
+[GET] /api/projects/<projectId>
+
+[PUT] /api/projects/<projectId>
+- Roles: manager/admin
+- Body (example):
+{ "status": "active" }
+
+[DELETE] /api/projects/<projectId>
+- Roles: admin
+
+--------------------------------------------------------------------------------
+4) MODULE ROUTES (under projects)
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/projects/<projectId>/modules
+- Roles: manager/admin
+- Body:
+{
+  "name": "Frontend",
+  "description": "UI Implementation",
+  "moduleLead": "<userId>"
+}
+- Save response data.module._id as <moduleId>
+
+[PUT] /api/projects/<projectId>/modules/<moduleId>
+- Roles: manager/admin
+- Body (examples):
+{ "status": "active" }
+
+--------------------------------------------------------------------------------
+5) TICKET ROUTES (under modules)
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/projects/<projectId>/modules/<moduleId>/tickets
+- Roles: manager/admin
+- Body:
+{
+  "title": "Build Navbar",
+  "type": "task",                    // task | bug
+  "priority": "high",                // low | medium | high | critical
+  "tester": "<userId>",
+  "assignedDeveloper": "<userId>",
+  "storyPoints": 3,
+  "estimatedHours": 6
+}
+- Save response data.ticket._id as <ticketId>
+
+[PUT] /api/projects/<projectId>/modules/<moduleId>/tickets/<ticketId>
+- Roles: manager/admin
+- Body (examples):
+{ "status": "in_progress" }
+
+[POST] /api/projects/<projectId>/modules/<moduleId>/tickets/<ticketId>/comments
+- Roles: team members
+- Body:
+{ "comment": "Kicked off implementation" }
+
+[GET] /api/projects/users/<userId>/assigned-tickets
+- Lists tickets assigned to a user
+
+--------------------------------------------------------------------------------
+6) SPRINT ROUTES
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/sprints
+- Roles: manager/admin
+- Body:
+{
+  "projectId": "<projectId>",
+  "name": "Sprint 1",
+  "startDate": "2025-01-15",
+  "endDate": "2025-01-29",
+  "assignedDevelopers": ["<userId>"],
+  "assignedTesters": ["<userId>"]
+}
+- Save response _id as <sprintId>
+
+[GET] /api/sprints/project/<projectId>
+
+[GET] /api/sprints/<sprintId>
+
+[POST] /api/sprints/<sprintId>/assignments
+- Roles: manager/admin
+- Body:
+{
+  "ticketId": "<ticketId>",
+  "assignedTo": "<userId>",
+  "estimatedHours": 5,
+  "storyPoints": 2,
+  "priority": "high"
+}
+
+[PATCH] /api/sprints/<sprintId>/assignments/<assignmentId>
+- Body:
+{
+  "status": "in_progress",       // allowed values per controller workflow
+  "actualHours": 3,
+  "comments": "Work started"
+}
+
+[GET] /api/sprints/<sprintId>/board?userId=<userId>
+- Optional: ?role=developer|tester|manager
+
+[POST] /api/sprints/<sprintId>/start
+
+[POST] /api/sprints/<sprintId>/complete
+- Body:
+{
+  "retrospectiveNotes": "Great teamwork",
+  "achievements": ["Navbar shipped"],
+  "improvements": ["Reduce scope creep"]
+}
+
+[GET] /api/sprints/assignments/user/<userId>
+
+[GET] /api/sprints/analytics/project/<projectId>?timeframe=3months
+
+--------------------------------------------------------------------------------
+7) KANBAN ROUTES
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[GET] /api/kanbanboard/project/<projectId>
+
+[GET] /api/kanbanboard/developer/personal
+
+[PUT] /api/kanbanboard/tickets/<projectId>/<ticketId>/status
+- Body:
+{
+  "status": "testing",   // depends on board workflow rules
+  "comment": "Moving to QA"
+}
+
+[GET] /api/kanbanboard/<boardType>
+- boardType examples: developer | tester | hr | admin
+
+--------------------------------------------------------------------------------
+8) BUG TRACKER ROUTES
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[POST] /api/bugs
+- Body:
+{
+  "projectId": "<projectId>",
+  "title": "Navbar overlaps on mobile",
+  "description": "On iPhone SE, menu overlaps logo",
+  "severity": "major",       // minor | major | critical (per schema)
+  "priority": "high",        // low | medium | high | critical
+  "linkedTicket": { 
+    "ticketId": "<ticketId>", 
+    "ticketNumber": "TKT-1"
+  },
+  "watchers": ["<userId>"]
+}
+- Save response _id as <bugId>
+
+[GET] /api/bugs/project/<projectId>?status=open&page=1&limit=10
+
+[GET] /api/bugs/<bugId>
+
+[POST] /api/bugs/<bugId>/assign
+- Body:
+{
+  "assignedTo": "<userId>",
+  "comments": "Assigning to dev1"
+}
+
+[PATCH] /api/bugs/<bugId>/status
+- Body:
+{
+  "status": "in_progress",    // follow allowed transitions in controller
+  "comments": "Working on fix",
+  "resolution": "Updated CSS",
+  "testingNotes": "Verify on small screens"
+}
+
+[POST] /api/bugs/<bugId>/comments
+- Body:
+{ "comment": "Added logs to isolate issue" }
+
+[PATCH] /api/bugs/<bugId>/priority
+- Body:
+{
+  "priority": "critical",
+  "severity": "critical",
+  "reason": "Blocking release"
+}
+
+[PATCH] /api/bugs/<bugId>/watchers
+- Body (add/remove):
+{ "action": "add", "userId": "<userId>" }
+
+[GET] /api/bugs/stats/project/<projectId>?timeframe=1month
+
+[GET] /api/bugs/assigned/user/<userId>?status=open&priority=high
+
+--------------------------------------------------------------------------------
+9) ANALYTICS ROUTES
+--------------------------------------------------------------------------------
+All require: Authorization: Bearer <token>
+
+[GET] /api/analytics/dashboard?timeframe=1month
+
+[GET] /api/analytics/project/<projectId>?timeframe=3months
+
+[GET] /api/analytics/user/<userId>?timeframe=3months
+
+--------------------------------------------------------------------------------
+Common Headers Examples
+--------------------------------------------------------------------------------
+Authorization: Bearer <token>
+Content-Type: application/json
+
+--------------------------------------------------------------------------------
+Quick curl Examples (optional)
+--------------------------------------------------------------------------------
+# Login (get token)
+curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{ "username":"admin1", "password":"Admin@123" }'
+
+# List developers
+curl -s http://localhost:5000/api/users?role=developer \
+  -H "Authorization: Bearer <token>"
+
+# Create Project
+curl -s -X POST http://localhost:5000/api/projects \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{ "name":"Website Revamp","description":"Modernize site","startDate":"2025-01-10","projectManager":"<userId>","teamMembers":["<userId>"] }'
+```
+
+If you’d like, I can also generate a smaller variant focused only on critical smoke tests or produce a ready-made Newman script to run the whole flow automatically.

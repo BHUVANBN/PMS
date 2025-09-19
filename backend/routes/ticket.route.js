@@ -16,6 +16,11 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(verifyToken);
 
+// Get all tickets across all projects (admin/HR only) - MUST BE FIRST
+// Usage: GET /api/tickets
+// Query params: status, priority, type, projectId, search
+router.get('/', getAllTickets);
+
 // Create a new ticket
 // Usage: POST /api/tickets
 // Body: {
@@ -34,12 +39,12 @@ router.use(verifyToken);
 // }
 router.post('/', createTicket);
 
-// Get all tickets for a specific project
+// Get all tickets for a specific project - SPECIFIC ROUTE BEFORE PARAMETERS
 // Usage: GET /api/tickets/project/:projectId
 // Query params: status, priority, type, assignedTo, search
 router.get('/project/:projectId', getProjectTickets);
 
-// Get a specific ticket
+// Get a specific ticket - PARAMETER ROUTE AFTER SPECIFIC ROUTES
 // Usage: GET /api/tickets/:projectId/:ticketId
 router.get('/:projectId/:ticketId', getTicket);
 
@@ -65,10 +70,5 @@ router.post('/:projectId/:ticketId/comments', addComment);
 // Delete ticket
 // Usage: DELETE /api/tickets/:projectId/:ticketId
 router.delete('/:projectId/:ticketId', deleteTicket);
-
-// Get all tickets across all projects (admin/HR only)
-// Usage: GET /api/tickets
-// Query params: status, priority, type, projectId, search
-router.get('/', getAllTickets);
 
 export default router;

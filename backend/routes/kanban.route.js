@@ -3,9 +3,16 @@ import express from 'express';
 import { verifyToken } from '../middleware/verifyToken.js';
 import {
   getKanbanBoard,
+  getProjectKanbanBoards,
+  getDeveloperKanbanBoard,
+  createKanbanBoard,
+  moveTicket,
   updateTicketStatus,
-  getProjectKanbanBoard,
-  getDeveloperKanbanBoard
+  addTicketToBoard,
+  removeTicketFromBoard,
+  updateColumn,
+  getBoardStatistics,
+  updateBoardSettings
 } from '../controllers/kanban.controller.js';
 
 const router = express.Router();
@@ -13,21 +20,48 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(verifyToken);
 
-// Get project-specific kanban board
-// Usage: GET /api/kanbanboard/project/:projectId
-router.get('/project/:projectId', getProjectKanbanBoard);
+// Create new kanban board
+// Usage: POST /api/kanbanboard
+router.post('/', createKanbanBoard);
 
-// Get developer's personal kanban board
+// Get project-specific kanban boards (plural - returns all boards for a project)
+// Usage: GET /api/kanbanboard/project/:projectId
+router.get('/project/:projectId', getProjectKanbanBoards);
+
+// Get developer's personal kanban board (must be before /:boardId)
 // Usage: GET /api/kanbanboard/developer/personal
 router.get('/developer/personal', getDeveloperKanbanBoard);
 
-// Update ticket status (move between columns)
+// Update ticket status (direct status update)
 // Usage: PUT /api/kanbanboard/tickets/:projectId/:ticketId/status
-// Body: { status: 'in_progress', comment: 'Optional comment' }
 router.put('/tickets/:projectId/:ticketId/status', updateTicketStatus);
 
-// Get Kanban board for specific role/context (catch-all)
-// Usage: GET /api/kanbanboard/developer | tester | lead | hr | admin
-router.get('/:boardType', getKanbanBoard);
+// Get board statistics
+// Usage: GET /api/kanbanboard/:boardId/statistics
+router.get('/:boardId/statistics', getBoardStatistics);
+
+// Update board settings
+// Usage: PUT /api/kanbanboard/:boardId/settings
+router.put('/:boardId/settings', updateBoardSettings);
+
+// Move ticket between columns (drag-drop)
+// Usage: PUT /api/kanbanboard/:boardId/move
+router.put('/:boardId/move', moveTicket);
+
+// Update column configuration
+// Usage: PUT /api/kanbanboard/:boardId/columns/:columnId
+router.put('/:boardId/columns/:columnId', updateColumn);
+
+// Add ticket to board
+// Usage: POST /api/kanbanboard/:boardId/tickets
+router.post('/:boardId/tickets', addTicketToBoard);
+
+// Remove ticket from board
+// Usage: DELETE /api/kanbanboard/:boardId/tickets/:ticketId
+router.delete('/:boardId/tickets/:ticketId', removeTicketFromBoard);
+
+// Get specific kanban board by ID (must be last to avoid conflicts)
+// Usage: GET /api/kanbanboard/:boardId
+router.get('/:boardId', getKanbanBoard);
 
 export default router;

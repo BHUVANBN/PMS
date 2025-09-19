@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "start:debug": "node start-server.js",
     "seed:admin": "node scripts/seed-admin.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test-server.js",
+    "test:postman": "echo \"Use the postman.txt file for API testing\""
   },
   "author": "Bhuvan",
   "license": "ISC",
@@ -20,7 +22,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
-    "nodemailer": "^7.0.5"
+    "nodemailer": "^7.0.5",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

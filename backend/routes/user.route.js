@@ -22,11 +22,17 @@ router.use(verifyToken);
 // Admin/HR: list users with filters
 router.get('/', getUsers);
 
-// Get user by ID (self or Admin/HR)
-router.get('/:userId', getUser);
-
 // Admin/HR: create user
 router.post('/', createUser);
+
+// Get users by role (Admin/HR/Manager) - MUST BE BEFORE /:userId
+router.get('/role/:role', getUsersByRole);
+
+// Admin/HR: user statistics - MUST BE BEFORE /:userId
+router.get('/stats/summary', getUserStatistics);
+
+// Get user by ID (self or Admin/HR) - MUST BE AFTER specific routes
+router.get('/:userId', getUser);
 
 // Update user profile (self or Admin/HR)
 router.put('/:userId', updateUser);
@@ -40,12 +46,6 @@ router.patch('/:userId/status', toggleUserStatus);
 
 // Admin/HR: update leave balance
 router.patch('/:userId/leave-balance', updateLeaveBalance);
-
-// Get users by role (Admin/HR/Manager)
-router.get('/role/:role', getUsersByRole);
-
-// Admin/HR: user statistics
-router.get('/stats/summary', getUserStatistics);
 
 // Admin: delete user
 router.delete('/:userId', deleteUser);

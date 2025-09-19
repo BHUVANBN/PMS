@@ -101,7 +101,7 @@ const EmployeeDetailPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
@@ -109,34 +109,36 @@ const EmployeeDetailPage = () => {
   if (!employee) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Employee Not Found</h2>
+        <h2 className="text-2xl font-bold text-gray-200 mb-4">Employee Not Found</h2>
         <Button onClick={() => navigate('/hr/employees')}>Back to Employees</Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Employee Details</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage employee information and records</p>
+          <h1 className="text-3xl font-bold text-gray-200 mb-2">Employee Details</h1>
+          <p className="text-gray-400">Manage employee information and records</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => navigate('/hr/employees')}
+            className="w-full sm:w-auto"
           >
             Back to Employees
           </Button>
           {!editing ? (
-            <Button onClick={() => setEditing(true)}>
+            <Button onClick={() => setEditing(true)} className="w-full sm:w-auto">
               Edit Employee
             </Button>
           ) : (
             <>
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => {
                   setEditing(false);
                   setFormData({
@@ -153,10 +155,11 @@ const EmployeeDetailPage = () => {
                     skills: employee.skills?.join(', ') || ''
                   });
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} className="w-full sm:w-auto">
                 Save Changes
               </Button>
             </>
@@ -164,11 +167,17 @@ const EmployeeDetailPage = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      {/* Employee Information Card */}
+      <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Personal Information */}
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700 pb-2 mb-4">
+              Personal Information
+            </h3>
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 First Name
               </label>
               {editing ? (
@@ -178,12 +187,12 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white font-medium">{employee.firstName}</p>
+                <p className="text-gray-200 font-medium">{employee.firstName}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Last Name
               </label>
               {editing ? (
@@ -193,12 +202,12 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white font-medium">{employee.lastName}</p>
+                <p className="text-gray-200 font-medium">{employee.lastName}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Email
               </label>
               {editing ? (
@@ -209,12 +218,12 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">{employee.email}</p>
+                <p className="text-gray-200">{employee.email}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Phone
               </label>
               {editing ? (
@@ -224,12 +233,19 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">{employee.phone || 'Not provided'}</p>
+                <p className="text-gray-200">{employee.phone || 'Not provided'}</p>
               )}
             </div>
+          </div>
 
+          {/* Work Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-200 border-b border-gray-700 pb-2 mb-4">
+              Work Information
+            </h3>
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Department
               </label>
               {editing ? (
@@ -247,12 +263,12 @@ const EmployeeDetailPage = () => {
                   ]}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">{employee.department}</p>
+                <p className="text-gray-200">{employee.department}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Position
               </label>
               {editing ? (
@@ -262,14 +278,12 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">{employee.position}</p>
+                <p className="text-gray-200">{employee.position}</p>
               )}
             </div>
-          </div>
 
-          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Status
               </label>
               {editing ? (
@@ -290,7 +304,7 @@ const EmployeeDetailPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Salary
               </label>
               {editing ? (
@@ -301,14 +315,14 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">
+                <p className="text-gray-200">
                   {employee.salary ? `$${employee.salary.toLocaleString()}` : 'Not disclosed'}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Hire Date
               </label>
               {editing ? (
@@ -319,14 +333,14 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">
+                <p className="text-gray-200">
                   {employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : 'Not provided'}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Manager
               </label>
               {editing ? (
@@ -336,12 +350,12 @@ const EmployeeDetailPage = () => {
                   onChange={handleInputChange}
                 />
               ) : (
-                <p className="text-gray-900 dark:text-white">{employee.manager || 'Not assigned'}</p>
+                <p className="text-gray-200">{employee.manager || 'Not assigned'}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Skills
               </label>
               {editing ? (
@@ -355,24 +369,24 @@ const EmployeeDetailPage = () => {
                 <div className="flex flex-wrap gap-2">
                   {employee.skills?.map((skill, index) => (
                     <Badge key={index} variant="secondary">{skill}</Badge>
-                  )) || <p className="text-gray-500">No skills listed</p>}
+                  )) || <p className="text-gray-400">No skills listed</p>}
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Employee ID
               </label>
-              <p className="text-gray-900 dark:text-white font-mono">{employee.id || employee._id}</p>
+              <p className="text-gray-200 font-mono">{employee.id || employee._id}</p>
             </div>
           </div>
         </div>
 
         {!editing && (
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-8 pt-6 border-t border-gray-700">
             <Button
-              variant="error"
+              variant="danger"
               onClick={() => setShowDeleteModal(true)}
             >
               Remove Employee
@@ -387,19 +401,21 @@ const EmployeeDetailPage = () => {
         title="Remove Employee"
       >
         <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-400">
             Are you sure you want to remove this employee? This action cannot be undone.
           </p>
-          <div className="flex justify-end space-x-3">
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => setShowDeleteModal(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
-              variant="error"
+              variant="danger"
               onClick={handleDelete}
+              className="w-full sm:w-auto"
             >
               Remove Employee
             </Button>

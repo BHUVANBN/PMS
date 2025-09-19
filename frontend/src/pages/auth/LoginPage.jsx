@@ -79,23 +79,8 @@ const LoginPage = () => {
         throw new Error('Please enter both email and password');
       }
     } catch (err) {
-  // TEMPORARY DEMO ACCESS (REMOVE AFTER BACKEND AUTH IS READY)
-      // If backend is unreachable, allow local demo sign-in to check dashboards
-      console.warn('Demo fallback login in use. Remove after backend is live.');
-      const demoUser = {
-        id: 0,
-        email: formData.email || 'demo@example.com',
-        name: (formData.email || 'demo').split('@')[0],
-        role: 'admin'
-      };
-      login(demoUser);
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
-      } else {
-        localStorage.removeItem('rememberMe');
-      }
-      navigate('/admin/dashboard');
-  //delete till here
+      const message = err?.message || 'Login failed. Please check your credentials.';
+      setError(message);
     } finally {
       setLoading(false);
     }

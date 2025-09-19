@@ -34,7 +34,36 @@ export const useAuth = () => {
           }
           return;
         }
-        // Not authenticated
+        // Attempt cookie-based session discovery (user may have a valid httpOnly cookie)
+        try {
+          const meEndpoints = [
+            () => api.admin.getMe(),
+            () => api.hr.getMe(),
+            () => api.manager.getMe(),
+            () => api.developer.getMe(),
+            () => api.tester.getMe(),
+            () => api.employee.getMe(),
+          ];
+          for (const getMe of meEndpoints) {
+            try {
+              const me = await getMe();
+              if (me && me.user && me.user.role) {
+                const detectedUser = { role: me.user.role, username: me.user.username, id: me.user.id };
+                setUser(detectedUser);
+                setIsAuthenticated(true);
+                localStorage.setItem('user', JSON.stringify(detectedUser));
+                localStorage.setItem('isAuthenticated', 'true');
+                return;
+              }
+            } catch (_) {
+              // try next role
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+
+        // Still not authenticated
         localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
       } finally {

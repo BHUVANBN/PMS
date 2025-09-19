@@ -186,5 +186,6 @@ export {
   BUG_STATUS,
   BUG_SEVERITY,
   BUG_TYPES,
-  BUG_PRIORITY
+  BUG_PRIORITY,
+  
 };

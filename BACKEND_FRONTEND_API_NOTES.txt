@@ -1,0 +1,293 @@
+================================================================================
+                    BACKEND-FRONTEND API INTERACTION NOTES
+                         Project Management System (PMS)
+================================================================================
+
+TABLE OF CONTENTS:
+1. AUTHENTICATION FLOW
+2. ADMIN API ENDPOINTS
+3. FRONTEND API USAGE PATTERNS
+4. ERROR HANDLING
+5. CORS CONFIGURATION
+6. JWT TOKEN MANAGEMENT
+7. ROLE-BASED ACCESS CONTROL
+8. API REQUEST EXAMPLES
+
+================================================================================
+1. AUTHENTICATION FLOW
+================================================================================
+
+BACKEND LOGIN ENDPOINT:
+- URL: POST http://localhost:5000/api/auth/login
+- Location: backend/routes/auth.route.js
+- Controller: backend/controllers/auth.controller.js
+
+REQUEST FORMAT:
+{
+  "email": "admin@pms.com",
+  "password": "admin123"
+}
+
+RESPONSE FORMAT (Success):
+{
+  "success": true,
+  "message": "Login successful",
+  "user": {
+    "_id": "user_id",
+    "email": "admin@pms.com",
+    "firstName": "System",
+    "lastName": "Administrator",
+    "role": "admin",
+    "username": "admin",
+    "isActive": true
+  },
+  "token": "jwt_token_here"
+}
+
+FRONTEND IMPLEMENTATION:
+- File: frontend1/src/pages/auth/LoginPage.jsx
+- Lines: 83-93 (API call)
+- Method: fetch() with credentials: 'include'
+- Storage: localStorage/sessionStorage based on "Remember Me"
+
+================================================================================
+2. ADMIN API ENDPOINTS
+================================================================================
+
+All admin endpoints require authentication and admin role.
+Base URL: http://localhost:5000/api/admin
+
+SYSTEM STATS:
+- GET /api/admin/stats
+- Frontend: AdminDashboard.jsx (fetchSystemStats function)
+- Response: User counts, system health, activity logs
+
+USER MANAGEMENT:
+- GET /api/admin/users - List all users
+- GET /api/admin/users/role/:role - Filter users by role
+- POST /api/admin/users - Create new user
+- PUT /api/admin/users/:id - Update user
+- DELETE /api/admin/users/:id - Deactivate user
+- PATCH /api/admin/users/:id/reset-password - Reset password
+
+FRONTEND USAGE:
+- UserListPage.jsx - User listing and management
+- UserDetailPage.jsx - Individual user operations
+- UserCreatePage.jsx - New user creation
+- SystemStatsPage.jsx - Analytics and metrics
+
+================================================================================
+3. FRONTEND API USAGE PATTERNS
+================================================================================
+
+STANDARD API CALL PATTERN:
+```javascript
+const response = await fetch('http://localhost:5000/api/endpoint', {
+  method: 'GET/POST/PUT/DELETE',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  credentials: 'include',  // IMPORTANT: Sends cookies for JWT
+  body: JSON.stringify(data) // For POST/PUT requests
+});
+
+const result = await response.json();
+if (response.ok) {
+  // Handle success
+} else {
+  // Handle error
+}
+```
+
+AUTHENTICATION HEADERS:
+- JWT token is sent via HTTP-only cookies
+- credentials: 'include' is REQUIRED for all API calls
+- No manual Authorization header needed
+
+ERROR HANDLING:
+- Check response.ok before processing data
+- Display result.message for user-friendly errors
+- Network errors caught in try-catch blocks
+
+================================================================================
+4. ERROR HANDLING
+================================================================================
+
+BACKEND ERROR RESPONSES:
+{
+  "success": false,
+  "message": "Error description",
+  "error": "Technical error details" // Optional
+}
+
+FRONTEND ERROR HANDLING:
+- Network errors: "Please check your connection and try again"
+- 401 Unauthorized: Redirect to login page
+- 403 Forbidden: "Access denied" message
+- 404 Not Found: "Resource not found"
+- 500 Server Error: "Server error, please try again"
+
+COMMON ERROR SCENARIOS:
+- User not logged in → 401 → Redirect to /login
+- Insufficient permissions → 403 → Show access denied
+- Invalid data → 400 → Show validation errors
+- Server down → Network error → Show connection message
+
+================================================================================
+5. CORS CONFIGURATION
+================================================================================
+
+BACKEND CORS SETUP (backend/index.js):
+```javascript
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
+```
+
+ALLOWED ORIGINS:
+- http://localhost:3000 (React dev server)
+- http://localhost:5173 (Vite dev server)
+
+CREDENTIALS: true - Allows cookies to be sent cross-origin
+
+================================================================================
+6. JWT TOKEN MANAGEMENT
+================================================================================
+
+BACKEND JWT SETUP:
+- Secret: Stored in .env file (JWT_SECRET)
+- Expiration: Set in auth controller
+- Storage: HTTP-only cookies for security
+
+FRONTEND TOKEN HANDLING:
+- Automatic: Cookies sent with credentials: 'include'
+- Manual Storage: localStorage/sessionStorage for user data
+- Context: AuthContext manages authentication state
+
+TOKEN VERIFICATION:
+- Middleware: backend/middleware/verifyToken.js
+- Applied to all protected routes
+- Extracts user info from JWT payload
+
+================================================================================
+7. ROLE-BASED ACCESS CONTROL
+================================================================================
+
+BACKEND MIDDLEWARE:
+- verifyToken: Validates JWT token
+- allowAdminOnly: Restricts to admin role
+- allowManagerOnly: Restricts to manager role
+- etc.
+
+FRONTEND PROTECTION:
+- ProtectedRoute component wraps routes
+- allowedRoles prop specifies permitted roles
+- AuthContext provides role checking utilities
+
+ROLE HIERARCHY:
+- admin: Full system access
+- hr: Employee management
+- manager: Project management
+- developer: Development tasks
+- tester: QA and testing
+- employee: Basic access
+
+================================================================================
+8. API REQUEST EXAMPLES
+================================================================================
+
+LOGIN REQUEST:
+```javascript
+const response = await fetch('http://localhost:5000/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({
+    email: 'admin@pms.com',
+    password: 'admin123'
+  })
+});
+```
+
+GET USERS REQUEST:
+```javascript
+const response = await fetch('http://localhost:5000/api/admin/users', {
+  method: 'GET',
+  credentials: 'include'
+});
+```
+
+CREATE USER REQUEST:
+```javascript
+const response = await fetch('http://localhost:5000/api/admin/users', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john@company.com',
+    role: 'developer'
+  })
+});
+```
+
+UPDATE USER REQUEST:
+```javascript
+const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify(updatedUserData)
+});
+```
+
+DELETE USER REQUEST:
+```javascript
+const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+  method: 'DELETE',
+  credentials: 'include'
+});
+```
+
+================================================================================
+IMPORTANT NOTES:
+================================================================================
+
+1. ALWAYS include credentials: 'include' in fetch requests
+2. Backend runs on port 5000, frontend on port 5173
+3. JWT tokens are stored in HTTP-only cookies for security
+4. All admin routes require authentication + admin role
+5. CORS is configured to allow frontend origins
+6. Error responses follow consistent format
+7. Role-based access is enforced on both backend and frontend
+8. User data is stored in AuthContext and localStorage/sessionStorage
+
+================================================================================
+TROUBLESHOOTING:
+================================================================================
+
+401 UNAUTHORIZED:
+- Check if user is logged in
+- Verify JWT token is valid
+- Ensure credentials: 'include' is set
+
+403 FORBIDDEN:
+- Check user role permissions
+- Verify route protection middleware
+
+CORS ERRORS:
+- Ensure frontend URL is in CORS origins
+- Check credentials: 'include' is set
+
+CONNECTION ERRORS:
+- Verify backend server is running on port 5000
+- Check network connectivity
+- Ensure MongoDB is running
+
+================================================================================
+END OF NOTES
+================================================================================

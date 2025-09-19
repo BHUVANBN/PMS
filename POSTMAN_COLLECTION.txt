@@ -1,0 +1,619 @@
+# PROJECT MANAGEMENT SYSTEM - POSTMAN COLLECTION
+# Base URL: http://localhost:3000/api
+
+## ========================================
+## 1. AUTHENTICATION ROUTES
+## ========================================
+
+### 1.1 User Registration
+POST /api/auth/register
+Content-Type: application/json
+
+Body:
+{
+  "username": "admin",
+  "email": "admin@skillonx.com",
+  "password": "admin123",
+  "firstName": "admin",
+  "lastName": "skillonx",
+  "role": "admin"
+}
+
+### 1.2 User Login
+POST /api/auth/login
+Content-Type: application/json
+
+Body:
+{
+  "username": "testuser",
+  "password": "password123"
+}
+
+Response includes JWT token in cookies - use this for authenticated requests
+
+### 1.3 User Logout
+POST /api/auth/logout
+Authorization: Bearer {token}
+
+## ========================================
+## 2. ADMIN ROUTES (Admin Role Required)
+## ========================================
+
+### 2.1 Get Current Admin Info
+GET /api/admin/me
+Authorization: Bearer {admin_token}
+
+### 2.2 Create New User
+POST /api/admin/users
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+Body:
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123",
+  "firstName": "New",
+  "lastName": "User",
+  "role": "developer",
+  "isActive": true
+}
+
+### 2.3 Create HR User
+POST /api/admin/users/hr
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+Body:
+{
+  "username": "hruser",
+  "email": "hr@example.com",
+  "password": "password123",
+  "firstName": "HR",
+  "lastName": "Manager",
+  "isActive": true
+}
+
+### 2.4 Get All Users
+GET /api/admin/users
+Authorization: Bearer {admin_token}
+
+### 2.5 Get Users by Role
+GET /api/admin/users/role/developer
+Authorization: Bearer {admin_token}
+
+### 2.6 Update User
+PUT /api/admin/users/{userId}
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+Body:
+{
+  "firstName": "Updated",
+  "lastName": "Name",
+  "role": "manager",
+  "isActive": true
+}
+
+### 2.7 Delete/Deactivate User
+DELETE /api/admin/users/{userId}
+Authorization: Bearer {admin_token}
+
+### 2.8 Reset User Password
+PATCH /api/admin/users/{userId}/reset-password
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+Body:
+{
+  "newPassword": "newpassword123"
+}
+
+### 2.9 Get System Statistics
+GET /api/admin/stats
+Authorization: Bearer {admin_token}
+
+## ========================================
+## 3. HR ROUTES (HR Role and Above Required)
+## ========================================
+
+### 3.1 Get Current HR Info
+GET /api/hr/me
+Authorization: Bearer {hr_token}
+
+### 3.2 Create Employee
+POST /api/hr/employees
+Authorization: Bearer {hr_token}
+Content-Type: application/json
+
+Body:
+{
+  "username": "employee1",
+  "email": "employee1@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "developer",
+  "isActive": true
+}
+
+### 3.3 Get All Employees
+GET /api/hr/employees
+Authorization: Bearer {hr_token}
+
+### 3.4 Get Employees by Role
+GET /api/hr/employees/role/developer
+Authorization: Bearer {hr_token}
+
+### 3.5 Update Employee
+PUT /api/hr/employees/{employeeId}
+Authorization: Bearer {hr_token}
+Content-Type: application/json
+
+Body:
+{
+  "firstName": "Updated",
+  "lastName": "Employee",
+  "role": "tester"
+}
+
+### 3.6 Toggle Employee Status
+PATCH /api/hr/employees/{employeeId}/toggle-status
+Authorization: Bearer {hr_token}
+
+### 3.7 Get Employee Statistics
+GET /api/hr/stats
+Authorization: Bearer {hr_token}
+
+## ========================================
+## 4. DEVELOPER ROUTES (Developer Role Required)
+## ========================================
+
+### 4.1 Get Developer Info
+GET /api/developer/me
+Authorization: Bearer {developer_token}
+
+### 4.2 Get Developer Dashboard
+GET /api/developer/dashboard
+Authorization: Bearer {developer_token}
+
+### 4.3 Get My Projects
+GET /api/developer/projects
+Authorization: Bearer {developer_token}
+
+### 4.4 Get My Tickets
+GET /api/developer/tickets
+Authorization: Bearer {developer_token}
+
+Query Parameters:
+- status: open, in_progress, testing, code_review, done, blocked
+- priority: low, medium, high, critical
+- type: task, bug
+- search: search term
+
+### 4.5 Get My Kanban Boards
+GET /api/developer/kanban/boards
+Authorization: Bearer {developer_token}
+
+### 4.6 Move Ticket on Kanban Board
+PATCH /api/developer/kanban/boards/{boardId}/move
+Authorization: Bearer {developer_token}
+Content-Type: application/json
+
+Body:
+{
+  "ticketId": "ticket_id",
+  "newStatus": "in_progress",
+  "comment": "Started working on this ticket"
+}
+
+### 4.7 Get My Standups
+GET /api/developer/standups
+Authorization: Bearer {developer_token}
+
+### 4.8 Create/Update Standup Update
+POST /api/developer/standups/{standupId}/updates
+Authorization: Bearer {developer_token}
+Content-Type: application/json
+
+Body:
+{
+  "tasks": [
+    {
+      "description": "Implemented user authentication",
+      "priority": "high",
+      "status": "completed",
+      "assignedTo": "developer_id"
+    }
+  ],
+  "blockers": ["Waiting for API response"],
+  "outcomes": ["Auth system working"],
+  "nextSteps": ["Test edge cases"]
+}
+
+## ========================================
+## 5. MANAGER ROUTES (Management Team Required)
+## ========================================
+
+### 5.1 Get Manager Info
+GET /api/manager/me
+Authorization: Bearer {manager_token}
+
+### 5.2 Get Team Info
+GET /api/manager/team
+Authorization: Bearer {manager_token}
+
+## ========================================
+## 6. TESTER ROUTES (Tester Role Required)
+## ========================================
+
+### 6.1 Get Tester Info
+GET /api/tester/me
+Authorization: Bearer {tester_token}
+
+## ========================================
+## 7. EMPLOYEE ROUTES (Employee Role Required)
+## ========================================
+
+### 7.1 Get Employee Info
+GET /api/employee/me
+Authorization: Bearer {employee_token}
+
+## ========================================
+## 8. INTERN ROUTES (Intern Role Required)
+## ========================================
+
+### 8.1 Get Intern Info
+GET /api/intern/me
+Authorization: Bearer {intern_token}
+
+## ========================================
+## 9. TICKET MANAGEMENT ROUTES
+## ========================================
+
+### 9.1 Create Ticket
+POST /api/tickets
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Body:
+{
+  "title": "Implement User Dashboard",
+  "description": "Create a comprehensive dashboard for users",
+  "type": "task",
+  "priority": "high",
+  "projectId": "project_id",
+  "moduleId": "module_id",
+  "assignedDeveloper": "developer_id",
+  "tester": "tester_id",
+  "estimatedHours": 16,
+  "storyPoints": 8,
+  "dueDate": "2024-02-15",
+  "tags": ["frontend", "dashboard", "urgent"]
+}
+
+### 9.2 Get Project Tickets
+GET /api/tickets/project/{projectId}
+Authorization: Bearer {token}
+
+Query Parameters:
+- status: open, in_progress, testing, code_review, done, blocked
+- priority: low, medium, high, critical
+- type: task, bug
+- assignedTo: user_id
+- search: search term
+
+### 9.3 Get Specific Ticket
+GET /api/tickets/{projectId}/{ticketId}
+Authorization: Bearer {token}
+
+### 9.4 Update Ticket
+PUT /api/tickets/{projectId}/{ticketId}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Body:
+{
+  "title": "Updated Ticket Title",
+  "description": "Updated description",
+  "priority": "critical",
+  "status": "in_progress",
+  "assignedDeveloper": "new_developer_id",
+  "tester": "new_tester_id"
+}
+
+### 9.5 Add Comment to Ticket
+POST /api/tickets/{projectId}/{ticketId}/comments
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Body:
+{
+  "comment": "This is a comment on the ticket"
+}
+
+### 9.6 Delete Ticket
+DELETE /api/tickets/{projectId}/{ticketId}
+Authorization: Bearer {token}
+
+### 9.7 Get All Tickets (Admin/HR Only)
+GET /api/tickets
+Authorization: Bearer {admin_token}
+
+Query Parameters:
+- status: open, in_progress, testing, code_review, done, blocked
+- priority: low, medium, high, critical
+- type: task, bug
+- projectId: project_id
+- search: search term
+
+## ========================================
+## 10. KANBAN BOARD ROUTES
+## ========================================
+
+### 10.1 Get Kanban Board by Type
+GET /api/kanbanboard/{boardType}
+Authorization: Bearer {token}
+
+Board Types: developer, tester, lead, hr, admin
+
+### 10.2 Get Project Kanban Board
+GET /api/kanbanboard/project/{projectId}
+Authorization: Bearer {token}
+
+### 10.3 Get Developer Personal Kanban Board
+GET /api/kanbanboard/developer/personal
+Authorization: Bearer {token}
+
+### 10.4 Update Ticket Status
+PUT /api/kanbanboard/tickets/{projectId}/{ticketId}/status
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Body:
+{
+  "status": "in_progress",
+  "comment": "Moving to in progress"
+}
+
+## ========================================
+## 11. TEST DATA FOR DEVELOPMENT
+## ========================================
+
+### Sample User Data
+
+#### Admin User
+{
+  "username": "admin",
+  "email": "admin@company.com",
+  "password": "admin123",
+  "firstName": "System",
+  "lastName": "Administrator",
+  "role": "admin"
+}
+
+#### HR User
+{
+  "username": "hr_manager",
+  "email": "hr@company.com",
+  "password": "hr123",
+  "firstName": "HR",
+  "lastName": "Manager",
+  "role": "hr"
+}
+
+#### Developer User
+{
+  "username": "developer1",
+  "email": "dev1@company.com",
+  "password": "dev123",
+  "firstName": "John",
+  "lastName": "Developer",
+  "role": "developer"
+}
+
+#### Tester User
+{
+  "username": "tester1",
+  "email": "tester1@company.com",
+  "password": "tester123",
+  "firstName": "Jane",
+  "lastName": "Tester",
+  "role": "tester"
+}
+
+#### Manager User
+{
+  "username": "manager1",
+  "email": "manager1@company.com",
+  "password": "manager123",
+  "firstName": "Bob",
+  "lastName": "Manager",
+  "role": "manager"
+}
+
+### Sample Project Data
+{
+  "name": "E-Commerce Platform",
+  "description": "Modern e-commerce platform with React frontend and Node.js backend",
+  "startDate": "2024-01-01",
+  "endDate": "2024-06-30",
+  "status": "active",
+  "projectManager": "manager_id",
+  "teamMembers": ["developer_id", "tester_id", "hr_id"]
+}
+
+### Sample Module Data
+{
+  "name": "User Authentication",
+  "description": "User login, registration, and profile management",
+  "projectId": "project_id",
+  "status": "active",
+  "order": 1,
+  "startDate": "2024-01-01",
+  "endDate": "2024-02-15",
+  "moduleLead": "developer_id",
+  "teamMembers": ["developer_id", "tester_id"],
+  "completionPercentage": 75
+}
+
+### Sample Ticket Data
+{
+  "title": "Implement JWT Authentication",
+  "description": "Create JWT-based authentication system with refresh tokens",
+  "type": "task",
+  "priority": "high",
+  "status": "in_progress",
+  "assignedDeveloper": "developer_id",
+  "tester": "tester_id",
+  "estimatedHours": 24,
+  "storyPoints": 13,
+  "dueDate": "2024-02-01"
+}
+
+### Sample Standup Data
+{
+  "projectId": "project_id",
+  "date": "2024-01-15",
+  "status": "completed",
+  "attendees": ["developer_id", "tester_id", "manager_id"],
+  "updates": [
+    {
+      "developerId": "developer_id",
+      "tasks": [
+        {
+          "description": "JWT implementation",
+          "priority": "high",
+          "status": "completed",
+          "assignedTo": "developer_id"
+        }
+      ],
+      "blockers": [],
+      "outcomes": ["Auth system working"],
+      "nextSteps": ["Test edge cases"]
+    }
+  ]
+}
+
+## ========================================
+## 12. POSTMAN ENVIRONMENT VARIABLES
+## ========================================
+
+### Base URL
+base_url: http://localhost:3000/api
+
+### Authentication Tokens
+admin_token: {{admin_jwt_token}}
+hr_token: {{hr_jwt_token}}
+developer_token: {{developer_jwt_token}}
+tester_token: {{tester_jwt_token}}
+manager_token: {{manager_jwt_token}}
+employee_token: {{employee_jwt_token}}
+
+### User IDs (after creation)
+admin_user_id: {{admin_user_id}}
+hr_user_id: {{hr_user_id}}
+developer_user_id: {{developer_user_id}}
+tester_user_id: {{tester_user_id}}
+manager_user_id: {{manager_user_id}}
+
+### Project IDs (after creation)
+project_id: {{project_id}}
+module_id: {{module_id}}
+ticket_id: {{ticket_id}}
+
+## ========================================
+## 13. TESTING WORKFLOW
+## ========================================
+
+### Step 1: Create Admin User
+1. Run the seed script: `node scripts/seed-admin.js`
+2. Use the admin credentials to login
+3. Store the JWT token in environment variable
+
+### Step 2: Create Other Users
+1. Use admin token to create HR user
+2. Use admin token to create developer, tester, manager users
+3. Store all user IDs in environment variables
+
+### Step 3: Test Role-Based Access
+1. Test each route with appropriate role tokens
+2. Verify unauthorized access is blocked
+3. Test CRUD operations for each role
+
+### Step 4: Test Business Logic
+1. Create projects and modules
+2. Create and assign tickets
+3. Test kanban board functionality
+4. Test standup updates
+
+## ========================================
+## 14. COMMON HTTP STATUS CODES
+## ========================================
+
+200: OK - Request successful
+201: Created - Resource created successfully
+400: Bad Request - Invalid input data
+401: Unauthorized - Authentication required
+403: Forbidden - Insufficient permissions
+404: Not Found - Resource not found
+500: Internal Server Error - Server error
+
+## ========================================
+## 15. ERROR HANDLING
+## ========================================
+
+### Common Error Responses
+{
+  "error": "Error message",
+  "status": 400,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+
+### Validation Errors
+{
+  "error": "Validation failed",
+  "details": [
+    {
+      "field": "email",
+      "message": "Invalid email format"
+    }
+  ]
+}
+
+### Authentication Errors
+{
+  "error": "Access denied",
+  "message": "Insufficient permissions for this resource"
+}
+
+## ========================================
+## 16. NOTES AND TIPS
+## ========================================
+
+1. Always include Authorization header with Bearer token for protected routes
+2. Use appropriate role tokens for role-specific routes
+3. Store JWT tokens in Postman environment variables
+4. Test both successful and error scenarios
+5. Verify role-based access control works correctly
+6. Check response formats and status codes
+7. Test with various input data combinations
+8. Verify database constraints and validations
+
+## ========================================
+## 17. TROUBLESHOOTING
+## ========================================
+
+### Common Issues:
+1. JWT token expired - Re-login to get new token
+2. Role permissions - Ensure user has correct role
+3. Database connection - Check MongoDB connection
+4. Validation errors - Check required fields and data types
+5. Route not found - Verify route path and HTTP method
+
+### Debug Steps:
+1. Check server logs for errors
+2. Verify environment variables
+3. Test with Postman console
+4. Check database connection
+5. Verify middleware configuration

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
 import api from '../../services/api';
 
 const HRDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,87 +25,124 @@ const HRDashboard = () => {
     fetchStats();
   }, []);
 
-  const cardStyles = {
-    backgroundColor: '#111827',
-    borderRadius: '8px',
-    padding: '24px',
-    border: '1px solid #374151',
-    color: '#e5e7eb'
-  };
-
-  const gridStyles = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '24px',
-    marginBottom: '32px'
-  };
-
   if (loading) {
-    return <div style={{ color: '#e5e7eb' }}>Loading HR dashboard...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-gray-200 text-lg">Loading HR dashboard...</div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ color: '#e5e7eb', margin: 0, marginBottom: '8px' }}>HR Dashboard</h1>
-        <p style={{ color: '#9ca3af', margin: 0 }}>Employee management and analytics</p>
+    <div className="p-6 space-y-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-200 mb-2">HR Dashboard</h1>
+        <p className="text-gray-400">Employee management and analytics</p>
       </div>
 
-      <div style={gridStyles}>
-        <div style={cardStyles}>
-          <h3 style={{ margin: '0 0 16px 0', color: '#4f46e5' }}>Employee Overview</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Total Employees:</span>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Employee Overview Card */}
+        <Card title="Employee Overview" className="bg-gray-900 border-gray-700">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Total Employees:</span>
               <Badge variant="primary">{stats?.totalEmployees || 0}</Badge>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Active Employees:</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Active Employees:</span>
               <Badge variant="success">{stats?.activeEmployees || 0}</Badge>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>New Hires (This Month):</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">New Hires (This Month):</span>
               <Badge variant="info">{stats?.newHires || 0}</Badge>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div style={cardStyles}>
-          <h3 style={{ margin: '0 0 16px 0', color: '#4f46e5' }}>Department Breakdown</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Developers:</span>
-              <span>{stats?.departments?.developers || 0}</span>
+        {/* Department Breakdown Card */}
+        <Card title="Department Breakdown" className="bg-gray-900 border-gray-700">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Developers:</span>
+              <span className="text-gray-200 font-medium">{stats?.departments?.developers || 0}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Testers:</span>
-              <span>{stats?.departments?.testers || 0}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Testers:</span>
+              <span className="text-gray-200 font-medium">{stats?.departments?.testers || 0}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Managers:</span>
-              <span>{stats?.departments?.managers || 0}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Managers:</span>
+              <span className="text-gray-200 font-medium">{stats?.departments?.managers || 0}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Others:</span>
-              <span>{stats?.departments?.others || 0}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300">Others:</span>
+              <span className="text-gray-200 font-medium">{stats?.departments?.others || 0}</span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div style={cardStyles}>
-          <h3 style={{ margin: '0 0 16px 0', color: '#4f46e5' }}>Quick Actions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Button variant="primary" size="sm">
+        {/* Quick Actions Card */}
+        <Card title="Quick Actions" className="bg-gray-900 border-gray-700">
+          <div className="space-y-3">
+            <Button 
+              variant="primary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/hr/employees/create')}
+            >
               Add New Employee
             </Button>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/hr/employees')}
+            >
               View All Employees
             </Button>
-            <Button variant="secondary" size="sm">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate('/hr/stats')}
+            >
               Generate Reports
             </Button>
           </div>
-        </div>
+        </Card>
+      </div>
+
+      {/* Additional Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gray-900 border-gray-700 text-center">
+          <div className="text-2xl font-bold text-indigo-400 mb-1">
+            {stats?.totalEmployees || 0}
+          </div>
+          <div className="text-sm text-gray-400">Total Employees</div>
+        </Card>
+        
+        <Card className="bg-gray-900 border-gray-700 text-center">
+          <div className="text-2xl font-bold text-green-400 mb-1">
+            {stats?.activeEmployees || 0}
+          </div>
+          <div className="text-sm text-gray-400">Active Employees</div>
+        </Card>
+        
+        <Card className="bg-gray-900 border-gray-700 text-center">
+          <div className="text-2xl font-bold text-blue-400 mb-1">
+            {stats?.newHires || 0}
+          </div>
+          <div className="text-sm text-gray-400">New Hires This Month</div>
+        </Card>
+        
+        <Card className="bg-gray-900 border-gray-700 text-center">
+          <div className="text-2xl font-bold text-yellow-400 mb-1">
+            {stats?.departments?.developers || 0}
+          </div>
+          <div className="text-sm text-gray-400">Development Team</div>
+        </Card>
       </div>
     </div>
   );

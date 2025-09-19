@@ -99,6 +99,22 @@ router.get('/tickets/reports', getTicketReports);
 // 4. TEAM & RESOURCE MANAGEMENT
 // ========================================
 
+// Get team info (legacy route - MUST BE BEFORE parameter routes)
+router.get('/team', (req, res) => {
+  return res.json({ 
+    message: 'Manager can access manager/team',
+    user: req.user,
+    availableActions: [
+      'View all managed projects',
+      'Create and update projects',
+      'Manage modules and sprints',
+      'Oversee ticket assignments',
+      'Monitor team performance',
+      'Generate reports and analytics'
+    ]
+  });
+});
+
 // List employees under a project
 router.get('/team/:projectId', getProjectTeam);
 
@@ -151,22 +167,4 @@ router.get('/me', (req, res) => {
   });
 });
 
-// Get team info
-router.get('/team', (req, res) => {
-  return res.json({ 
-    message: 'Manager can access manager/team',
-    user: req.user,
-    availableActions: [
-      'View all managed projects',
-      'Create and update projects',
-      'Manage modules and sprints',
-      'Oversee ticket assignments',
-      'Monitor team performance',
-      'Generate reports and analytics'
-    ]
-  });
-});
-
 export default router;
-
-

@@ -13,7 +13,7 @@ import {
 } from './projectSchema.models.js';
 import { sprintSchema, SPRINT_STATUS, SPRINT_BOARD_TYPES, ASSIGNMENT_STATUS } from './sprintSchema.models.js';
 import { kanbanSchema, KANBAN_BOARD_TYPES, DEFAULT_KANBAN_COLUMNS as KANBAN_DEFAULTS, COLUMN_STATUS_MAPPING, WORKFLOW_RULES } from './kanbanSchema.models.js';
-import { bugTrackerSchema, BUG_STATUS, BUG_SEVERITY, BUG_PRIORITY, BUG_TYPES, BUG_WORKFLOW } from './bugTrackerSchema.models.js';
+import { bugTrackerSchema, BUG_STATUS, BUG_SEVERITY, BUG_PRIORITY, BUG_TYPES } from './bugTrackerSchema.models.js';
 import { standupSchema, STANDUP_STATUS, TASK_STATUS, PRIORITY, LEAVE_STATUS, LEAVE_TYPES } from './standupSchema.models.js';
 import { activityLogSchema, ENTITY_TYPES, ACTIONS, ACTION_CATEGORIES, CHANGE_TYPES } from './activityLogSchema.models.js';
 import { leaveSchema, LEAVE_STATUS as LEAVE_SCHEMA_STATUS, LEAVE_TYPES as LEAVE_SCHEMA_TYPES, LEAVE_PRIORITY } from './leaveSchema.models.js';
@@ -72,7 +72,6 @@ export {
   BUG_SEVERITY,
   BUG_PRIORITY,
   BUG_TYPES,
-  BUG_WORKFLOW,
   
   // Standup Enums
   STANDUP_STATUS,
@@ -80,8 +79,8 @@ export {
   PRIORITY,
   
   // Leave Enums (using schema-specific ones to avoid conflicts)
-  LEAVE_STATUS: LEAVE_SCHEMA_STATUS,
-  LEAVE_TYPES: LEAVE_SCHEMA_TYPES,
+  LEAVE_SCHEMA_STATUS as LEAVE_STATUS,
+  LEAVE_SCHEMA_TYPES as LEAVE_TYPES,
   LEAVE_PRIORITY,
   
   // Analytics Enums

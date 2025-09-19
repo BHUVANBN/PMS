@@ -78,7 +78,7 @@ const EmployeeListPage = () => {
       key: 'actions',
       title: 'Actions',
       render: (_, row) => (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex gap-2">
           <Button
             size="sm"
             variant="secondary"
@@ -88,7 +88,7 @@ const EmployeeListPage = () => {
           </Button>
           <Button
             size="sm"
-            variant={row.status === 'active' ? 'warning' : 'success'}
+            variant={row.status === 'active' ? 'danger' : 'success'}
             onClick={() => handleToggleStatus(row.id)}
           >
             {row.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -99,21 +99,24 @@ const EmployeeListPage = () => {
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 style={{ color: '#e5e7eb', margin: 0, marginBottom: '8px' }}>Employee Directory</h1>
-          <p style={{ color: '#9ca3af', margin: 0 }}>Manage employee information and status</p>
+          <h1 className="text-3xl font-bold text-gray-200 mb-2">Employee Directory</h1>
+          <p className="text-gray-400">Manage employee information and status</p>
         </div>
         <Button
           variant="primary"
           onClick={() => navigate('/hr/employees/create')}
+          className="w-full sm:w-auto"
         >
           Add New Employee
         </Button>
       </div>
 
-      <Card>
+      {/* Employee Table */}
+      <Card className="bg-gray-900 border-gray-700">
         <DataTable
           data={employees}
           columns={columns}

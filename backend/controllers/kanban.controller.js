@@ -13,6 +13,89 @@ import {
   KANBAN_BOARD_TYPES, DEFAULT_KANBAN_COLUMNS
 } from '../models/index.js';
 
+export const getDeveloperKanbanBoard = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.effectiveRole || req.userRole;
+
+    // Check if user is a developer or has development permissions
+    if (!['developer', 'admin', 'manager'].includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only developers can access personal kanban board'
+      });
+    }
+
+    // Find projects where user is a team member
+    const projects = await Project.find({
+      teamMembers: userId,
+      status: { $in: ['active', 'planning'] }
+    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+
+    // Extract tickets assigned to this developer
+    const personalTickets = [];
+    projects.forEach(project => {
+      project.modules.forEach(module => {
+        module.tickets.forEach(ticket => {
+          if (ticket.assignedDeveloper && ticket.assignedDeveloper._id.toString() === userId.toString()) {
+            personalTickets.push({
+              ...ticket.toObject(),
+              projectId: project._id,
+              projectName: project.name,
+              moduleId: module._id,
+              moduleName: module.name
+            });
+          }
+        });
+      });
+    });
+
+    // Group tickets by status for kanban columns
+    const kanbanData = {
+      columns: {
+        todo: {
+          id: 'todo',
+          title: 'To Do',
+          tickets: personalTickets.filter(t => t.status === 'open')
+        },
+        inProgress: {
+          id: 'inProgress',
+          title: 'In Progress',
+          tickets: personalTickets.filter(t => t.status === 'in_progress')
+        },
+        review: {
+          id: 'review',
+          title: 'Code Review',
+          tickets: personalTickets.filter(t => t.status === 'code_review')
+        },
+        testing: {
+          id: 'testing',
+          title: 'Testing',
+          tickets: personalTickets.filter(t => t.status === 'testing')
+        },
+        done: {
+          id: 'done',
+          title: 'Done',
+          tickets: personalTickets.filter(t => t.status === 'done')
+        }
+      },
+      totalTickets: personalTickets.length,
+      activeTickets: personalTickets.filter(t => ['open', 'in_progress', 'code_review'].includes(t.status)).length
+    };
+
+    res.json({
+      success: true,
+      data: kanbanData
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching developer kanban board',
+      error: error.message
+    });
+  }
+};
+
 // Create a new Kanban board
 export const createKanbanBoard = async (req, res) => {
   try {
@@ -241,35 +324,11 @@ export const moveTicket = async (req, res) => {
     if (!fromColumn || !toColumn) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid column IDs'
+        message: 'Invalid column ID(s)'
       });
     }
 
-    // Check workflow rules
-    const userRole = req.effectiveRole || req.userRole;
-    const workflowRules = WORKFLOW_RULES[userRole.toUpperCase()];
-    
-    if (workflowRules && fromColumnId !== toColumnId) {
-      const fromStatus = fromColumn.statusMapping;
-      const toStatus = toColumn.statusMapping;
-      
-      if (!workflowRules.allowedTransitions[fromStatus]?.includes(toStatus)) {
-        return res.status(403).json({
-          success: false,
-          message: `You cannot move tickets from ${fromColumn.name} to ${toColumn.name}`
-        });
-      }
-    }
-
-    // Check WIP limits
-    if (toColumn.wipLimit && toColumn.tickets.length >= toColumn.wipLimit && fromColumnId !== toColumnId) {
-      return res.status(400).json({
-        success: false,
-        message: `Column "${toColumn.name}" has reached its WIP limit of ${toColumn.wipLimit}`
-      });
-    }
-
-    // Find and remove ticket from source column
+    // Find ticket in from column
     const ticketIndex = fromColumn.tickets.findIndex(t => t.ticketId.toString() === ticketId);
     if (ticketIndex === -1) {
       return res.status(404).json({
@@ -279,75 +338,53 @@ export const moveTicket = async (req, res) => {
     }
 
     const ticket = fromColumn.tickets[ticketIndex];
+
+    // Check WIP limits
+    if (toColumn.wipLimit && toColumn.tickets.length >= toColumn.wipLimit) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot move ticket. Column "${toColumn.name}" has reached its WIP limit of ${toColumn.wipLimit}`
+      });
+    }
+
+    // Check workflow rules
+    const workflowRules = toColumn.rules?.workflow || [];
+    if (workflowRules.length > 0 && !workflowRules.includes(fromColumn.name)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot move ticket from "${fromColumn.name}" to "${toColumn.name}". Workflow rules violation.`
+      });
+    }
+
+    // Remove from source column
     fromColumn.tickets.splice(ticketIndex, 1);
 
-    // Update positions in source column
-    fromColumn.tickets.forEach((t, index) => {
-      t.position = index + 1;
-    });
-
-    // Add ticket to destination column
-    ticket.position = newPosition || toColumn.tickets.length + 1;
-    ticket.movedAt = new Date();
-    ticket.movedBy = req.user._id;
-
-    // Insert at specified position
-    if (newPosition && newPosition <= toColumn.tickets.length) {
-      toColumn.tickets.splice(newPosition - 1, 0, ticket);
-      // Update positions for tickets after insertion point
-      toColumn.tickets.forEach((t, index) => {
-        t.position = index + 1;
-      });
+    // Add to destination column
+    if (newPosition !== undefined && newPosition < toColumn.tickets.length) {
+      toColumn.tickets.splice(newPosition, 0, ticket);
     } else {
       toColumn.tickets.push(ticket);
     }
 
-    // Update ticket status in project if auto-move is enabled
-    if (board.settings.autoMoveOnStatusChange && fromColumnId !== toColumnId) {
-      const project = await Project.findById(board.projectId);
-      let foundTicket = null;
-      let parentModule = null;
+    // Update ticket status based on column mapping
+    const statusMapping = {
+      'To Do': 'open',
+      'In Progress': 'in_progress',
+      'Review': 'in_review',
+      'Testing': 'testing',
+      'Done': 'completed',
+      'Blocked': 'blocked'
+    };
 
-      for (let module of project.modules) {
-        foundTicket = module.tickets.id(ticketId);
-        if (foundTicket) {
-          parentModule = module;
-          break;
-        }
-      }
+    const newStatus = statusMapping[toColumn.name] || 'open';
+    ticket.status = newStatus;
+    ticket.lastModified = new Date();
 
-      if (foundTicket) {
-        const oldStatus = foundTicket.status;
-        foundTicket.status = toColumn.statusMapping;
-        
-        // Auto-assign tester when moved to testing
-        if (toColumn.statusMapping === 'testing' && toColumn.rules?.autoAssignTester) {
-          // Logic to auto-assign tester could be implemented here
-        }
+    // Update statistics
+    board.statistics.ticketsMoved += 1;
+    board.statistics.lastActivity = new Date();
 
-        await project.save();
-
-        // Log status change
-        await ActivityLog.create({
-          projectId: board.projectId,
-          entityType: 'ticket',
-          entityId: ticketId,
-          userId: req.user._id,
-          action: 'status_changed',
-          actionCategory: 'kanban_update',
-          description: `Ticket moved from ${fromColumn.name} to ${toColumn.name}`,
-          metadata: {
-            ticketNumber: foundTicket.ticketNumber,
-            oldStatus,
-            newStatus: foundTicket.status,
-            fromColumn: fromColumn.name,
-            toColumn: toColumn.name
-          }
-        });
-      }
-    }
-
-    // Add to board activity
+    // Add to activity log
     board.recentActivity.unshift({
       action: 'ticket_moved',
       ticketId,
@@ -378,6 +415,125 @@ export const moveTicket = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error moving ticket',
+      error: error.message
+    });
+  }
+};
+
+// Update ticket status (simplified version for direct status updates)
+export const updateTicketStatus = async (req, res) => {
+  try {
+    const { projectId, ticketId } = req.params;
+    const { status, comment } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+
+    // Find the project and ticket
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    let ticket = null;
+    let module = null;
+
+    // Find ticket in project modules
+    for (const mod of project.modules) {
+      ticket = mod.tickets.id(ticketId);
+      if (ticket) {
+        module = mod;
+        break;
+      }
+    }
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+
+    // Check if user has permission to update this ticket
+    const userRole = req.effectiveRole || req.userRole;
+    const canUpdate = 
+      ['admin', 'manager'].includes(userRole) ||
+      ticket.assignedDeveloper?.toString() === req.user._id.toString() ||
+      ticket.tester?.toString() === req.user._id.toString();
+
+    if (!canUpdate) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only update tickets assigned to you'
+      });
+    }
+
+    const oldStatus = ticket.status;
+    ticket.status = status;
+    ticket.lastModified = new Date();
+
+    // Add comment if provided
+    if (comment) {
+      ticket.comments.push({
+        userId: req.user._id,
+        comment: comment,
+        timestamp: new Date()
+      });
+    }
+
+    // Update kanban boards that contain this ticket
+    const kanbanBoards = await KanbanBoard.find({
+      projectId: projectId,
+      'columns.tickets.ticketId': ticketId
+    });
+
+    for (const board of kanbanBoards) {
+      // Find and update ticket in kanban board
+      for (const column of board.columns) {
+        const boardTicket = column.tickets.find(t => t.ticketId.toString() === ticketId);
+        if (boardTicket) {
+          boardTicket.status = status;
+          boardTicket.lastModified = new Date();
+          
+          // Add activity log
+          board.recentActivity.unshift({
+            action: 'ticket_status_updated',
+            ticketId,
+            oldStatus,
+            newStatus: status,
+            userId: req.user._id,
+            timestamp: new Date(),
+            details: `Ticket status changed from ${oldStatus} to ${status}`
+          });
+          break;
+        }
+      }
+      await board.save();
+    }
+
+    await project.save();
+
+    res.json({
+      success: true,
+      message: 'Ticket status updated successfully',
+      data: {
+        ticketId,
+        oldStatus,
+        newStatus: status,
+        ticket: ticket
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating ticket status',
       error: error.message
     });
   }

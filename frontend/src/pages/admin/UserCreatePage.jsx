@@ -50,146 +50,197 @@ const UserCreatePage = () => {
       lastName: [validateRequired]
     };
 
-    const { isValid, errors: validationErrors } = validateForm(formData, validationRules);
-    
-    if (!isValid) {
+    const validationErrors = validateForm(formData, validationRules);
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    setLoading(true);
     try {
-      await api.admin.createUser({
+      setLoading(true);
+      setErrors({});
+      
+      const userData = {
         username: formData.username,
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
         role: formData.role
-      });
-      
+      };
+
+      await api.admin.createUser(userData);
       navigate('/admin/users');
     } catch (error) {
-      setErrors({ submit: error.message || 'Failed to create user' });
+      console.error('Error creating user:', error);
+      if (error.response?.data?.message) {
+        setErrors({ submit: error.response.data.message });
+      } else {
+        setErrors({ submit: 'Failed to create user. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ color: '#e5e7eb', margin: 0, marginBottom: '8px' }}>Create New User</h1>
-        <p style={{ color: '#9ca3af', margin: 0 }}>Add a new user to the system</p>
-      </div>
-
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <Input
-              name="firstName"
-              label="First Name"
-              value={formData.firstName}
-              onChange={handleChange}
-              error={errors.firstName}
-              required
-            />
-            <Input
-              name="lastName"
-              label="Last Name"
-              value={formData.lastName}
-              onChange={handleChange}
-              error={errors.lastName}
-              required
-            />
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New User</h1>
+            <p className="text-gray-600">Add a new user to the system</p>
           </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Input
-              name="username"
-              label="Username"
-              value={formData.username}
-              onChange={handleChange}
-              error={errors.username}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Input
-              type="email"
-              name="email"
-              label="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Select
-              name="role"
-              label="Role"
-              value={formData.role}
-              onChange={handleChange}
-              options={roles}
-              required
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-            <Input
-              type="password"
-              name="password"
-              label="Password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              required
-            />
-            <Input
-              type="password"
-              name="confirmPassword"
-              label="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              error={errors.confirmPassword}
-              required
-            />
-          </div>
-
-          {errors.submit && (
-            <div style={{ 
-              background: '#7f1d1d', 
-              color: '#fecaca', 
-              padding: '12px', 
-              borderRadius: '8px', 
-              marginBottom: '16px' 
-            }}>
-              {errors.submit}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button
-              type="button"
-              variant="secondary"
+          <div className="mt-4 sm:mt-0">
+            <Button 
+              variant="secondary" 
               onClick={() => navigate('/admin/users')}
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={loading}
-              disabled={loading}
-            >
-              Create User
+              Back to Users
             </Button>
           </div>
-        </form>
-      </Card>
+        </div>
+      </div>
+
+      {/* Form Card */}
+      <div className="max-w-4xl mx-auto">
+        <Card className="bg-white border border-gray-200">
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {errors.submit && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">Error</h3>
+                      <div className="mt-2 text-sm text-red-700">
+                        <p>{errors.submit}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  Personal Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="First Name *"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    error={errors.firstName}
+                    placeholder="John"
+                  />
+                  <Input
+                    label="Last Name *"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    error={errors.lastName}
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  Account Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Username *"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    error={errors.username}
+                    placeholder="johndoe"
+                  />
+                  <Input
+                    label="Email *"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={errors.email}
+                    placeholder="john@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* Security */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  Security
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Password *"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={errors.password}
+                    placeholder="Enter password"
+                  />
+                  <Input
+                    label="Confirm Password *"
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    error={errors.confirmPassword}
+                    placeholder="Confirm password"
+                  />
+                </div>
+              </div>
+
+              {/* Role Assignment */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  Role Assignment
+                </h3>
+                <Select
+                  label="Role *"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  options={roles}
+                  error={errors.role}
+                />
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate('/admin/users')}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  loading={loading}
+                  className="w-full sm:w-auto"
+                >
+                  Create User
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

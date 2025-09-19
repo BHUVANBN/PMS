@@ -119,22 +119,23 @@ const LeaveManagementPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Leave Management</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage employee leave requests and approvals</p>
+          <h1 className="text-3xl font-bold text-gray-200 mb-2">Leave Management</h1>
+          <p className="text-gray-400">Manage employee leave requests and approvals</p>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div className="flex space-x-4">
             <Select
@@ -159,40 +160,40 @@ const LeaveManagementPage = () => {
       </div>
 
       {/* Leave Requests Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Employee
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Leave Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Duration
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Applied Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-gray-900 divide-y divide-gray-700">
               {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={request.id} className="hover:bg-gray-800">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="text-sm font-medium text-gray-200">
                         {request.employeeName}
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <div className="text-sm text-gray-400">
                         {request.employeeId} • {request.department}
                       </div>
                     </div>
@@ -202,11 +203,11 @@ const LeaveManagementPage = () => {
                       {request.leaveType}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                     <div>
                       {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
                     </div>
-                    <div className="text-gray-500 dark:text-gray-400">
+                    <div className="text-gray-400">
                       {request.days} day{request.days > 1 ? 's' : ''}
                     </div>
                   </td>
@@ -215,13 +216,13 @@ const LeaveManagementPage = () => {
                       {request.status}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
                     {new Date(request.appliedDate).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => {
                         setSelectedRequest(request);
                         setShowModal(true);
@@ -238,7 +239,7 @@ const LeaveManagementPage = () => {
 
         {filteredRequests.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">No leave requests found.</p>
+            <p className="text-gray-400">No leave requests found.</p>
           </div>
         )}
       </div>
@@ -253,28 +254,28 @@ const LeaveManagementPage = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   Employee
                 </label>
-                <p className="text-gray-900 dark:text-white">{selectedRequest.employeeName}</p>
+                <p className="text-gray-200">{selectedRequest.employeeName}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   Employee ID
                 </label>
-                <p className="text-gray-900 dark:text-white">{selectedRequest.employeeId}</p>
+                <p className="text-gray-200">{selectedRequest.employeeId}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   Department
                 </label>
-                <p className="text-gray-900 dark:text-white">{selectedRequest.department}</p>
+                <p className="text-gray-200">{selectedRequest.department}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   Leave Type
                 </label>
                 <Badge variant={getLeaveTypeColor(selectedRequest.leaveType)}>
@@ -285,32 +286,32 @@ const LeaveManagementPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   Start Date
                 </label>
-                <p className="text-gray-900 dark:text-white">
+                <p className="text-gray-200">
                   {new Date(selectedRequest.startDate).toLocaleDateString()}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-gray-300">
                   End Date
                 </label>
-                <p className="text-gray-900 dark:text-white">
+                <p className="text-gray-200">
                   {new Date(selectedRequest.endDate).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-gray-300">
                 Reason
               </label>
-              <p className="text-gray-900 dark:text-white">{selectedRequest.reason}</p>
+              <p className="text-gray-200">{selectedRequest.reason}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-gray-300">
                 Current Status
               </label>
               <Badge variant={getStatusColor(selectedRequest.status)}>
@@ -319,16 +320,18 @@ const LeaveManagementPage = () => {
             </div>
 
             {selectedRequest.status === 'pending' && (
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-700">
                 <Button
-                  variant="error"
+                  variant="danger"
                   onClick={() => handleStatusUpdate(selectedRequest.id, 'rejected')}
+                  className="w-full sm:w-auto"
                 >
                   Reject
                 </Button>
                 <Button
                   variant="success"
                   onClick={() => handleStatusUpdate(selectedRequest.id, 'approved')}
+                  className="w-full sm:w-auto"
                 >
                   Approve
                 </Button>

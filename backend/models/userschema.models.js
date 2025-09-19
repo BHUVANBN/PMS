@@ -247,7 +247,7 @@ userSchema.index({ role: 1 });
 userSchema.index({ 'assignedTickets.projectId': 1 });
 
 // Index for employee management
-userSchema.index({ employeeId: 1 });
+// employeeId index is already created by unique: true property
 userSchema.index({ managerId: 1 });
 userSchema.index({ department: 1 });
 userSchema.index({ status: 1 });

@@ -72,31 +72,36 @@ function App() {
               {/* Default redirect to role dashboard */}
               <Route index element={<RoleBasedRedirect />} />
 
-              {/* Dashboards per role */}
-              <Route path="admin/dashboard" element={<AdminDashboard />} />
-              <Route path="admin/users" element={<UserList />} />
-              <Route path="admin/users/new" element={<UserCreate />} />
-              <Route path="admin/stats" element={<SystemStats />} />
-              <Route path="admin/settings" element={<SystemSettings />} />
-              <Route path="hr/dashboard" element={<HRDashboard />} />
-              <Route path="hr/employees" element={<EmployeeList />} />
-              <Route path="hr/employees/new" element={<EmployeeCreate />} />
-              <Route path="hr/employees/:id/edit" element={<EmployeeEdit />} />
-              <Route path="manager/dashboard" element={<ManagerDashboard />} />
-              <Route path="manager/projects" element={<Projects />} />
-              <Route path="manager/projects/new" element={<ProjectCreate />} />
-              <Route path="manager/projects/:id/edit" element={<ProjectEdit />} />
-              <Route path="manager/team" element={<TeamManagement />} />
-              <Route path="manager/kanban" element={<Kanban />} />
-              <Route path="manager/sprint/:id/summary" element={<SprintSummary />} />
-              <Route path="developer/dashboard" element={<DeveloperDashboard />} />
-              <Route path="developer/tasks" element={<Tasks />} />
-              <Route path="developer/kanban" element={<DevKanban />} />
-              <Route path="tester/dashboard" element={<TesterDashboard />} />
-              <Route path="tester/bugs" element={<Bugs />} />
-              <Route path="sales/dashboard" element={<SalesDashboard />} />
-              <Route path="marketing/dashboard" element={<MarketingDashboard />} />
-              <Route path="intern/dashboard" element={<InternDashboard />} />
+              {/* Dashboards per role (strict role-based guards) */}
+              <Route path="admin/dashboard" element={<ProtectedRoute requiredRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="admin/users" element={<ProtectedRoute requiredRoles={["admin"]}><UserList /></ProtectedRoute>} />
+              <Route path="admin/users/new" element={<ProtectedRoute requiredRoles={["admin"]}><UserCreate /></ProtectedRoute>} />
+              <Route path="admin/stats" element={<ProtectedRoute requiredRoles={["admin"]}><SystemStats /></ProtectedRoute>} />
+              <Route path="admin/settings" element={<ProtectedRoute requiredRoles={["admin"]}><SystemSettings /></ProtectedRoute>} />
+
+              <Route path="hr/dashboard" element={<ProtectedRoute requiredRoles={["hr"]}><HRDashboard /></ProtectedRoute>} />
+              <Route path="hr/employees" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeList /></ProtectedRoute>} />
+              <Route path="hr/employees/new" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeCreate /></ProtectedRoute>} />
+              <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
+
+              <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager"]}><ManagerDashboard /></ProtectedRoute>} />
+              <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager"]}><Projects /></ProtectedRoute>} />
+              <Route path="manager/projects/new" element={<ProtectedRoute requiredRoles={["manager"]}><ProjectCreate /></ProtectedRoute>} />
+              <Route path="manager/projects/:id/edit" element={<ProtectedRoute requiredRoles={["manager"]}><ProjectEdit /></ProtectedRoute>} />
+              <Route path="manager/team" element={<ProtectedRoute requiredRoles={["manager"]}><TeamManagement /></ProtectedRoute>} />
+              <Route path="manager/kanban" element={<ProtectedRoute requiredRoles={["manager"]}><Kanban /></ProtectedRoute>} />
+              <Route path="manager/sprint/:id/summary" element={<ProtectedRoute requiredRoles={["manager"]}><SprintSummary /></ProtectedRoute>} />
+
+              <Route path="developer/dashboard" element={<ProtectedRoute requiredRoles={["developer"]}><DeveloperDashboard /></ProtectedRoute>} />
+              <Route path="developer/tasks" element={<ProtectedRoute requiredRoles={["developer"]}><Tasks /></ProtectedRoute>} />
+              <Route path="developer/kanban" element={<ProtectedRoute requiredRoles={["developer"]}><DevKanban /></ProtectedRoute>} />
+
+              <Route path="tester/dashboard" element={<ProtectedRoute requiredRoles={["tester"]}><TesterDashboard /></ProtectedRoute>} />
+              <Route path="tester/bugs" element={<ProtectedRoute requiredRoles={["tester"]}><Bugs /></ProtectedRoute>} />
+
+              <Route path="sales/dashboard" element={<ProtectedRoute requiredRoles={["sales"]}><SalesDashboard /></ProtectedRoute>} />
+              <Route path="marketing/dashboard" element={<ProtectedRoute requiredRoles={["marketing"]}><MarketingDashboard /></ProtectedRoute>} />
+              <Route path="intern/dashboard" element={<ProtectedRoute requiredRoles={["intern"]}><InternDashboard /></ProtectedRoute>} />
 
               {/* Generic sections */}
               <Route path="projects" element={<ProjectsPage />} />

@@ -27,7 +27,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",
     "recharts": "^2.12.7",
-    "zustand": "^4.5.2"
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

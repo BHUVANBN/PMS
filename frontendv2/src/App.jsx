@@ -10,10 +10,26 @@ import RegisterPage from './pages/auth/RegisterPage';
 
 // Dashboard pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import UserList from './pages/admin/UserList';
+import SystemStats from './pages/admin/SystemStats';
+import SystemSettings from './pages/admin/SystemSettings';
+import UserCreate from './pages/admin/UserCreate';
 import HRDashboard from './pages/hr/HRDashboard';
+import EmployeeList from './pages/hr/EmployeeList';
+import EmployeeCreate from './pages/hr/EmployeeCreate';
+import EmployeeEdit from './pages/hr/EmployeeEdit';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
+import Projects from './pages/manager/Projects';
+import TeamManagement from './pages/manager/TeamManagement';
+import Kanban from './pages/manager/Kanban';
+import SprintSummary from './pages/manager/SprintSummary';
+import ProjectCreate from './pages/manager/ProjectCreate';
+import ProjectEdit from './pages/manager/ProjectEdit';
 import DeveloperDashboard from './pages/developer/DeveloperDashboard';
+import Tasks from './pages/developer/Tasks';
+import DevKanban from './pages/developer/Kanban';
 import TesterDashboard from './pages/tester/TesterDashboard';
+import Bugs from './pages/tester/Bugs';
 import SalesDashboard from './pages/sales/SalesDashboard';
 import MarketingDashboard from './pages/marketing/MarketingDashboard';
 import InternDashboard from './pages/intern/InternDashboard';
@@ -58,10 +74,26 @@ function App() {
 
               {/* Dashboards per role */}
               <Route path="admin/dashboard" element={<AdminDashboard />} />
+              <Route path="admin/users" element={<UserList />} />
+              <Route path="admin/users/new" element={<UserCreate />} />
+              <Route path="admin/stats" element={<SystemStats />} />
+              <Route path="admin/settings" element={<SystemSettings />} />
               <Route path="hr/dashboard" element={<HRDashboard />} />
+              <Route path="hr/employees" element={<EmployeeList />} />
+              <Route path="hr/employees/new" element={<EmployeeCreate />} />
+              <Route path="hr/employees/:id/edit" element={<EmployeeEdit />} />
               <Route path="manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="manager/projects" element={<Projects />} />
+              <Route path="manager/projects/new" element={<ProjectCreate />} />
+              <Route path="manager/projects/:id/edit" element={<ProjectEdit />} />
+              <Route path="manager/team" element={<TeamManagement />} />
+              <Route path="manager/kanban" element={<Kanban />} />
+              <Route path="manager/sprint/:id/summary" element={<SprintSummary />} />
               <Route path="developer/dashboard" element={<DeveloperDashboard />} />
+              <Route path="developer/tasks" element={<Tasks />} />
+              <Route path="developer/kanban" element={<DevKanban />} />
               <Route path="tester/dashboard" element={<TesterDashboard />} />
+              <Route path="tester/bugs" element={<Bugs />} />
               <Route path="sales/dashboard" element={<SalesDashboard />} />
               <Route path="marketing/dashboard" element={<MarketingDashboard />} />
               <Route path="intern/dashboard" element={<InternDashboard />} />

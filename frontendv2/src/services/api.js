@@ -22,35 +22,76 @@ const createHeaders = (includeAuth = true) => {
   return headers;
 };
 
-// Generic API request handler with error handling
-const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const config = {
-    headers: createHeaders(options.includeAuth !== false),
-    ...options,
-  };
+// Error handler for API responses
+const handleApiError = (error, url) => {
+  console.error(`API Error for ${url}:`, error);
+  
+  // Handle different types of errors
+  if (error.name === 'TypeError' && error.message.includes('fetch')) {
+    throw new Error('Network error - please check your connection');
+  }
+  
+  if (error.message.includes('401')) {
+    // Unauthorized - clear auth and redirect to login
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    window.location.href = '/login';
+    throw new Error('Session expired - please login again');
+  }
+  
+  if (error.message.includes('403')) {
+    throw new Error('Access denied - insufficient permissions');
+  }
+  
+  if (error.message.includes('404')) {
+    throw new Error('Resource not found');
+  }
+  
+  if (error.message.includes('500')) {
+    throw new Error('Server error - please try again later');
+  }
+  
+  // Default error message
+  throw new Error(error.message || 'An unexpected error occurred');
+};
 
+// Generic API request handler with error interceptor
+const apiRequest = async (url, options = {}) => {
   try {
-    const response = await fetch(url, config);
-    
-    // Handle different response types
-    const contentType = response.headers.get('content-type');
-    let data;
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
+    const config = {
+      method: 'GET',
+      headers: createHeaders(options.includeAuth !== false),
+      credentials: 'include', // Include cookies for authentication
+      ...options,
+    };
+
+    if (config.body && typeof config.body === 'object') {
+      config.body = JSON.stringify(config.body);
     }
 
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    
+    // Handle different response statuses
     if (!response.ok) {
-      throw new Error(data.message || data || `HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (parseError) {
+        // If response is not JSON, use status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
 
+    const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`API Error (${endpoint}):`, error);
-    throw error;
+    handleApiError(error, url);
   }
 };
 
@@ -95,9 +136,13 @@ export const adminAPI = {
   getAllUsers: () => 
     apiRequest('/admin/users'),
 
+  // Get users by role
+  getUsersByRole: (role) =>
+    apiRequest(`/admin/users/role/${role}`),
+
   // Create HR account
   createHRAccount: (hrData) => 
-    apiRequest('/admin/create-hr', {
+    apiRequest('/admin/users/hr', {
       method: 'POST',
       body: JSON.stringify(hrData),
     }),
@@ -110,9 +155,24 @@ export const adminAPI = {
   getSystemStats: () => 
     apiRequest('/admin/stats'),
 
+  // Get activity logs
+  getActivityLogs: () =>
+    apiRequest('/admin/activity'),
+
+  // Get system health
+  getSystemHealth: () =>
+    apiRequest('/admin/health'),
+
+  // Create new user
+  createUser: (userData) =>
+    apiRequest('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+
   // Update user role
   updateUserRole: (userId, roleData) => 
-    apiRequest(`/admin/users/${userId}/role`, {
+    apiRequest(`/admin/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(roleData),
     }),
@@ -126,9 +186,15 @@ export const adminAPI = {
 
 // HR API
 export const hrAPI = {
+  // HR stats
+  getHRStats: () =>
+    apiRequest('/hr/stats'),
   // Employee management
   getAllEmployees: () => 
     apiRequest('/hr/employees'),
+
+  getEmployeeById: (employeeId) =>
+    apiRequest(`/hr/employees/${employeeId}`),
 
   createEmployee: (employeeData) => 
     apiRequest('/hr/employees', {
@@ -145,6 +211,12 @@ export const hrAPI = {
   deleteEmployee: (employeeId) => 
     apiRequest(`/hr/employees/${employeeId}`, {
       method: 'DELETE',
+    }),
+
+  // Toggle employee active status
+  toggleEmployeeStatus: (employeeId) =>
+    apiRequest(`/hr/employees/${employeeId}/toggle-status`, {
+      method: 'PATCH',
     }),
 
   // Leave management
@@ -177,21 +249,24 @@ export const managerAPI = {
     apiRequest('/manager/projects'),
 
   createProject: (projectData) => 
-    apiRequest('/manager/projects', {
+    apiRequest('/manager/project', {
       method: 'POST',
       body: JSON.stringify(projectData),
     }),
 
   updateProject: (projectId, projectData) => 
-    apiRequest(`/manager/projects/${projectId}`, {
-      method: 'PUT',
+    apiRequest(`/manager/project/${projectId}`, {
+      method: 'PATCH',
       body: JSON.stringify(projectData),
     }),
 
   deleteProject: (projectId) => 
-    apiRequest(`/manager/projects/${projectId}`, {
+    apiRequest(`/manager/project/${projectId}`, {
       method: 'DELETE',
     }),
+
+  getProjectDetails: (projectId) =>
+    apiRequest(`/manager/project/${projectId}`),
 
   // Module management
   createModule: (projectId, moduleData) => 
@@ -240,6 +315,30 @@ export const managerAPI = {
 
   getProjectAnalytics: (projectId) => 
     apiRequest(`/manager/analytics/project/${projectId}`),
+
+  // Manager stats
+  getManagerStats: () =>
+    apiRequest('/manager/stats'),
+
+  // Team management
+  getTeamManagement: () =>
+    apiRequest('/manager/team-management'),
+
+  getProjectTeam: (projectId) =>
+    apiRequest(`/manager/team/${projectId}`),
+
+  assignTeamRole: (projectId, userId, payload) =>
+    apiRequest(`/manager/team/${projectId}/${userId}/assign-role`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  // Kanban & Sprint
+  getProjectKanban: (projectId) =>
+    apiRequest(`/manager/kanban/${projectId}`),
+
+  getSprintSummary: (sprintId) =>
+    apiRequest(`/manager/sprint/${sprintId}/summary`),
 };
 
 // Developer API

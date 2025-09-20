@@ -89,29 +89,44 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     return location.pathname === path;
   };
 
+  const role = (userRole || user?.role || '').toLowerCase();
+
+  const dashboardPath = role ? `/${role}/dashboard` : '/dashboard';
+  const usersPath = role === 'admin' ? '/admin/users' : role === 'hr' ? '/hr/employees' : '/users';
+
+  const projectsPath = role === 'manager' ? '/manager/projects' : '/projects';
+  const teamPath = role === 'manager' ? '/manager/team' : '/team';
+  const ticketsPath = role === 'developer' ? '/developer/tasks' : role === 'tester' ? '/tester/bugs' : role === 'manager' ? '/manager/kanban' : '/tickets';
+
   const menuItems = [
     {
       text: 'Dashboard',
       icon: <DashboardIcon />,
-      path: '/dashboard',
+      path: dashboardPath,
       roles: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    },
+    {
+      text: 'Users',
+      icon: <PeopleIcon />,
+      path: usersPath,
+      roles: ['admin', 'hr'],
     },
     {
       text: 'Projects',
       icon: <WorkIcon />,
-      path: '/projects',
+      path: projectsPath,
       roles: ['admin', 'manager', 'developer', 'tester'],
     },
     {
       text: 'Tickets',
       icon: <ListIcon />,
-      path: '/tickets',
+      path: ticketsPath,
       roles: ['admin', 'manager', 'developer', 'tester'],
     },
     {
       text: 'Team',
       icon: <PeopleIcon />,
-      path: '/team',
+      path: teamPath,
       roles: ['admin', 'hr', 'manager'],
     },
     {

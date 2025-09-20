@@ -38,65 +38,19 @@ import RecentActivity from '../../components/dashboard/RecentActivity';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
-const AdminDashboard = () => {
+export default function AdminDashboard() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeProjects: 0,
     systemHealth: 100,
-    securityAlerts: 0
+    securityAlerts: 0,
   });
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Mock data for demonstration
-  const mockUsers = [
-    {
-      id: 1,
-      username: 'john_doe',
-      email: 'john@example.com',
-      role: 'developer',
-      status: 'active',
-      lastLogin: '2024-01-20T10:30:00Z',
-      createdAt: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: 2,
-      username: 'jane_smith',
-      email: 'jane@example.com',
-      role: 'manager',
-      status: 'active',
-      lastLogin: '2024-01-20T09:15:00Z',
-      createdAt: '2024-01-02T00:00:00Z'
-    },
-    {
-      id: 3,
-      username: 'mike_johnson',
-      email: 'mike@example.com',
-      role: 'tester',
-      status: 'inactive',
-      lastLogin: '2024-01-18T14:20:00Z',
-      createdAt: '2024-01-03T00:00:00Z'
-    },
-    {
-      id: 4,
-      username: 'sarah_wilson',
-      email: 'sarah@example.com',
-      role: 'hr',
-      status: 'active',
-      lastLogin: '2024-01-20T11:45:00Z',
-      createdAt: '2024-01-04T00:00:00Z'
-    }
-  ];
-
-  const mockStats = {
-    totalUsers: 24,
-    activeProjects: 8,
-    systemHealth: 98,
-    securityAlerts: 2
-  };
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -105,23 +59,40 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Try to fetch real data, fallback to mock data
-      try {
-        const [usersResponse, statsResponse] = await Promise.all([
-          adminAPI.getAllUsers(),
-          adminAPI.getSystemStats()
-        ]);
-        setUsers(usersResponse.users || mockUsers);
-        setStats(statsResponse.stats || mockStats);
-      } catch (error) {
-        console.log('Using mock data:', error.message);
-        setUsers(mockUsers);
-        setStats(mockStats);
-      }
+      setError(null);
+
+      const [usersResponse, statsResponse, healthResponse] = await Promise.all([
+        adminAPI.getAllUsers(),
+        adminAPI.getSystemStats(),
+        adminAPI.getSystemHealth(),
+      ]);
+
+      // Normalize users
+      const realUsers = (usersResponse?.users || usersResponse?.data?.users || usersResponse?.data || [])
+        .map(u => ({
+          id: u._id || u.id,
+          username: u.username || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+          email: u.email,
+          role: u.role,
+          status: u.isActive === false ? 'inactive' : 'active',
+          lastLogin: u.lastLogin || u.updatedAt || u.createdAt,
+          createdAt: u.createdAt,
+        }));
+
+      // Normalize stats
+      const s = statsResponse?.stats || statsResponse?.data?.stats || {};
+      const h = healthResponse?.health || healthResponse?.data?.health || {};
+
+      setUsers(realUsers);
+      setStats({
+        totalUsers: s.totalUsers ?? realUsers.length,
+        activeProjects: s.activeProjects ?? s.projectsActive ?? 0,
+        systemHealth: h.database?.status === 'connected' ? 100 : 75,
+        securityAlerts: s.securityAlerts ?? 0,
+      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setUsers(mockUsers);
-      setStats(mockStats);
+      setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -185,6 +156,12 @@ const AdminDashboard = () => {
       <Typography variant="body1" color="text.secondary" mb={3}>
         Welcome back, {user?.username || 'Admin'}! Here's your system overview.
       </Typography>
+
+      {error && (
+        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
+          <Typography color="error">{error}</Typography>
+        </Paper>
+      )}
 
       {/* Stats Cards */}
       <Grid container spacing={3} mb={4}>
@@ -259,7 +236,19 @@ const AdminDashboard = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {users.map((user) => (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Typography variant="body2" color="text.secondary">Loading users...</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Typography variant="body2" color="text.secondary">No users found.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <Box>
@@ -374,5 +363,4 @@ const AdminDashboard = () => {
       </Dialog>
     </Box>
   );
-
-export default AdminDashboard;
+}

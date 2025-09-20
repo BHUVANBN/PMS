@@ -91,22 +91,35 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Initialize auth state from localStorage (no /auth/verify endpoint in backend)
+  // Initialize auth state by verifying token with backend
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        try {
+          // Verify token with backend
+          const response = await authAPI.verifyToken();
+          
+          dispatch({
+            type: AUTH_ACTIONS.LOGIN_SUCCESS,
+            payload: {
+              user: response.user,
+              token,
+            },
+          });
+        } catch (error) {
+          // Token is invalid, clear it
+          apiUtils.clearAuthToken();
+          localStorage.removeItem('role');
+          dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+        }
+      } else {
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+      }
+    };
 
-    if (token) {
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: {
-          user: role ? { role } : null,
-          token,
-        },
-      });
-    } else {
-      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
-    }
+    initializeAuth();
   }, []);
 
   // Login function

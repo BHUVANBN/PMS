@@ -48,53 +48,9 @@ const ManagerDashboard = () => {
   const [projects, setProjects] = useState([]);
   const [teamPerformance, setTeamPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock data for demonstration
-  const mockStats = {
-    activeProjects: 5,
-    teamMembers: 12,
-    completedTasks: 89,
-    pendingTasks: 23
-  };
-
-  const mockTeamPerformance = [
-    {
-      id: 1,
-      name: 'John Doe',
-      role: 'Senior Developer',
-      tasksCompleted: 15,
-      tasksInProgress: 3,
-      efficiency: 92,
-      avatar: '/avatars/john.jpg'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      role: 'UI/UX Designer',
-      tasksCompleted: 12,
-      tasksInProgress: 2,
-      efficiency: 88,
-      avatar: '/avatars/jane.jpg'
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      role: 'Backend Developer',
-      tasksCompleted: 18,
-      tasksInProgress: 4,
-      efficiency: 95,
-      avatar: '/avatars/mike.jpg'
-    },
-    {
-      id: 4,
-      name: 'Sarah Wilson',
-      role: 'QA Tester',
-      tasksCompleted: 22,
-      tasksInProgress: 1,
-      efficiency: 98,
-      avatar: '/avatars/sarah.jpg'
-    }
-  ];
+  // Team performance will be derived from backend ticket stats per member when available.
 
   const quickActions = [
     {
@@ -134,23 +90,40 @@ const ManagerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Try to fetch real data, fallback to mock data
-      try {
-        const [projectsResponse, analyticsResponse] = await Promise.all([
-          managerAPI.getAllProjects(),
-          managerAPI.getTeamAnalytics()
-        ]);
-        setProjects(projectsResponse.projects || []);
-        setStats(analyticsResponse.stats || mockStats);
-      } catch (error) {
-        console.log('Using mock data:', error.message);
-        setStats(mockStats);
-      }
-      setTeamPerformance(mockTeamPerformance);
+      setError(null);
+
+      const [projectsResponse, statsResponse] = await Promise.all([
+        managerAPI.getAllProjects(),
+        managerAPI.getManagerStats(),
+      ]);
+
+      const projList = projectsResponse?.projects || projectsResponse?.data?.projects || projectsResponse?.data || [];
+      setProjects(Array.isArray(projList) ? projList : []);
+
+      const s = statsResponse?.stats || statsResponse?.data?.stats || statsResponse;
+      const normalizedStats = {
+        activeProjects: s?.projectStats?.active ?? s?.projects?.active ?? s?.projectsActive ?? 0,
+        teamMembers: s?.team?.totalMembers ?? s?.teamStats?.totalMembers ?? 0,
+        completedTasks: s?.tickets?.completed ?? s?.ticketStats?.completed ?? 0,
+        pendingTasks: s?.tickets?.open ?? s?.ticketStats?.open ?? 0,
+      };
+      setStats(normalizedStats);
+
+      // Optional: derive team performance if backend returns per-member metrics
+      const perf = s?.team?.members || s?.teamMembers || [];
+      const mappedPerf = Array.isArray(perf) ? perf.slice(0, 6).map((m, idx) => ({
+        id: m._id || m.id || idx,
+        name: m.name || `${m.firstName || ''} ${m.lastName || ''}`.trim() || 'Member',
+        role: m.role || 'member',
+        tasksCompleted: m.tasksCompleted || m.completed || 0,
+        tasksInProgress: m.tasksInProgress || m.inProgress || 0,
+        efficiency: m.efficiency || Math.min(100, Math.round(((m.completed || 0) / Math.max((m.completed || 0) + (m.inProgress || 0) + 1, 1)) * 100)),
+        avatar: m.avatar || undefined,
+      })) : [];
+      setTeamPerformance(mappedPerf);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setStats(mockStats);
-      setTeamPerformance(mockTeamPerformance);
+      setError(error.message || 'Failed to load manager dashboard');
     } finally {
       setLoading(false);
     }
@@ -162,6 +135,14 @@ const ManagerDashboard = () => {
     return 'error';
   };
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+        <LinearProgress sx={{ width: '60%' }} />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom fontWeight="bold">
@@ -170,6 +151,11 @@ const ManagerDashboard = () => {
       <Typography variant="body1" color="text.secondary" mb={3}>
         Welcome back, {user?.username || 'Manager'}! Here's your team overview.
       </Typography>
+      {error && (
+        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
+          <Typography color="error">{error}</Typography>
+        </Paper>
+      )}
 
       {/* Stats Cards */}
       <Grid container spacing={3} mb={4}>

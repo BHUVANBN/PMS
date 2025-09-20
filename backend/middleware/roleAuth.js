@@ -17,6 +17,17 @@ const ROLE_PERMISSIONS = {
       'manage_roles'
     ]
   },
+  employee: {
+    level: 2,
+    permissions: [
+      'view_assigned_tickets',
+      'update_ticket_status',
+      'kanban_workflow',
+      'comment_tickets',
+      'view_sprint_board',
+      'submit_timesheets'
+    ]
+  },
   hr: {
     level: 4,
     permissions: [
@@ -110,14 +121,14 @@ const ROLE_PERMISSIONS = {
 const RESOURCE_PERMISSIONS = {
   projects: {
     create: ['admin', 'manager'],
-    read: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    read: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern', 'employee'],
     update: ['admin', 'manager'],
     delete: ['admin']
   },
   tickets: {
     create: ['admin', 'manager'],
-    read: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
-    update: ['admin', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    read: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern', 'employee'],
+    update: ['admin', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern', 'employee'],
     delete: ['admin', 'manager']
   },
   users: {
@@ -127,7 +138,7 @@ const RESOURCE_PERMISSIONS = {
     delete: ['admin']
   },
   leaves: {
-    create: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    create: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern', 'employee'],
     read: ['admin', 'hr', 'manager'],
     update: ['admin', 'hr'],
     delete: ['admin', 'hr']
@@ -409,7 +420,7 @@ export const managerOrAdmin = requireRole('manager', 'admin');
 export const hrOrAdmin = requireRole('hr', 'admin');
 
 // Team member roles (developer, tester, sales, marketing, intern)
-export const teamMemberOnly = requireRole('developer', 'tester', 'sales', 'marketing', 'intern');
+export const teamMemberOnly = requireRole('developer', 'tester', 'sales', 'marketing', 'intern', 'employee');
 
 // Development team (developer, tester, intern with dev role)
 export const devTeamOnly = (req, res, next) => {
@@ -457,7 +468,8 @@ export const roleBasedRateLimit = (req, res, next) => {
     tester: 200,
     sales: 150,
     marketing: 150,
-    intern: 100
+    intern: 100,
+    employee: 150
   };
   
   req.rateLimit = rateLimits[userRole] || 50;

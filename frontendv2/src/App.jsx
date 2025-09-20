@@ -1,44 +1,111 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from './store/auth.js'
-import DashboardLayout from './layouts/DashboardLayout.jsx'
-import Login from './pages/auth/Login.jsx'
-import AdminDashboard from './pages/dashboard/AdminDashboard.jsx'
-import ProjectsList from './pages/projects/ProjectsList.jsx'
-import ProjectDetail from './pages/projects/ProjectDetail.jsx'
-import KanbanBoard from './pages/kanban/KanbanBoard.jsx'
-import UsersList from './pages/users/UsersList.jsx'
-import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard.jsx'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
+import MainLayout from './layouts/MainLayout';
 
-function RequireAuth() {
-  const { token } = useAuth()
-  if (!token) return <Navigate to="/login" replace />
-  return <Outlet />
-}
+// Auth pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 
-export default function App() {
+// Dashboard pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import HRDashboard from './pages/hr/HRDashboard';
+import ManagerDashboard from './pages/manager/ManagerDashboard';
+import DeveloperDashboard from './pages/developer/DeveloperDashboard';
+import TesterDashboard from './pages/tester/TesterDashboard';
+import SalesDashboard from './pages/sales/SalesDashboard';
+import MarketingDashboard from './pages/marketing/MarketingDashboard';
+import InternDashboard from './pages/intern/InternDashboard';
+
+// Generic pages
+import ProjectsPage from './pages/ProjectsPage';
+import TicketsPage from './pages/TicketsPage';
+import TeamPage from './pages/TeamPage';
+import SprintsPage from './pages/SprintsPage';
+import BugsPage from './pages/BugsPage';
+import ReportsPage from './pages/ReportsPage';
+import CalendarPage from './pages/CalendarPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import HelpPage from './pages/HelpPage';
+
+// Shared pages
+import NotFoundPage from './pages/NotFoundPage';
+
+function App() {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <Routes>
-        <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <Router>
+        <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-        <Route element={<RequireAuth />}> 
-          <Route element={<DashboardLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<AdminDashboard />} />
+            {/* Protected app with layout and nested routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
+              {/* Default redirect to role dashboard */}
+              <Route index element={<RoleBasedRedirect />} />
 
-            <Route path="/projects" element={<ProjectsList />} />
-            <Route path="/projects/:projectId" element={<ProjectDetail />} />
+              {/* Dashboards per role */}
+              <Route path="admin/dashboard" element={<AdminDashboard />} />
+              <Route path="hr/dashboard" element={<HRDashboard />} />
+              <Route path="manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="developer/dashboard" element={<DeveloperDashboard />} />
+              <Route path="tester/dashboard" element={<TesterDashboard />} />
+              <Route path="sales/dashboard" element={<SalesDashboard />} />
+              <Route path="marketing/dashboard" element={<MarketingDashboard />} />
+              <Route path="intern/dashboard" element={<InternDashboard />} />
 
-            <Route path="/kanban" element={<KanbanBoard />} />
-
-            <Route path="/users" element={<UsersList />} />
-
-            <Route path="/analytics" element={<AnalyticsDashboard />} />
-          </Route>
-        </Route>
-
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </div>
-  )
+              {/* Generic sections */}
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="tickets" element={<TicketsPage />} />
+              <Route path="team" element={<TeamPage />} />
+              <Route path="sprints" element={<SprintsPage />} />
+              <Route path="bugs" element={<BugsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="help" element={<HelpPage />} />
+            </Route>
+            
+            {/* 404 page */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
+  );
 }
+
+// Component to redirect users to their appropriate dashboard
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
+  
+  const roleRedirects = {
+    admin: '/admin/dashboard',
+    hr: '/hr/dashboard',
+    manager: '/manager/dashboard',
+    developer: '/developer/dashboard',
+    tester: '/tester/dashboard',
+    sales: '/sales/dashboard',
+    marketing: '/marketing/dashboard',
+    intern: '/intern/dashboard',
+  };
+  
+  const redirectPath = roleRedirects[user?.role] || '/login';
+  return <Navigate to={redirectPath} replace />;
+};
+
+export default App;

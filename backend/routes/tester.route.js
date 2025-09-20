@@ -26,7 +26,8 @@ import {
   
   // Testing Workflow Management
   startTicketTesting,
-  completeTicketTesting
+  completeTicketTesting,
+  getTesterStats
 } from '../controllers/tester.controller.js';
 
 const router = express.Router();
@@ -102,6 +103,9 @@ router.post('/tickets/:projectId/:moduleId/:ticketId/start-testing', startTicket
 
 // Complete testing for a ticket
 router.post('/tickets/:projectId/:moduleId/:ticketId/complete-testing', completeTicketTesting);
+
+// Get tester dashboard statistics
+router.get('/stats', getTesterStats);
 
 // ========================================
 // LEGACY ROUTES (for compatibility)

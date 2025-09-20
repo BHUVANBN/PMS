@@ -8,7 +8,8 @@ import {
 	getMyKanbanBoards,
 	moveOnKanbanBoard,
 	getMyStandups,
-	upsertMyStandupUpdate
+	upsertMyStandupUpdate,
+	getDeveloperStats
 } from '../controllers/dev.controller.js';
 
 const router = express.Router();
@@ -37,6 +38,9 @@ router.get('/standups', verifyToken, allowDeveloperOnly, getMyStandups);
 
 // Create/update my standup update
 router.post('/standups/:standupId/updates', verifyToken, allowDeveloperOnly, express.json(), upsertMyStandupUpdate);
+
+// Get developer dashboard statistics
+router.get('/stats', verifyToken, allowDeveloperOnly, getDeveloperStats);
 
 export default router;
 

@@ -9,7 +9,9 @@ import {
 	updateUser,
 	deleteUser,
 	getSystemStats,
-	resetUserPassword
+	resetUserPassword,
+	getActivityLogs,
+	getSystemHealth
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -46,6 +48,12 @@ router.patch('/users/:id/reset-password', resetUserPassword);
 
 // Get system statistics
 router.get('/stats', getSystemStats);
+
+// Get activity logs
+router.get('/activity', getActivityLogs);
+
+// Get system health
+router.get('/health', getSystemHealth);
 
 // Legacy route for compatibility
 router.get('/all', (req, res) => {

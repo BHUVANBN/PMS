@@ -47,9 +47,17 @@ const corsOptions = {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
+    credentials: true, // Enable credentials (cookies, authorization headers)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: [
+        'Content-Type', 
+        'Authorization', 
+        'Cookie',
+        'X-Requested-With',
+        'Accept',
+        'Origin'
+    ],
+    exposedHeaders: ['Set-Cookie'], // Allow frontend to read Set-Cookie headers
     optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 

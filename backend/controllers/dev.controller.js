@@ -269,4 +269,118 @@ export const upsertMyStandupUpdate = async (req, res) => {
 	}
 };
 
+/**
+ * Get Developer dashboard statistics
+ */
+export const getDeveloperStats = async (req, res) => {
+	try {
+		const developerId = new mongoose.Types.ObjectId(req.user.id);
+
+		// Get projects where developer is a team member
+		const projects = await Project.find({ teamMembers: developerId });
+		const projectIds = projects.map(p => p._id);
+
+		// Get tickets assigned to this developer
+		const ticketsAgg = await Project.aggregate([
+			{ $match: { teamMembers: developerId } },
+			{ $unwind: '$modules' },
+			{ $unwind: '$modules.tickets' },
+			{ $match: { 'modules.tickets.assignedDeveloper': developerId } },
+			{ $group: {
+				_id: '$modules.tickets.status',
+				count: { $sum: 1 },
+				storyPoints: { $sum: '$modules.tickets.storyPoints' }
+			}}
+		]);
+
+		// Process ticket statistics
+		const ticketStats = {
+			total: 0,
+			open: 0,
+			inProgress: 0,
+			testing: 0,
+			codeReview: 0,
+			done: 0,
+			totalStoryPoints: 0
+		};
+
+		ticketsAgg.forEach(stat => {
+			ticketStats.total += stat.count;
+			ticketStats.totalStoryPoints += stat.storyPoints || 0;
+			
+			switch (stat._id) {
+				case TICKET_STATUS.OPEN:
+					ticketStats.open = stat.count;
+					break;
+				case TICKET_STATUS.IN_PROGRESS:
+					ticketStats.inProgress = stat.count;
+					break;
+				case TICKET_STATUS.TESTING:
+					ticketStats.testing = stat.count;
+					break;
+				case TICKET_STATUS.CODE_REVIEW:
+					ticketStats.codeReview = stat.count;
+					break;
+				case TICKET_STATUS.DONE:
+					ticketStats.done = stat.count;
+					break;
+			}
+		});
+
+		// Get recent standups
+		const recentStandups = await Standup.find({
+			$or: [
+				{ attendees: developerId },
+				{ projectId: { $in: projectIds } }
+			]
+		}).sort({ date: -1 }).limit(5);
+
+		const standupStats = {
+			total: recentStandups.length,
+			thisWeek: recentStandups.filter(s => {
+				const weekAgo = new Date();
+				weekAgo.setDate(weekAgo.getDate() - 7);
+				return s.date >= weekAgo;
+			}).length
+		};
+
+		// Calculate productivity metrics
+		const productivity = {
+			completionRate: ticketStats.total > 0 ? Math.round((ticketStats.done / ticketStats.total) * 100) : 0,
+			averageStoryPoints: ticketStats.total > 0 ? Math.round(ticketStats.totalStoryPoints / ticketStats.total) : 0,
+			activeWorkload: ticketStats.inProgress + ticketStats.testing + ticketStats.codeReview
+		};
+
+		const stats = {
+			projects: {
+				total: projects.length,
+				active: projects.filter(p => p.status === 'active').length
+			},
+			tickets: ticketStats,
+			standups: standupStats,
+			productivity,
+			overview: {
+				assignedTickets: ticketStats.total,
+				completedTickets: ticketStats.done,
+				activeProjects: projects.filter(p => p.status === 'active').length,
+				totalStoryPoints: ticketStats.totalStoryPoints
+			}
+		};
+
+		return res.status(200).json({
+			success: true,
+			message: 'Developer statistics retrieved successfully',
+			stats
+		});
+
+	} catch (error) {
+		console.error('Error getting developer stats:', error);
+		return res.status(500).json({
+			success: false,
+			message: 'Server error while getting developer statistics',
+			error: error.message
+		});
+	}
+};
+
 

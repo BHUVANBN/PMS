@@ -390,3 +390,103 @@ export const resetUserPassword = async (req, res) => {
 		});
 	}
 };
+
+/**
+ * Get system activity logs
+ */
+export const getActivityLogs = async (req, res) => {
+	try {
+		const { limit = 50, offset = 0 } = req.query;
+		
+		// Get recent user activities (registrations, logins, etc.)
+		const recentUsers = await User.find({ isActive: true })
+			.sort({ createdAt: -1 })
+			.limit(parseInt(limit))
+			.skip(parseInt(offset))
+			.select('username email role createdAt updatedAt');
+
+		// Convert user data to activity format (real data only)
+		const activities = recentUsers.map(user => ({
+			id: user._id,
+			type: 'user_created',
+			description: `User ${user.username} (${user.role}) was created`,
+			timestamp: user.createdAt,
+			user: {
+				username: user.username,
+				role: user.role
+			}
+		}));
+
+		return res.status(200).json({
+			message: 'Activity logs retrieved successfully',
+			activities,
+			total: activities.length
+		});
+
+	} catch (error) {
+		console.error('Error getting activity logs:', error);
+		return res.status(500).json({
+			message: 'Server error while getting activity logs',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Get system health status
+ */
+export const getSystemHealth = async (req, res) => {
+	try {
+		const startTime = Date.now();
+		
+		// Check database connection
+		const dbStatus = mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy';
+		
+		// Get basic system metrics
+		const userCount = await User.countDocuments({ isActive: true });
+		const totalUsers = await User.countDocuments();
+		
+		// Calculate response time
+		const responseTime = Date.now() - startTime;
+		
+		// System health data with real metrics
+		const healthData = {
+			status: dbStatus === 'healthy' ? 'healthy' : 'unhealthy',
+			timestamp: new Date().toISOString(),
+			services: {
+				database: {
+					status: dbStatus,
+					responseTime: responseTime + 'ms'
+				},
+				api: {
+					status: 'healthy',
+					responseTime: responseTime + 'ms'
+				}
+			},
+			metrics: {
+				activeUsers: userCount,
+				totalUsers: totalUsers,
+				uptime: process.uptime(),
+				memoryUsage: process.memoryUsage(),
+				nodeVersion: process.version
+			}
+		};
+
+		return res.status(200).json({
+			message: 'System health retrieved successfully',
+			health: healthData
+		});
+
+	} catch (error) {
+		console.error('Error getting system health:', error);
+		return res.status(500).json({
+			message: 'Server error while getting system health',
+			error: error.message,
+			health: {
+				status: 'unhealthy',
+				timestamp: new Date().toISOString(),
+				error: error.message
+			}
+		});
+	}
+};

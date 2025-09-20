@@ -7,7 +7,9 @@ import {
 	getEmployeesByRole,
 	updateEmployee,
 	toggleEmployeeStatus,
-	getEmployeeStats
+	getEmployeeStats,
+	getHRStats,
+	getEmployeeById
 } from '../controllers/hr.controller.js';
 
 const router = express.Router();
@@ -27,6 +29,9 @@ router.post('/employees', createEmployee);
 // Get all employees
 router.get('/employees', getAllEmployees);
 
+// Get individual employee by ID
+router.get('/employees/:id', getEmployeeById);
+
 // Get employees by role
 router.get('/employees/role/:role', getEmployeesByRole);
 
@@ -36,8 +41,11 @@ router.put('/employees/:id', updateEmployee);
 // Activate/Deactivate employee account
 router.patch('/employees/:id/toggle-status', toggleEmployeeStatus);
 
-// Get employee statistics
-router.get('/stats', getEmployeeStats);
+// Get employee statistics (legacy)
+router.get('/employee-stats', getEmployeeStats);
+
+// Get HR dashboard statistics
+router.get('/stats', getHRStats);
 
 export default router;
 

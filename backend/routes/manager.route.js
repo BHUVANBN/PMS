@@ -14,28 +14,22 @@ import {
   updateModule,
   getModuleSummary,
   createSprint,
-  
-  // Ticket Oversight
+  updateSprint,
   getAllTickets,
   reassignTicket,
   updateTicketStatus,
   getTicketReports,
-  
-  // Team & Resource Management
   getProjectTeam,
   assignTeamRole,
   getUserWorkload,
   recordTeamStandup,
-  
-  // Kanban & Sprint Monitoring
   getProjectKanban,
   getSprintSummary,
-  updateSprint,
-  
-  // Reporting & Analytics
   getProjectAnalytics,
   getTeamAnalytics,
-  getProjectRisks
+  getProjectRisks,
+  getManagerStats,
+  getTeamManagement
 } from '../controllers/manager.controller.js';
 
 const router = express.Router();
@@ -152,6 +146,12 @@ router.get('/analytics/team/:id', getTeamAnalytics);
 
 // Get project risks and blockers
 router.get('/risks/:projectId', getProjectRisks);
+
+// Get manager dashboard statistics
+router.get('/stats', getManagerStats);
+
+// Get team management data (moved to avoid conflict with legacy route)
+router.get('/team-management', getTeamManagement);
 
 // ========================================
 // LEGACY ROUTES (for compatibility)

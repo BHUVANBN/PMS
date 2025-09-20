@@ -1171,3 +1171,116 @@ export const completeTicketTesting = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get Tester dashboard statistics
+ */
+export const getTesterStats = async (req, res) => {
+  try {
+    const testerId = req.user._id;
+
+    // Get bugs reported by this tester
+    const reportedBugs = await BugTracker.find({ reportedBy: testerId });
+    
+    // Get bugs assigned to this tester
+    const assignedBugs = await BugTracker.find({ assignedTo: testerId });
+
+    // Calculate bug statistics
+    const bugStats = {
+      reported: {
+        total: reportedBugs.length,
+        open: reportedBugs.filter(b => b.status === 'open').length,
+        inProgress: reportedBugs.filter(b => b.status === 'in-progress').length,
+        resolved: reportedBugs.filter(b => b.status === 'resolved').length,
+        closed: reportedBugs.filter(b => b.status === 'closed').length
+      },
+      assigned: {
+        total: assignedBugs.length,
+        pending: assignedBugs.filter(b => b.status === 'open').length,
+        testing: assignedBugs.filter(b => b.status === 'in-progress').length,
+        verified: assignedBugs.filter(b => b.status === 'resolved').length
+      }
+    };
+
+    // Get severity breakdown for reported bugs
+    const severityStats = {
+      critical: reportedBugs.filter(b => b.severity === 'critical').length,
+      high: reportedBugs.filter(b => b.severity === 'high').length,
+      medium: reportedBugs.filter(b => b.severity === 'medium').length,
+      low: reportedBugs.filter(b => b.severity === 'low').length
+    };
+
+    // Get projects where tester is involved
+    const projects = await Project.find({ teamMembers: testerId });
+    
+    // Get test case statistics from actual ticket data
+    let totalTickets = 0;
+    let testedTickets = 0;
+    let passedTickets = 0;
+    let failedTickets = 0;
+    
+    projects.forEach(project => {
+      project.modules.forEach(module => {
+        module.tickets.forEach(ticket => {
+          if (ticket.tester && ticket.tester.toString() === testerId.toString()) {
+            totalTickets++;
+            if (ticket.status === 'done') {
+              testedTickets++;
+              passedTickets++;
+            } else if (ticket.status === 'testing' && ticket.testingNotes) {
+              testedTickets++;
+              failedTickets++;
+            }
+          }
+        });
+      });
+    });
+
+    const testCaseStats = {
+      total: totalTickets,
+      executed: testedTickets,
+      passed: passedTickets,
+      failed: failedTickets,
+      blocked: totalTickets - testedTickets
+    };
+
+    // Calculate productivity metrics
+    const productivity = {
+      bugDetectionRate: Math.round((bugStats.reported.total / Math.max(testCaseStats.executed, 1)) * 100),
+      bugResolutionRate: Math.round((bugStats.reported.resolved / Math.max(bugStats.reported.total, 1)) * 100),
+      testExecutionRate: Math.round((testCaseStats.executed / Math.max(testCaseStats.total, 1)) * 100),
+      testPassRate: Math.round((testCaseStats.passed / Math.max(testCaseStats.executed, 1)) * 100)
+    };
+
+    const stats = {
+      bugs: bugStats,
+      severity: severityStats,
+      testCases: testCaseStats,
+      projects: {
+        total: projects.length,
+        active: projects.filter(p => p.status === 'active').length
+      },
+      productivity,
+      overview: {
+        totalBugsReported: bugStats.reported.total,
+        totalBugsAssigned: bugStats.assigned.total,
+        activeProjects: projects.filter(p => p.status === 'active').length,
+        testCasesExecuted: testCaseStats.executed
+      }
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Tester statistics retrieved successfully',
+      stats
+    });
+
+  } catch (error) {
+    console.error('Error getting tester stats:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while getting tester statistics',
+      error: error.message
+    });
+  }
+};

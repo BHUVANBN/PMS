@@ -288,3 +288,119 @@ export const getEmployeeStats = async (req, res) => {
 		});
 	}
 };
+
+/**
+ * Get HR dashboard statistics
+ */
+export const getHRStats = async (req, res) => {
+	try {
+		// Get total employee count
+		const totalEmployees = await User.countDocuments({ 
+			isActive: true,
+			role: { $ne: USER_ROLES.ADMIN }
+		});
+
+		// Get employees by role
+		const roleStats = await User.aggregate([
+			{ $match: { isActive: true, role: { $ne: USER_ROLES.ADMIN } } },
+			{ $group: { _id: '$role', count: { $sum: 1 } } }
+		]);
+
+		// Get recent hires (last 30 days)
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+		
+		const recentHires = await User.countDocuments({
+			isActive: true,
+			createdAt: { $gte: thirtyDaysAgo }
+		});
+
+		// Get inactive employees
+		const inactiveEmployees = await User.countDocuments({ isActive: false });
+
+		// Leave request statistics - using real data structure for future Leave model integration
+		const leaveStats = {
+			pending: 0,
+			approved: 0,
+			rejected: 0,
+			total: 0
+		};
+
+		const stats = {
+			employees: {
+				total: totalEmployees,
+				active: totalEmployees,
+				inactive: inactiveEmployees,
+				recentHires: recentHires
+			},
+			roles: roleStats.reduce((acc, item) => {
+				acc[item._id] = item.count;
+				return acc;
+			}, {}),
+			leaves: leaveStats,
+			overview: {
+				departmentCount: Object.keys(roleStats.reduce((acc, item) => {
+					acc[item._id] = true;
+					return acc;
+				}, {})).length
+			}
+		};
+
+		return res.status(200).json({
+			message: 'HR statistics retrieved successfully',
+			stats
+		});
+
+	} catch (error) {
+		console.error('Error retrieving HR stats:', error);
+		return res.status(500).json({
+			message: 'Server error while retrieving HR statistics',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Get individual employee details by ID
+ */
+export const getEmployeeById = async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		// Find the employee by ID
+		const employee = await User.findById(id).select('-password');
+		
+		if (!employee) {
+			return res.status(404).json({
+				message: 'Employee not found'
+			});
+		}
+
+		// Check if user is actually an employee (not admin)
+		if (employee.role === USER_ROLES.ADMIN) {
+			return res.status(403).json({
+				message: 'Cannot access admin user details through employee endpoint'
+			});
+		}
+
+		// Return employee details with real data only
+		const employeeDetails = {
+			...employee.toObject(),
+			department: employee.role,
+			joinDate: employee.createdAt,
+			lastActive: employee.updatedAt
+		};
+
+		return res.status(200).json({
+			message: 'Employee details retrieved successfully',
+			employee: employeeDetails
+		});
+
+	} catch (error) {
+		console.error('Error retrieving employee details:', error);
+		return res.status(500).json({
+			message: 'Server error while retrieving employee details',
+			error: error.message
+		});
+	}
+};

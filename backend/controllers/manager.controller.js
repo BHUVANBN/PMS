@@ -1395,3 +1395,200 @@ export const getProjectRisks = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get Manager dashboard statistics
+ */
+export const getManagerStats = async (req, res) => {
+  try {
+    const managerId = req.user._id;
+    
+    // Get projects managed by this manager
+    const projects = await Project.find({ projectManager: managerId });
+    const projectIds = projects.map(p => p._id);
+    
+    // Calculate project statistics
+    const projectStats = {
+      total: projects.length,
+      active: projects.filter(p => p.status === 'active').length,
+      completed: projects.filter(p => p.status === 'completed').length,
+      onHold: projects.filter(p => p.status === 'on-hold').length
+    };
+    
+    // Get team members across all projects
+    const allTeamMembers = new Set();
+    projects.forEach(project => {
+      project.teamMembers.forEach(member => allTeamMembers.add(member.toString()));
+    });
+    
+    // Get sprints for managed projects
+    const sprints = await Sprint.find({ projectId: { $in: projectIds } });
+    const sprintStats = {
+      total: sprints.length,
+      active: sprints.filter(s => s.status === 'active').length,
+      completed: sprints.filter(s => s.status === 'completed').length,
+      planned: sprints.filter(s => s.status === 'planned').length
+    };
+    
+    // Calculate real ticket statistics from project modules
+    let totalTickets = 0;
+    let openTickets = 0;
+    let inProgressTickets = 0;
+    let completedTickets = 0;
+    let blockedTickets = 0;
+
+    projects.forEach(project => {
+      project.modules?.forEach(module => {
+        module.tickets?.forEach(ticket => {
+          totalTickets++;
+          switch (ticket.status) {
+            case 'open':
+              openTickets++;
+              break;
+            case 'in-progress':
+            case 'development':
+            case 'testing':
+              inProgressTickets++;
+              break;
+            case 'done':
+            case 'completed':
+              completedTickets++;
+              break;
+            case 'blocked':
+              blockedTickets++;
+              break;
+          }
+        });
+      });
+    });
+
+    const ticketStats = {
+      total: totalTickets,
+      open: openTickets,
+      inProgress: inProgressTickets,
+      completed: completedTickets,
+      blocked: blockedTickets
+    };
+    
+    // Calculate team performance metrics
+    const teamStats = {
+      totalMembers: allTeamMembers.size,
+      activeProjects: projectStats.active,
+      avgProjectSize: allTeamMembers.size > 0 ? Math.round(allTeamMembers.size / Math.max(projectStats.total, 1)) : 0,
+      productivity: Math.round((ticketStats.completed / Math.max(ticketStats.total, 1)) * 100)
+    };
+    
+    const stats = {
+      projects: projectStats,
+      sprints: sprintStats,
+      tickets: ticketStats,
+      team: teamStats,
+      overview: {
+        managedProjects: projectStats.total,
+        teamSize: allTeamMembers.size,
+        completionRate: Math.round((projectStats.completed / Math.max(projectStats.total, 1)) * 100),
+        activeWorkload: projectStats.active + sprintStats.active
+      }
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Manager statistics retrieved successfully',
+      stats
+    });
+
+  } catch (error) {
+    console.error('Error getting manager stats:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while getting manager statistics',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get team management data for manager
+ */
+export const getTeamManagement = async (req, res) => {
+  try {
+    const managerId = req.user.id;
+
+    // Get all projects managed by this manager
+    const projects = await Project.find({ 
+      $or: [
+        { manager: managerId },
+        { 'team.manager': managerId }
+      ]
+    }).populate('team.members', 'username email role firstName lastName isActive');
+
+    // Get all team members from managed projects
+    const allTeamMembers = new Set();
+    const teamData = [];
+
+    projects.forEach(project => {
+      if (project.team && project.team.members) {
+        project.team.members.forEach(member => {
+          if (!allTeamMembers.has(member._id.toString())) {
+            allTeamMembers.add(member._id.toString());
+            teamData.push({
+              id: member._id,
+              username: member.username,
+              email: member.email,
+              role: member.role,
+              firstName: member.firstName,
+              lastName: member.lastName,
+              isActive: member.isActive,
+              projects: [project.name],
+              // Remove mock performance data - would come from task/project tracking
+              projectCount: 1
+            });
+          } else {
+            // Add project to existing team member
+            const existingMember = teamData.find(tm => tm.id.toString() === member._id.toString());
+            if (existingMember && !existingMember.projects.includes(project.name)) {
+              existingMember.projects.push(project.name);
+              existingMember.projectCount++;
+            }
+          }
+        });
+      }
+    });
+
+    // Get team statistics
+    const teamStats = {
+      totalMembers: teamData.length,
+      activeMembers: teamData.filter(member => member.isActive).length,
+      roleDistribution: teamData.reduce((acc, member) => {
+        acc[member.role] = (acc[member.role] || 0) + 1;
+        return acc;
+      }, {}),
+      averageProjectsPerMember: teamData.length > 0 
+        ? Math.round(teamData.reduce((sum, member) => sum + member.projectCount, 0) / teamData.length)
+        : 0
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Team management data retrieved successfully',
+      team: {
+        members: teamData,
+        statistics: teamStats,
+        projects: projects.map(p => ({
+          id: p._id,
+          name: p.name,
+          status: p.status,
+          teamSize: p.team?.members?.length || 0
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting team management data:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while getting team management data',
+      error: error.message
+    });
+  }
+};

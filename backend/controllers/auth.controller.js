@@ -73,4 +73,82 @@ export const register = async (req, res) => {
 	}
 };
 
+export const verifyToken = async (req, res) => {
+	try {
+		const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+		
+		if (!token) {
+			return res.status(401).json({ message: 'No token provided' });
+		}
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.id).select('-password');
+		
+		if (!user || !user.isActive) {
+			return res.status(401).json({ message: 'Invalid token or user not found' });
+		}
+
+		return res.status(200).json({ 
+			message: 'Token valid', 
+			user: {
+				id: user._id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				firstName: user.firstName,
+				lastName: user.lastName
+			}
+		});
+	} catch (error) {
+		if (error.name === 'JsonWebTokenError') {
+			return res.status(401).json({ message: 'Invalid token' });
+		}
+		if (error.name === 'TokenExpiredError') {
+			return res.status(401).json({ message: 'Token expired' });
+		}
+		return res.status(500).json({ message: 'Server error', error: error.message });
+	}
+};
+
+export const refreshToken = async (req, res) => {
+	try {
+		const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+		
+		if (!token) {
+			return res.status(401).json({ message: 'No token provided' });
+		}
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.id);
+		
+		if (!user || !user.isActive) {
+			return res.status(401).json({ message: 'Invalid token or user not found' });
+		}
+
+		const newToken = signToken(user);
+		res.cookie('token', newToken, { httpOnly: true, sameSite: 'lax', maxAge: 24*60*60*1000 });
+		
+		return res.status(200).json({ 
+			message: 'Token refreshed', 
+			token: newToken,
+			user: {
+				id: user._id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				firstName: user.firstName,
+				lastName: user.lastName
+			}
+		});
+	} catch (error) {
+		if (error.name === 'JsonWebTokenError') {
+			return res.status(401).json({ message: 'Invalid token' });
+		}
+		if (error.name === 'TokenExpiredError') {
+			return res.status(401).json({ message: 'Token expired' });
+		}
+		return res.status(500).json({ message: 'Server error', error: error.message });
+	}
+};
+
 

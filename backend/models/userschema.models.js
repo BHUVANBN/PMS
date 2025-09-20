@@ -11,7 +11,8 @@ const USER_ROLES = {
   TESTER: 'tester',       // Can test software and report bugs/issues
   SALES: 'sales',         // Sales team members with Sprint→Kanban workflow
   MARKETING: 'marketing', // Marketing team members with Sprint→Kanban workflow
-  INTERN: 'intern'        // Intern role - same workflow as assigned role but tagged differently
+  EMPLOYEE: 'employee',    // General employee role for non-technical staff
+  INTERN: 'intern',        // Intern role - same workflow as assigned role but tagged differently
 };
 
 // User status for account management

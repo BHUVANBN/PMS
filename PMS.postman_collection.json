@@ -1,0 +1,321 @@
+{
+  "info": {
+    "_postman_id": "7c6b8f42-8b52-4d0a-9b2d-2b5ad0f7b1ec",
+    "name": "PMS API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Project Management System API collection. Uses {{base_url}} and Bearer {{token}}. Login request stores token in environment variable 'token'."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var json = {};",
+                  "try { json = pm.response.json(); } catch (e) {}",
+                  "if (json && json.token) {",
+                  "  pm.environment.set('token', json.token);",
+                  "}",
+                  "pm.test('Token saved to environment', function () {",
+                  "  pm.expect(pm.environment.get('token')).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password\",\n  \"role\": \"employee\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/admin/me","host":["{{base_url}}"],"path":["api","admin","me"]}}},
+        {"name":"Create User","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"username\": \"user1\",\n  \"email\": \"user1@example.com\",\n  \"password\": \"password\",\n  \"role\": \"employee\"\n}"},"url":{"raw":"{{base_url}}/api/admin/users","host":["{{base_url}}"],"path":["api","admin","users"]}}},
+        {"name":"Create HR","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"username\": \"hr1\",\n  \"email\": \"hr1@example.com\",\n  \"password\": \"password\"\n}"},"url":{"raw":"{{base_url}}/api/admin/users/hr","host":["{{base_url}}"],"path":["api","admin","users","hr"]}}},
+        {"name":"Get All Users","request":{"method":"GET","url":{"raw":"{{base_url}}/api/admin/users","host":["{{base_url}}"],"path":["api","admin","users"]}}},
+        {"name":"Get Users By Role","request":{"method":"GET","url":{"raw":"{{base_url}}/api/admin/users/role/:role","host":["{{base_url}}"],"path":["api","admin","users","role",":role"]}}},
+        {"name":"Update User","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/admin/users/:id","host":["{{base_url}}"],"path":["api","admin","users",":id"]}}},
+        {"name":"Delete User","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/admin/users/:id","host":["{{base_url}}"],"path":["api","admin","users",":id"]}}},
+        {"name":"Reset User Password","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"newPassword\": \"newPass123\" }"},"url":{"raw":"{{base_url}}/api/admin/users/:id/reset-password","host":["{{base_url}}"],"path":["api","admin","users",":id","reset-password"]}}},
+        {"name":"System Stats","request":{"method":"GET","url":{"raw":"{{base_url}}/api/admin/stats","host":["{{base_url}}"],"path":["api","admin","stats"]}}},
+        {"name":"Legacy All","request":{"method":"GET","url":{"raw":"{{base_url}}/api/admin/all","host":["{{base_url}}"],"path":["api","admin","all"]}}}
+      ]
+    },
+    {
+      "name": "HR",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/hr/me","host":["{{base_url}}"],"path":["api","hr","me"]}}},
+        {"name":"Create Employee","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/hr/employees","host":["{{base_url}}"],"path":["api","hr","employees"]}}},
+        {"name":"Get All Employees","request":{"method":"GET","url":{"raw":"{{base_url}}/api/hr/employees","host":["{{base_url}}"],"path":["api","hr","employees"]}}},
+        {"name":"Get Employees By Role","request":{"method":"GET","url":{"raw":"{{base_url}}/api/hr/employees/role/:role","host":["{{base_url}}"],"path":["api","hr","employees","role",":role"]}}},
+        {"name":"Update Employee","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/hr/employees/:id","host":["{{base_url}}"],"path":["api","hr","employees",":id"]}}},
+        {"name":"Toggle Employee Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/hr/employees/:id/toggle-status","host":["{{base_url}}"],"path":["api","hr","employees",":id","toggle-status"]}}},
+        {"name":"Employee Stats","request":{"method":"GET","url":{"raw":"{{base_url}}/api/hr/stats","host":["{{base_url}}"],"path":["api","hr","stats"]}}}
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {"name":"List Users","request":{"method":"GET","url":{"raw":"{{base_url}}/api/users/","host":["{{base_url}}"],"path":["api","users",""]}}},
+        {"name":"Create User","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/users/","host":["{{base_url}}"],"path":["api","users",""]}}},
+        {"name":"Users By Role","request":{"method":"GET","url":{"raw":"{{base_url}}/api/users/role/:role","host":["{{base_url}}"],"path":["api","users","role",":role"]}}},
+        {"name":"User Stats Summary","request":{"method":"GET","url":{"raw":"{{base_url}}/api/users/stats/summary","host":["{{base_url}}"],"path":["api","users","stats","summary"]}}},
+        {"name":"Get User","request":{"method":"GET","url":{"raw":"{{base_url}}/api/users/:userId","host":["{{base_url}}"],"path":["api","users",":userId"]}}},
+        {"name":"Update User (PUT)","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/users/:userId","host":["{{base_url}}"],"path":["api","users",":userId"]}}},
+        {"name":"Update User (PATCH)","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/users/:userId","host":["{{base_url}}"],"path":["api","users",":userId"]}}},
+        {"name":"Change Password","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"newPassword\": \"newPass123\" }"},"url":{"raw":"{{base_url}}/api/users/:userId/password","host":["{{base_url}}"],"path":["api","users",":userId","password"]}}},
+        {"name":"Toggle User Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"isActive\": true }"},"url":{"raw":"{{base_url}}/api/users/:userId/status","host":["{{base_url}}"],"path":["api","users",":userId","status"]}}},
+        {"name":"Update Leave Balance","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"leaveDays\": 5 }"},"url":{"raw":"{{base_url}}/api/users/:userId/leave-balance","host":["{{base_url}}"],"path":["api","users",":userId","leave-balance"]}}},
+        {"name":"Delete User","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/users/:userId","host":["{{base_url}}"],"path":["api","users",":userId"]}}}
+      ]
+    },
+    {
+      "name": "Employee",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/employee/me","host":["{{base_url}}"],"path":["api","employee","me"]}}},
+        {"name":"Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/employee/dashboard","host":["{{base_url}}"],"path":["api","employee","dashboard"]}}}
+      ]
+    },
+    {
+      "name": "Intern",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/intern/me","host":["{{base_url}}"],"path":["api","intern","me"]}}},
+        {"name":"Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/intern/dashboard","host":["{{base_url}}"],"path":["api","intern","dashboard"]}}}
+      ]
+    },
+    {
+      "name": "Marketing",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/marketing/me","host":["{{base_url}}"],"path":["api","marketing","me"]}}},
+        {"name":"Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/marketing/dashboard","host":["{{base_url}}"],"path":["api","marketing","dashboard"]}}}
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sales/me","host":["{{base_url}}"],"path":["api","sales","me"]}}},
+        {"name":"Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sales/dashboard","host":["{{base_url}}"],"path":["api","sales","dashboard"]}}}
+      ]
+    },
+    {
+      "name": "Developer",
+      "item": [
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/me","host":["{{base_url}}"],"path":["api","developer","me"]}}},
+        {"name":"Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/dashboard","host":["{{base_url}}"],"path":["api","developer","dashboard"]}}},
+        {"name":"My Projects","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/projects","host":["{{base_url}}"],"path":["api","developer","projects"]}}},
+        {"name":"My Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/tickets","host":["{{base_url}}"],"path":["api","developer","tickets"]}}},
+        {"name":"My Kanban Boards","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/kanban/boards","host":["{{base_url}}"],"path":["api","developer","kanban","boards"]}}},
+        {"name":"Move on Kanban Board","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"fromColumn\": \"todo\", \"toColumn\": \"in_progress\", \"ticketId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/developer/kanban/boards/:boardId/move","host":["{{base_url}}"],"path":["api","developer","kanban","boards",":boardId","move"]}}},
+        {"name":"My Standups","request":{"method":"GET","url":{"raw":"{{base_url}}/api/developer/standups","host":["{{base_url}}"],"path":["api","developer","standups"]}}},
+        {"name":"Upsert Standup Update","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"content\": \"Yesterday/Today/Blockers...\" }"},"url":{"raw":"{{base_url}}/api/developer/standups/:standupId/updates","host":["{{base_url}}"],"path":["api","developer","standups",":standupId","updates"]}}}
+      ]
+    },
+    {
+      "name": "Tester",
+      "item": [
+        {"name":"Bugs Reported (Mine)","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/bugs/reported","host":["{{base_url}}"],"path":["api","tester","bugs","reported"]}}},
+        {"name":"Bugs Assigned (Mine)","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/bugs/assigned","host":["{{base_url}}"],"path":["api","tester","bugs","assigned"]}}},
+        {"name":"Create Bug Report","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/tester/bugs","host":["{{base_url}}"],"path":["api","tester","bugs"]}}},
+        {"name":"Update Bug Report","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/tester/bugs/:id","host":["{{base_url}}"],"path":["api","tester","bugs",":id"]}}},
+        {"name":"Add Bug Comment","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"comment\": \"...\" }"},"url":{"raw":"{{base_url}}/api/tester/bugs/:id/comments","host":["{{base_url}}"],"path":["api","tester","bugs",":id","comments"]}}},
+        {"name":"Reopen Bug","request":{"method":"PATCH","url":{"raw":"{{base_url}}/api/tester/bugs/:id/reopen","host":["{{base_url}}"],"path":["api","tester","bugs",":id","reopen"]}}},
+        {"name":"Close Bug","request":{"method":"PATCH","url":{"raw":"{{base_url}}/api/tester/bugs/:id/close","host":["{{base_url}}"],"path":["api","tester","bugs",":id","close"]}}},
+        {"name":"My Test Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/tickets","host":["{{base_url}}"],"path":["api","tester","tickets"]}}},
+        {"name":"Update Ticket Test Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"status\": \"verified\" }"},"url":{"raw":"{{base_url}}/api/tester/tickets/:projectId/:moduleId/:ticketId/status","host":["{{base_url}}"],"path":["api","tester","tickets",":projectId",":moduleId",":ticketId","status"]}}},
+        {"name":"Create Bug From Ticket","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/tester/tickets/:projectId/:moduleId/:ticketId/bugs","host":["{{base_url}}"],"path":["api","tester","tickets",":projectId",":moduleId",":ticketId","bugs"]}}},
+        {"name":"Get Test Cases","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/testcases/:projectId/:moduleId","host":["{{base_url}}"],"path":["api","tester","testcases",":projectId",":moduleId"]}}},
+        {"name":"Update Test Case Result","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"result\": \"pass\" }"},"url":{"raw":"{{base_url}}/api/tester/testcases/:projectId/:moduleId/:ticketId/result","host":["{{base_url}}"],"path":["api","tester","testcases",":projectId",":moduleId",":ticketId","result"]}}},
+        {"name":"Testing Dashboard","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/dashboard","host":["{{base_url}}"],"path":["api","tester","dashboard"]}}},
+        {"name":"Testing Report","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/reports/:projectId","host":["{{base_url}}"],"path":["api","tester","reports",":projectId"]}}},
+        {"name":"Start Ticket Testing","request":{"method":"POST","url":{"raw":"{{base_url}}/api/tester/tickets/:projectId/:moduleId/:ticketId/start-testing","host":["{{base_url}}"],"path":["api","tester","tickets",":projectId",":moduleId",":ticketId","start-testing"]}}},
+        {"name":"Complete Ticket Testing","request":{"method":"POST","url":{"raw":"{{base_url}}/api/tester/tickets/:projectId/:moduleId/:ticketId/complete-testing","host":["{{base_url}}"],"path":["api","tester","tickets",":projectId",":moduleId",":ticketId","complete-testing"]}}},
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tester/me","host":["{{base_url}}"],"path":["api","tester","me"]}}}
+      ]
+    },
+    {
+      "name": "Manager",
+      "item": [
+        {"name":"My Projects","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/projects","host":["{{base_url}}"],"path":["api","manager","projects"]}}},
+        {"name":"Project Details","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/project/:id","host":["{{base_url}}"],"path":["api","manager","project",":id"]}}},
+        {"name":"Create Project","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/manager/project","host":["{{base_url}}"],"path":["api","manager","project"]}}},
+        {"name":"Update Project","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/manager/project/:id","host":["{{base_url}}"],"path":["api","manager","project",":id"]}}},
+        {"name":"Archive Project","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/manager/project/:id","host":["{{base_url}}"],"path":["api","manager","project",":id"]}}},
+        {"name":"Add Module","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/manager/project/:id/module","host":["{{base_url}}"],"path":["api","manager","project",":id","module"]}}},
+        {"name":"Update Module","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/manager/module/:projectId/:moduleId","host":["{{base_url}}"],"path":["api","manager","module",":projectId",":moduleId"]}}},
+        {"name":"Module Summary","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/module/:projectId/:moduleId/summary","host":["{{base_url}}"],"path":["api","manager","module",":projectId",":moduleId","summary"]}}},
+        {"name":"Create Sprint","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/manager/project/:projectId/sprint","host":["{{base_url}}"],"path":["api","manager","project",":projectId","sprint"]}}},
+        {"name":"Get All Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/tickets","host":["{{base_url}}"],"path":["api","manager","tickets"]}}},
+        {"name":"Reassign Ticket","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"assigneeId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/manager/ticket/:projectId/:moduleId/:ticketId/assign","host":["{{base_url}}"],"path":["api","manager","ticket",":projectId",":moduleId",":ticketId","assign"]}}},
+        {"name":"Update Ticket Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"status\": \"...\" }"},"url":{"raw":"{{base_url}}/api/manager/ticket/:projectId/:moduleId/:ticketId/status","host":["{{base_url}}"],"path":["api","manager","ticket",":projectId",":moduleId",":ticketId","status"]}}},
+        {"name":"Ticket Reports","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/tickets/reports","host":["{{base_url}}"],"path":["api","manager","tickets","reports"]}}},
+        {"name":"Project Team","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/team/:projectId","host":["{{base_url}}"],"path":["api","manager","team",":projectId"]}}},
+        {"name":"Assign Team Role","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"role\": \"developer\" }"},"url":{"raw":"{{base_url}}/api/manager/team/:projectId/:userId/assign-role","host":["{{base_url}}"],"path":["api","manager","team",":projectId",":userId","assign-role"]}}},
+        {"name":"User Workload","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/workload/:userId","host":["{{base_url}}"],"path":["api","manager","workload",":userId"]}}},
+        {"name":"Record Team Standup","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"summary\": \"...\" }"},"url":{"raw":"{{base_url}}/api/manager/team/:projectId/standup","host":["{{base_url}}"],"path":["api","manager","team",":projectId","standup"]}}},
+        {"name":"Project Kanban","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/kanban/:projectId","host":["{{base_url}}"],"path":["api","manager","kanban",":projectId"]}}},
+        {"name":"Sprint Summary","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/sprint/:id/summary","host":["{{base_url}}"],"path":["api","manager","sprint",":id","summary"]}}},
+        {"name":"Update Sprint","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"extendByDays\": 1 }"},"url":{"raw":"{{base_url}}/api/manager/sprint/:id/extend","host":["{{base_url}}"],"path":["api","manager","sprint",":id","extend"]}}},
+        {"name":"Project Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/analytics/project/:id","host":["{{base_url}}"],"path":["api","manager","analytics","project",":id"]}}},
+        {"name":"Team Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/analytics/team/:id","host":["{{base_url}}"],"path":["api","manager","analytics","team",":id"]}}},
+        {"name":"Project Risks","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/risks/:projectId","host":["{{base_url}}"],"path":["api","manager","risks",":projectId"]}}},
+        {"name":"Get Me","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/me","host":["{{base_url}}"],"path":["api","manager","me"]}}},
+        {"name":"Team (Legacy)","request":{"method":"GET","url":{"raw":"{{base_url}}/api/manager/team","host":["{{base_url}}"],"path":["api","manager","team"]}}}
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {"name":"Create Project","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects","host":["{{base_url}}"],"path":["api","projects"]}}},
+        {"name":"List Projects","request":{"method":"GET","url":{"raw":"{{base_url}}/api/projects","host":["{{base_url}}"],"path":["api","projects"]}}},
+        {"name":"Get Project","request":{"method":"GET","url":{"raw":"{{base_url}}/api/projects/:projectId","host":["{{base_url}}"],"path":["api","projects",":projectId"]}}},
+        {"name":"Update Project","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects/:projectId","host":["{{base_url}}"],"path":["api","projects",":projectId"]}}},
+        {"name":"Delete Project","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/projects/:projectId","host":["{{base_url}}"],"path":["api","projects",":projectId"]}}},
+        {"name":"Add Module","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects/:projectId/modules","host":["{{base_url}}"],"path":["api","projects",":projectId","modules"]}}},
+        {"name":"Update Module","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects/:projectId/modules/:moduleId","host":["{{base_url}}"],"path":["api","projects",":projectId","modules",":moduleId"]}}},
+        {"name":"Add Ticket","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects/:projectId/modules/:moduleId/tickets","host":["{{base_url}}"],"path":["api","projects",":projectId","modules",":moduleId","tickets"]}}},
+        {"name":"Update Ticket","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/projects/:projectId/modules/:moduleId/tickets/:ticketId","host":["{{base_url}}"],"path":["api","projects",":projectId","modules",":moduleId","tickets",":ticketId"]}}},
+        {"name":"Add Ticket Comment","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"comment\": \"...\" }"},"url":{"raw":"{{base_url}}/api/projects/:projectId/modules/:moduleId/tickets/:ticketId/comments","host":["{{base_url}}"],"path":["api","projects",":projectId","modules",":moduleId","tickets",":ticketId","comments"]}}},
+        {"name":"User Assigned Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/projects/users/:userId/assigned-tickets","host":["{{base_url}}"],"path":["api","projects","users",":userId","assigned-tickets"]}}}
+      ]
+    },
+    {
+      "name": "Sprints",
+      "item": [
+        {"name":"Create Sprint","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/sprints","host":["{{base_url}}"],"path":["api","sprints"]}}},
+        {"name":"Project Sprints","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/project/:projectId","host":["{{base_url}}"],"path":["api","sprints","project",":projectId"]}}},
+        {"name":"Get Sprint","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/:sprintId","host":["{{base_url}}"],"path":["api","sprints",":sprintId"]}}},
+        {"name":"Assign Ticket To User","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"userId\": \"...\", \"ticketId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/sprints/:sprintId/assignments","host":["{{base_url}}"],"path":["api","sprints",":sprintId","assignments"]}}},
+        {"name":"Update Assignment Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"status\": \"in_progress\" }"},"url":{"raw":"{{base_url}}/api/sprints/:sprintId/assignments/:assignmentId","host":["{{base_url}}"],"path":["api","sprints",":sprintId","assignments",":assignmentId"]}}},
+        {"name":"Sprint Board","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/:sprintId/board","host":["{{base_url}}"],"path":["api","sprints",":sprintId","board"]}}},
+        {"name":"Start Sprint","request":{"method":"POST","url":{"raw":"{{base_url}}/api/sprints/:sprintId/start","host":["{{base_url}}"],"path":["api","sprints",":sprintId","start"]}}},
+        {"name":"Complete Sprint","request":{"method":"POST","url":{"raw":"{{base_url}}/api/sprints/:sprintId/complete","host":["{{base_url}}"],"path":["api","sprints",":sprintId","complete"]}}},
+        {"name":"User Sprint Assignments","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/assignments/user/:userId","host":["{{base_url}}"],"path":["api","sprints","assignments","user",":userId"]}}},
+        {"name":"Sprint Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/analytics/project/:projectId","host":["{{base_url}}"],"path":["api","sprints","analytics","project",":projectId"]}}}
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {"name":"List All Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tickets","host":["{{base_url}}"],"path":["api","tickets"]}}},
+        {"name":"Create Ticket","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/tickets","host":["{{base_url}}"],"path":["api","tickets"]}}},
+        {"name":"Project Tickets","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tickets/project/:projectId","host":["{{base_url}}"],"path":["api","tickets","project",":projectId"]}}},
+        {"name":"Get Ticket","request":{"method":"GET","url":{"raw":"{{base_url}}/api/tickets/:projectId/:ticketId","host":["{{base_url}}"],"path":["api","tickets",":projectId",":ticketId"]}}},
+        {"name":"Update Ticket","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/tickets/:projectId/:ticketId","host":["{{base_url}}"],"path":["api","tickets",":projectId",":ticketId"]}}},
+        {"name":"Add Comment","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"comment\": \"...\" }"},"url":{"raw":"{{base_url}}/api/tickets/:projectId/:ticketId/comments","host":["{{base_url}}"],"path":["api","tickets",":projectId",":ticketId","comments"]}}},
+        {"name":"Delete Ticket","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/tickets/:projectId/:ticketId","host":["{{base_url}}"],"path":["api","tickets",":projectId",":ticketId"]}}}
+      ]
+    },
+    {
+      "name": "Kanban",
+      "item": [
+        {"name":"Create Kanban Board","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"projectId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/kanbanboard","host":["{{base_url}}"],"path":["api","kanbanboard"]}}},
+        {"name":"Project Kanban Boards","request":{"method":"GET","url":{"raw":"{{base_url}}/api/kanbanboard/project/:projectId","host":["{{base_url}}"],"path":["api","kanbanboard","project",":projectId"]}}},
+        {"name":"Developer Personal Kanban","request":{"method":"GET","url":{"raw":"{{base_url}}/api/kanbanboard/developer/personal","host":["{{base_url}}"],"path":["api","kanbanboard","developer","personal"]}}},
+        {"name":"Update Ticket Status (Direct)","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"status\": \"in_progress\" }"},"url":{"raw":"{{base_url}}/api/kanbanboard/tickets/:projectId/:ticketId/status","host":["{{base_url}}"],"path":["api","kanbanboard","tickets",":projectId",":ticketId","status"]}}},
+        {"name":"Board Statistics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/statistics","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","statistics"]}}},
+        {"name":"Update Board Settings","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/settings","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","settings"]}}},
+        {"name":"Move Ticket","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"fromColumn\": \"todo\", \"toColumn\": \"done\", \"ticketId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/move","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","move"]}}},
+        {"name":"Update Column","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/columns/:columnId","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","columns",":columnId"]}}},
+        {"name":"Add Ticket To Board","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"ticketId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/tickets","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","tickets"]}}},
+        {"name":"Remove Ticket From Board","request":{"method":"DELETE","url":{"raw":"{{base_url}}/api/kanbanboard/:boardId/tickets/:ticketId","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId","tickets",":ticketId"]}}},
+        {"name":"Get Kanban Board","request":{"method":"GET","url":{"raw":"{{base_url}}/api/kanbanboard/:boardId","host":["{{base_url}}"],"path":["api","kanbanboard",":boardId"]}}}
+      ]
+    },
+    {
+      "name": "Bugs",
+      "item": [
+        {"name":"Create Bug Report","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/bugs","host":["{{base_url}}"],"path":["api","bugs"]}}},
+        {"name":"Project Bugs","request":{"method":"GET","url":{"raw":"{{base_url}}/api/bugs/project/:projectId","host":["{{base_url}}"],"path":["api","bugs","project",":projectId"]}}},
+        {"name":"Get Bug Details","request":{"method":"GET","url":{"raw":"{{base_url}}/api/bugs/:bugId","host":["{{base_url}}"],"path":["api","bugs",":bugId"]}}},
+        {"name":"Assign Bug","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"assigneeId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/bugs/:bugId/assign","host":["{{base_url}}"],"path":["api","bugs",":bugId","assign"]}}},
+        {"name":"Update Bug Status","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"status\": \"open\" }"},"url":{"raw":"{{base_url}}/api/bugs/:bugId/status","host":["{{base_url}}"],"path":["api","bugs",":bugId","status"]}}},
+        {"name":"Add Bug Comment","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"comment\": \"...\" }"},"url":{"raw":"{{base_url}}/api/bugs/:bugId/comments","host":["{{base_url}}"],"path":["api","bugs",":bugId","comments"]}}},
+        {"name":"Update Bug Priority","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"priority\": \"high\" }"},"url":{"raw":"{{base_url}}/api/bugs/:bugId/priority","host":["{{base_url}}"],"path":["api","bugs",":bugId","priority"]}}},
+        {"name":"Update Bug Watchers","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"watchers\": [\"userId\"] }"},"url":{"raw":"{{base_url}}/api/bugs/:bugId/watchers","host":["{{base_url}}"],"path":["api","bugs",":bugId","watchers"]}}},
+        {"name":"Bug Statistics (Project)","request":{"method":"GET","url":{"raw":"{{base_url}}/api/bugs/stats/project/:projectId","host":["{{base_url}}"],"path":["api","bugs","stats","project",":projectId"]}}},
+        {"name":"User Assigned Bugs","request":{"method":"GET","url":{"raw":"{{base_url}}/api/bugs/assigned/user/:userId","host":["{{base_url}}"],"path":["api","bugs","assigned","user",":userId"]}}}
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {"name":"Dashboard Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/analytics/dashboard","host":["{{base_url}}"],"path":["api","analytics","dashboard"]}}},
+        {"name":"Project Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/analytics/project/:projectId","host":["{{base_url}}"],"path":["api","analytics","project",":projectId"]}}},
+        {"name":"User Performance Analytics","request":{"method":"GET","url":{"raw":"{{base_url}}/api/analytics/user/:userId","host":["{{base_url}}"],"path":["api","analytics","user",":userId"]}}}
+      ]
+    }
+  ]
+}

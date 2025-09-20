@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, IconButton, Paper, Stack, Typography } from '@mui/material';
-import { Add, Delete, Edit, ToggleOn } from '@mui/icons-material';
+import { Add, Edit, ToggleOn } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { hrAPI } from '../../services/api';
 import DataTable from '../../components/shared/DataTable';
@@ -39,16 +39,6 @@ const EmployeeList = () => {
     fetchEmployees();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this employee?')) return;
-    try {
-      await hrAPI.deleteEmployee(id);
-      setRows((prev) => prev.filter((r) => r.id !== id));
-    } catch (err) {
-      alert(err.message || 'Failed to delete');
-    }
-  };
-
   const handleToggleStatus = async (id) => {
     try {
       await hrAPI.toggleEmployeeStatus(id);
@@ -75,9 +65,6 @@ const EmployeeList = () => {
           </IconButton>
           <IconButton size="small" color={row.isActive ? 'warning' : 'success'} onClick={() => handleToggleStatus(row.id)}>
             <ToggleOn fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
-            <Delete fontSize="small" />
           </IconButton>
         </Stack>
       ),

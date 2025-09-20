@@ -37,14 +37,33 @@ const Kanban = () => {
     if (!projectId && list[0]) setProjectId(list[0]._id || list[0].id);
   };
 
+  const normalizeColumns = (columns = {}) => {
+    // Backend may send columns with names like 'To Do', 'In Progress', 'Testing', 'Code Review', 'Done'
+    // Normalize to keys: todo, inProgress, review, done
+    const get = (keys) => {
+      for (const k of keys) {
+        if (Array.isArray(columns[k])) return columns[k];
+        if (columns[k]?.tickets) return columns[k].tickets;
+      }
+      return [];
+    };
+    return {
+      todo: get(['todo', 'To Do', 'toDo', 'open']),
+      inProgress: get(['inProgress', 'In Progress', 'in_progress']),
+      review: get(['review', 'Code Review', 'Testing', 'testing', 'code_review']),
+      done: get(['done', 'Done', 'closed'])
+    };
+  };
+
   const fetchBoard = async (pid) => {
     if (!pid) return;
     try {
       setLoading(true);
       setError(null);
       const res = await managerAPI.getProjectKanban(pid);
-      const data = res?.data || res?.kanban || res || {};
-      setBoard(data);
+      const raw = res?.data || res?.kanban || res || {};
+      const normalized = { columns: normalizeColumns(raw.columns || raw) };
+      setBoard(normalized);
     } catch (e) {
       setError(e.message || 'Failed to load Kanban board');
     } finally {
@@ -58,10 +77,10 @@ const Kanban = () => {
   const columns = useMemo(() => {
     const cols = board?.columns || {};
     return [
-      { key: 'todo', title: 'To Do', tickets: cols.todo?.tickets || cols.todo || [] },
-      { key: 'inProgress', title: 'In Progress', tickets: cols.inProgress?.tickets || cols.inProgress || [] },
-      { key: 'review', title: 'Review', tickets: cols.review?.tickets || cols.review || [] },
-      { key: 'done', title: 'Done', tickets: cols.done?.tickets || cols.done || [] },
+      { key: 'todo', title: 'To Do', tickets: cols.todo || [] },
+      { key: 'inProgress', title: 'In Progress', tickets: cols.inProgress || [] },
+      { key: 'review', title: 'Review', tickets: cols.review || [] },
+      { key: 'done', title: 'Done', tickets: cols.done || [] },
     ];
   }, [board]);
 

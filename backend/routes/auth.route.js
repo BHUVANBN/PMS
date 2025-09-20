@@ -3,9 +3,9 @@ import { login, logout, register, verifyToken, refreshToken } from '../controlle
 
 const router = express.Router();
 
-router.post('/login', express.json(), login);
+router.post('/login', login);
 router.post('/logout', logout);
-router.post('/register', express.json(), register);
+router.post('/register', register);
 router.get('/verify', verifyToken);
 router.post('/refresh', refreshToken);
 

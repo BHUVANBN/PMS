@@ -75,7 +75,7 @@ const ticketSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: Object.values(TICKET_TYPES),
-    required: true          // Must specify if it's a task or bug for proper routing
+    default: TICKET_TYPES.TASK          // Default to task if not specified
   },
   
   // OPTIONAL: Business priority level - could be simplified to just High/Medium/Low
@@ -103,7 +103,7 @@ const ticketSchema = new mongoose.Schema({
   tester: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true          // Every ticket needs designated tester for your workflow
+    default: null          // Optional tester assignment
   },
   
   // OPTIONAL: Which sprint this ticket belongs to (only if using sprints)
@@ -134,11 +134,34 @@ const ticketSchema = new mongoose.Schema({
     default: 0              // Starts at 0, updated as work progresses
   },
   
+  // OPTIONAL: Target date to complete this ticket
+  dueDate: {
+    type: Date,
+    default: null
+  },
+  
   // OPTIONAL: Link to bug tracker entry if this ticket is a bug
   bugTrackerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'BugTracker',
     default: null           // Only populated for bug-type tickets
+  },
+
+  // SYSTEM: Timestamps for workflow tracking
+  startedAt: {
+    type: Date,
+    default: null
+  },
+  completedAt: {
+    type: Date,
+    default: null
+  },
+  
+  // SYSTEM: Creator of the ticket
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   
   // REQUIRED: Discussion thread for this ticket
@@ -187,7 +210,8 @@ const moduleSchema = new mongoose.Schema({
   projectId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
-    required: true
+    required: false,
+    default: null
   },
   
   // REQUIRED: Current module status
@@ -211,7 +235,8 @@ const moduleSchema = new mongoose.Schema({
   moduleLead: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false,
+    default: null
   },
   
   // OPTIONAL: Team members assigned to this module
@@ -226,6 +251,20 @@ const moduleSchema = new mongoose.Schema({
     min: 0,
     max: 100,
     default: 0
+  },
+  
+  // OPTIONAL: Estimated hours for the module
+  estimatedHours: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  
+  // OPTIONAL: Module priority
+  priority: {
+    type: String,
+    enum: Object.values(TICKET_PRIORITIES),
+    default: TICKET_PRIORITIES.MEDIUM
   },
   
   // REQUIRED: All tickets for this module (embedded for better query performance)
@@ -289,6 +328,13 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true          // Every project needs a designated manager/owner
+  },
+  
+  // SYSTEM: Creator of the project
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, {
   timestamps: true          // Auto-manage createdAt and updatedAt for project lifecycle

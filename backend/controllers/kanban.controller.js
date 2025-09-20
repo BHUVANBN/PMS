@@ -5,6 +5,7 @@ import {
   User,
   BugTracker,
   KanbanBoard,
+  ActivityLog,
   TICKET_STATUS, TICKET_TYPES, TICKET_PRIORITIES,
   PROJECT_STATUS,
   MODULE_STATUS,
@@ -370,9 +371,9 @@ export const moveTicket = async (req, res) => {
     const statusMapping = {
       'To Do': 'open',
       'In Progress': 'in_progress',
-      'Review': 'in_review',
+      'Review': 'code_review',
       'Testing': 'testing',
-      'Done': 'completed',
+      'Done': 'done',
       'Blocked': 'blocked'
     };
 

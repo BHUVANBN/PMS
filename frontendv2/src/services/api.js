@@ -208,11 +208,6 @@ export const hrAPI = {
       body: JSON.stringify(employeeData),
     }),
 
-  deleteEmployee: (employeeId) => 
-    apiRequest(`/hr/employees/${employeeId}`, {
-      method: 'DELETE',
-    }),
-
   // Toggle employee active status
   toggleEmployeeStatus: (employeeId) =>
     apiRequest(`/hr/employees/${employeeId}/toggle-status`, {
@@ -268,40 +263,35 @@ export const managerAPI = {
   getProjectDetails: (projectId) =>
     apiRequest(`/manager/project/${projectId}`),
 
-  // Module management
+  // Module management (align with backend manager.route.js)
   createModule: (projectId, moduleData) => 
-    apiRequest(`/manager/projects/${projectId}/modules`, {
+    apiRequest(`/manager/project/${projectId}/module`, {
       method: 'POST',
       body: JSON.stringify(moduleData),
     }),
 
-  updateModule: (moduleId, moduleData) => 
-    apiRequest(`/manager/modules/${moduleId}`, {
-      method: 'PUT',
+  updateModule: (projectId, moduleId, moduleData) => 
+    apiRequest(`/manager/module/${projectId}/${moduleId}`, {
+      method: 'PATCH',
       body: JSON.stringify(moduleData),
     }),
 
-  deleteModule: (moduleId) => 
-    apiRequest(`/manager/modules/${moduleId}`, {
-      method: 'DELETE',
-    }),
-
-  // Ticket management
-  createTicket: (moduleId, ticketData) => 
-    apiRequest(`/manager/modules/${moduleId}/tickets`, {
+  // Ticket management (manager ticket routes require projectId and moduleId)
+  createTicket: (projectId, moduleId, ticketData) => 
+    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets`, {
       method: 'POST',
       body: JSON.stringify(ticketData),
     }),
 
-  assignTicket: (ticketId, assignmentData) => 
-    apiRequest(`/manager/tickets/${ticketId}/assign`, {
-      method: 'PUT',
+  assignTicket: (projectId, moduleId, ticketId, assignmentData) => 
+    apiRequest(`/manager/ticket/${projectId}/${moduleId}/${ticketId}/assign`, {
+      method: 'PATCH',
       body: JSON.stringify(assignmentData),
     }),
 
   // Sprint management
-  createSprint: (sprintData) => 
-    apiRequest('/manager/sprints', {
+  createSprint: (projectId, sprintData) => 
+    apiRequest(`/manager/project/${projectId}/sprint`, {
       method: 'POST',
       body: JSON.stringify(sprintData),
     }),
@@ -310,8 +300,8 @@ export const managerAPI = {
     apiRequest(`/manager/sprint-board/${teamId}`),
 
   // Analytics
-  getTeamAnalytics: () => 
-    apiRequest('/manager/analytics'),
+  getTeamAnalytics: (teamId) => 
+    apiRequest(`/manager/analytics/team/${teamId}`),
 
   getProjectAnalytics: (projectId) => 
     apiRequest(`/manager/analytics/project/${projectId}`),
@@ -363,13 +353,13 @@ export const developerAPI = {
       body: JSON.stringify({ comment }),
     }),
 
-  // Kanban board
+  // Kanban boards
   getKanbanBoard: () => 
-    apiRequest('/developer/kanban'),
+    apiRequest('/developer/kanban/boards'),
 
-  moveTicket: (ticketId, newStatus) => 
-    apiRequest(`/developer/kanban/move`, {
-      method: 'PUT',
+  moveTicketOnBoard: (boardId, ticketId, newStatus) => 
+    apiRequest(`/developer/kanban/boards/${boardId}/move`, {
+      method: 'PATCH',
       body: JSON.stringify({ ticketId, newStatus }),
     }),
 };
@@ -578,6 +568,66 @@ export const projectsAPI = {
   getProject: (projectId) => 
     apiRequest(`/projects/${projectId}`),
 
+  // Create a new project
+  createProject: (projectData) =>
+    apiRequest('/projects', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    }),
+
+  // Update project
+  updateProject: (projectId, projectData) =>
+    apiRequest(`/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(projectData),
+    }),
+
+  // Delete project
+  deleteProject: (projectId) =>
+    apiRequest(`/projects/${projectId}`, {
+      method: 'DELETE',
+    }),
+
+  // Modules
+  addModule: (projectId, moduleData) =>
+    apiRequest(`/projects/${projectId}/modules`, {
+      method: 'POST',
+      body: JSON.stringify(moduleData),
+    }),
+
+  updateModule: (projectId, moduleId, moduleData) =>
+    apiRequest(`/projects/${projectId}/modules/${moduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(moduleData),
+    }),
+
+  // Tickets
+  addTicket: (projectId, moduleId, ticketData) =>
+    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets`, {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    }),
+
+  updateTicket: (projectId, moduleId, ticketId, ticketData) =>
+    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets/${ticketId}`, {
+      method: 'PUT',
+      body: JSON.stringify(ticketData),
+    }),
+
+  addTicketComment: (projectId, moduleId, ticketId, comment) =>
+    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets/${ticketId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    }),
+
+  // User assigned tickets across projects
+  getAssignedTickets: (userId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/projects/users/${userId}/assigned-tickets${suffix}`);
+  },
+
+  // (Optional) Placeholder if needed later
   getProjectModules: (projectId) => 
     apiRequest(`/projects/${projectId}/modules`),
 };
@@ -623,19 +673,66 @@ export const bugsAPI = {
 };
 
 export const kanbanAPI = {
-  getBoard: () => 
-    apiRequest('/kanbanboard'),
-
-  moveTicket: (ticketId, newStatus, newPosition) => 
-    apiRequest('/kanbanboard/move', {
-      method: 'PUT',
-      body: JSON.stringify({ ticketId, newStatus, newPosition }),
+  // Create a new kanban board
+  createBoard: (payload) =>
+    apiRequest('/kanbanboard', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 
-  updateTicketPosition: (ticketId, position) => 
-    apiRequest('/kanbanboard/position', {
+  // Get all boards for a project
+  getProjectBoards: (projectId) =>
+    apiRequest(`/kanbanboard/project/${projectId}`),
+
+  // Get developer's personal board
+  getDeveloperPersonalBoard: () =>
+    apiRequest('/kanbanboard/developer/personal'),
+
+  // Get a specific board by ID
+  getBoard: (boardId) => 
+    apiRequest(`/kanbanboard/${boardId}`),
+
+  // Move a ticket between columns on the board
+  moveTicket: (boardId, { ticketId, fromColumnId, toColumnId, newPosition }) => 
+    apiRequest(`/kanbanboard/${boardId}/move`, {
       method: 'PUT',
-      body: JSON.stringify({ ticketId, position }),
+      body: JSON.stringify({ ticketId, fromColumnId, toColumnId, newPosition }),
+    }),
+
+  // Update a column configuration
+  updateColumn: (boardId, columnId, payload) =>
+    apiRequest(`/kanbanboard/${boardId}/columns/${columnId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  // Directly update a ticket status (project scoped)
+  updateTicketStatus: (projectId, ticketId, payload) =>
+    apiRequest(`/kanbanboard/tickets/${projectId}/${ticketId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  // Add/Remove ticket on a board
+  addTicketToBoard: (boardId, payload) =>
+    apiRequest(`/kanbanboard/${boardId}/tickets`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  removeTicketFromBoard: (boardId, ticketId) =>
+    apiRequest(`/kanbanboard/${boardId}/tickets/${ticketId}`, {
+      method: 'DELETE',
+    }),
+
+  // Board stats and settings
+  getBoardStatistics: (boardId) =>
+    apiRequest(`/kanbanboard/${boardId}/statistics`),
+
+  updateBoardSettings: (boardId, settings) =>
+    apiRequest(`/kanbanboard/${boardId}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
     }),
 };
 

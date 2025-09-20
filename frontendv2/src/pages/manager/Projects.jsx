@@ -3,7 +3,7 @@ import { Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typog
 import { useNavigate } from 'react-router-dom';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
-import { managerAPI } from '../../services/api';
+import { projectsAPI } from '../../services/api';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -15,14 +15,17 @@ const Projects = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await managerAPI.getAllProjects();
-      const projects = res?.projects || res?.data?.projects || res?.data || [];
+      const res = await projectsAPI.getAllProjects();
+      const payload = res?.data || res || {};
+      const projects = payload.projects || payload;
       const normalized = projects.map((p) => ({
         id: p._id || p.id,
         name: p.name,
-        status: p.status || 'active',
-        manager: p.manager?.username || p.manager?.name || '-',
-        modules: (p.modules || []).length,
+        status: p.status || 'planning',
+        manager: p.projectManager?.firstName
+          ? `${p.projectManager.firstName} ${p.projectManager.lastName || ''}`.trim()
+          : (p.projectManager?.email || '-'),
+        modules: Array.isArray(p.modules) ? p.modules.length : 0,
         startDate: p.startDate,
         endDate: p.endDate,
       }));
@@ -41,7 +44,7 @@ const Projects = () => {
     const ok = window.confirm('Are you sure you want to archive/delete this project?');
     if (!ok) return;
     try {
-      await managerAPI.deleteProject(id);
+      await projectsAPI.deleteProject(id);
       setRows((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       alert(e.message || 'Failed to delete project');

@@ -1,5 +1,5 @@
 // project.controller.js - Project Management Controller
-import { Project, User, ActivityLog, PROJECT_STATUS, TICKET_STATUS, TICKET_PRIORITIES } from '../models/index.js';
+import { Project, User, ActivityLog, PROJECT_STATUS, TICKET_STATUS, TICKET_PRIORITIES, ENTITY_TYPES, ACTIONS, ACTION_CATEGORIES } from '../models/index.js';
 import mongoose from 'mongoose';
 
 // Create a new project
@@ -69,16 +69,13 @@ export const createProject = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId: project._id,
-      entityType: 'project',
+      entityType: ENTITY_TYPES.PROJECT,
       entityId: project._id,
       userId: req.user._id,
-      action: 'created',
-      actionCategory: 'project_update',
+      action: ACTIONS.CREATED,
+      actionCategory: ACTION_CATEGORIES.PROJECT_ADMIN,
       description: `Project "${name}" created`,
-      metadata: {
-        projectManager,
-        teamSize: teamMembers?.length || 0
-      }
+      metadata: {}
     });
 
     res.status(201).json({
@@ -87,6 +84,7 @@ export const createProject = async (req, res) => {
       data: project
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({
       success: false,
       message: 'Error creating project',
@@ -123,10 +121,18 @@ export const getProjects = async (req, res) => {
     if (status) filter.status = status;
     if (projectManager) filter.projectManager = projectManager;
     if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      const searchFilter = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ]
+      };
+      if (filter.$or) {
+        // Combine role restriction with search using $and
+        filter = { $and: [ { $or: filter.$or }, searchFilter ] };
+      } else {
+        Object.assign(filter, searchFilter);
+      }
     }
 
     const sortOptions = {};
@@ -317,6 +323,7 @@ export const addModule = async (req, res) => {
       estimatedHours: estimatedHours || 0,
       priority: priority || 'medium',
       status: 'planning',
+      projectId: project._id,
       tickets: []
     };
 
@@ -328,16 +335,13 @@ export const addModule = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId,
-      entityType: 'module',
+      entityType: ENTITY_TYPES.PROJECT,
       entityId: addedModule._id,
       userId: req.user._id,
-      action: 'created',
-      actionCategory: 'project_update',
+      action: ACTIONS.CREATED,
+      actionCategory: ACTION_CATEGORIES.PROJECT_ADMIN,
       description: `Module "${name}" added to project`,
-      metadata: {
-        moduleName: name,
-        estimatedHours
-      }
+      metadata: {}
     });
 
     res.status(201).json({
@@ -489,6 +493,7 @@ export const addTicket = async (req, res) => {
       assignedDeveloper: assignedDeveloper || null,
       tester: tester || null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      type: 'task',
       createdBy: req.user._id,
       comments: []
     };
@@ -501,19 +506,13 @@ export const addTicket = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId,
-      entityType: 'ticket',
+      entityType: ENTITY_TYPES.TICKET,
       entityId: addedTicket._id,
       userId: req.user._id,
-      action: 'created',
-      actionCategory: 'project_update',
+      action: ACTIONS.CREATED,
+      actionCategory: ACTION_CATEGORIES.TICKET_MANAGEMENT,
       description: `Ticket "${title}" created`,
-      metadata: {
-        ticketNumber,
-        moduleId,
-        priority,
-        assignedDeveloper,
-        tester
-      }
+      metadata: { ticketNumber }
     });
 
     res.status(201).json({
@@ -604,18 +603,13 @@ export const updateTicket = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId,
-      entityType: 'ticket',
+      entityType: ENTITY_TYPES.TICKET,
       entityId: ticketId,
       userId: req.user._id,
-      action: 'updated',
-      actionCategory: 'project_update',
+      action: ACTIONS.UPDATED,
+      actionCategory: ACTION_CATEGORIES.TICKET_MANAGEMENT,
       description: `Ticket "${ticket.title}" updated`,
-      metadata: {
-        ticketNumber: ticket.ticketNumber,
-        updatedFields: Object.keys(updates),
-        oldValues,
-        newValues: updates
-      }
+      metadata: { ticketNumber: ticket.ticketNumber }
     });
 
     res.json({
@@ -681,16 +675,13 @@ export const addTicketComment = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId,
-      entityType: 'ticket',
+      entityType: ENTITY_TYPES.TICKET,
       entityId: ticketId,
       userId: req.user._id,
-      action: 'comment_added',
-      actionCategory: 'project_update',
+      action: ACTIONS.COMMENTED,
+      actionCategory: ACTION_CATEGORIES.TICKET_MANAGEMENT,
       description: 'Comment added to ticket',
-      metadata: {
-        ticketNumber: ticket.ticketNumber,
-        commentLength: comment.length
-      }
+      metadata: { ticketNumber: ticket.ticketNumber }
     });
 
     res.json({
@@ -846,15 +837,13 @@ export const deleteProject = async (req, res) => {
     // Log activity
     await ActivityLog.create({
       projectId,
-      entityType: 'project',
+      entityType: ENTITY_TYPES.PROJECT,
       entityId: projectId,
       userId: req.user._id,
-      action: 'deleted',
-      actionCategory: 'project_update',
+      action: ACTIONS.DELETED,
+      actionCategory: ACTION_CATEGORIES.PROJECT_ADMIN,
       description: `Project "${project.name}" deleted`,
-      metadata: {
-        projectName: project.name
-      }
+      metadata: {}
     });
 
     res.json({

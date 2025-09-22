@@ -11,7 +11,7 @@ const ProjectCreate = () => {
       <ProjectForm
         mode="create"
         onCancel={() => navigate('/manager/projects')}
-        onSuccess={() => navigate('/manager/projects')}
+        onSuccess={() => navigate('/manager/projects', { state: { refresh: true } })}
       />
     </Box>
   );

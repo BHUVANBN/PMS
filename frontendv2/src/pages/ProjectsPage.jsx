@@ -16,7 +16,10 @@ import {
   TextField,
   InputAdornment,
   Tabs,
-  Tab
+  Tab,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import {
   FolderIcon,
@@ -29,175 +32,96 @@ import {
 } from '@heroicons/react/24/outline';
 import DashboardCard from '../components/dashboard/DashboardCard';
 import Badge from '../components/ui/Badge';
-import { projectsAPI } from '../services/api';
+import { projectsAPI, adminAPI } from '../services/api';
 
 const ProjectsPage = () => {
   const [projects, setProjects] = useState([]);
-  const [filteredProjects, setFilteredProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
+  const [statusFilter, setStatusFilter] = useState(''); // maps to backend lowercase statuses
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(9);
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProjects: 0, hasNext: false, hasPrev: false });
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [managers, setManagers] = useState([]);
+  const [projectManager, setProjectManager] = useState('');
 
   const tabs = ['All Projects', 'Active', 'Planning', 'Completed', 'On Hold'];
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const statusMapTabToBackend = {
+    1: 'active',
+    2: 'planning',
+    3: 'completed',
+    4: 'on_hold'
+  };
 
   useEffect(() => {
-    filterProjects();
-  }, [projects, searchTerm, selectedTab]);
+    // Reset page to 1 when filters change (except page itself)
+    setPage(1);
+  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, limit, projectManager]);
+
+  useEffect(() => {
+    fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, page, limit, projectManager]);
+
+  // Load managers for filter
+  useEffect(() => {
+    const loadManagers = async () => {
+      try {
+        const res = await adminAPI.getUsersByRole('manager');
+        const list = res?.data || [];
+        setManagers(list);
+      } catch (e) {
+        console.warn('Failed to load managers', e);
+      }
+    };
+    loadManagers();
+  }, []);
+
+  // Removed client-side filter; server handles filtering/searching
 
   const fetchProjects = async () => {
     try {
-      // Mock data for demonstration
-      const mockProjects = [
-        {
-          id: 1,
-          name: 'E-commerce Platform',
-          description: 'Modern e-commerce platform with React and Node.js',
-          status: 'Active',
-          progress: 75,
-          startDate: '2024-01-01',
-          endDate: '2024-03-15',
-          budget: '$50,000',
-          spent: '$37,500',
-          team: [
-            { name: 'John Doe', avatar: 'JD', role: 'Lead Developer' },
-            { name: 'Jane Smith', avatar: 'JS', role: 'UI/UX Designer' },
-            { name: 'Mike Johnson', avatar: 'MJ', role: 'Backend Developer' },
-            { name: 'Sarah Wilson', avatar: 'SW', role: 'QA Engineer' }
-          ],
-          priority: 'High',
-          client: 'TechCorp Inc.',
-          tags: ['React', 'Node.js', 'MongoDB']
-        },
-        {
-          id: 2,
-          name: 'Mobile App Redesign',
-          description: 'Complete redesign of the mobile application',
-          status: 'Planning',
-          progress: 25,
-          startDate: '2024-02-01',
-          endDate: '2024-05-30',
-          budget: '$30,000',
-          spent: '$7,500',
-          team: [
-            { name: 'Alice Brown', avatar: 'AB', role: 'UI/UX Designer' },
-            { name: 'Bob Davis', avatar: 'BD', role: 'Mobile Developer' },
-            { name: 'Carol White', avatar: 'CW', role: 'Product Manager' }
-          ],
-          priority: 'Medium',
-          client: 'StartupXYZ',
-          tags: ['React Native', 'UI/UX', 'Mobile']
-        },
-        {
-          id: 3,
-          name: 'API Integration',
-          description: 'Integration with third-party APIs and services',
-          status: 'Active',
-          progress: 90,
-          startDate: '2023-12-01',
-          endDate: '2024-01-15',
-          budget: '$15,000',
-          spent: '$13,500',
-          team: [
-            { name: 'David Lee', avatar: 'DL', role: 'Backend Developer' },
-            { name: 'Emma Taylor', avatar: 'ET', role: 'DevOps Engineer' }
-          ],
-          priority: 'High',
-          client: 'Enterprise Solutions',
-          tags: ['API', 'Integration', 'Backend']
-        },
-        {
-          id: 4,
-          name: 'Dashboard Analytics',
-          description: 'Advanced analytics dashboard with real-time data',
-          status: 'Completed',
-          progress: 100,
-          startDate: '2023-10-01',
-          endDate: '2023-12-31',
-          budget: '$25,000',
-          spent: '$24,000',
-          team: [
-            { name: 'Frank Miller', avatar: 'FM', role: 'Full Stack Developer' },
-            { name: 'Grace Chen', avatar: 'GC', role: 'Data Analyst' },
-            { name: 'Henry Wilson', avatar: 'HW', role: 'Frontend Developer' }
-          ],
-          priority: 'Medium',
-          client: 'DataCorp',
-          tags: ['Analytics', 'Dashboard', 'React']
-        },
-        {
-          id: 5,
-          name: 'Security Audit',
-          description: 'Comprehensive security audit and improvements',
-          status: 'On Hold',
-          progress: 40,
-          startDate: '2024-01-15',
-          endDate: '2024-04-15',
-          budget: '$20,000',
-          spent: '$8,000',
-          team: [
-            { name: 'Ivan Rodriguez', avatar: 'IR', role: 'Security Engineer' },
-            { name: 'Julia Kim', avatar: 'JK', role: 'Backend Developer' }
-          ],
-          priority: 'Low',
-          client: 'SecureTech',
-          tags: ['Security', 'Audit', 'Backend']
-        }
-      ];
-      setProjects(mockProjects);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      setLoading(false);
-    }
-  };
-
-  const filterProjects = () => {
-    let filtered = projects;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.client.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by tab
-    if (selectedTab > 0) {
-      const statusMap = {
-        1: 'Active',
-        2: 'Planning',
-        3: 'Completed',
-        4: 'On Hold'
+      setLoading(true);
+      setError('');
+      const params = {
+        page,
+        limit,
+        sortBy,
+        sortOrder,
       };
-      filtered = filtered.filter(project => project.status === statusMap[selectedTab]);
-    }
+      // Determine status predicate from tab or explicit filter
+      const tabStatus = statusMapTabToBackend[selectedTab] || '';
+      const effectiveStatus = statusFilter || tabStatus;
+      if (effectiveStatus) params.status = effectiveStatus;
+      if (projectManager) params.projectManager = projectManager;
+      if (searchTerm) params.search = searchTerm;
 
-    setFilteredProjects(filtered);
+      const res = await projectsAPI.getAllProjects(params);
+      const { data } = res || {};
+      const proj = data?.projects || [];
+      setProjects(proj);
+      if (data?.pagination) setPagination(data.pagination);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError(err?.message || 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Active': return 'success';
-      case 'Planning': return 'warning';
-      case 'Completed': return 'primary';
-      case 'On Hold': return 'error';
-      default: return 'secondary';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High': return 'error';
-      case 'Medium': return 'warning';
-      case 'Low': return 'success';
+      case 'active': return 'success';
+      case 'planning': return 'warning';
+      case 'completed': return 'primary';
+      case 'on_hold': return 'error';
       default: return 'secondary';
     }
   };
@@ -212,10 +136,10 @@ const ProjectsPage = () => {
     setSelectedProject(null);
   };
 
-  const calculateBudgetPercentage = (spent, budget) => {
-    const spentAmount = parseFloat(spent.replace('$', '').replace(',', ''));
-    const budgetAmount = parseFloat(budget.replace('$', '').replace(',', ''));
-    return (spentAmount / budgetAmount) * 100;
+  const computeProjectProgress = (project) => {
+    if (!project?.modules?.length) return 0;
+    const sum = project.modules.reduce((acc, m) => acc + (m.completionPercentage || 0), 0);
+    return Math.round(sum / project.modules.length);
   };
 
   if (loading) {
@@ -242,7 +166,7 @@ const ProjectsPage = () => {
         </Button>
       </Box>
 
-      {/* Search and Filter */}
+      {/* Search, Filters, Sort */}
       <Box sx={{ mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={6}>
@@ -262,15 +186,75 @@ const ProjectsPage = () => {
             />
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                startIcon={<FunnelIcon className="h-4 w-4" />}
-                sx={{ borderRadius: 2 }}
-              >
-                Filters
-              </Button>
-            </Box>
+            <Grid container spacing={2} justifyContent="flex-end">
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="status-filter-label">Status</InputLabel>
+                  <Select
+                    labelId="status-filter-label"
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="planning">Planning</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="on_hold">On Hold</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="pm-filter-label">Project Manager</InputLabel>
+                  <Select
+                    labelId="pm-filter-label"
+                    label="Project Manager"
+                    value={projectManager}
+                    onChange={(e) => setProjectManager(e.target.value)}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {managers.map((m) => (
+                      <MenuItem key={m._id} value={m._id}>
+                        {m.firstName} {m.lastName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="sort-by-label">Sort By</InputLabel>
+                  <Select
+                    labelId="sort-by-label"
+                    label="Sort By"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <MenuItem value="createdAt">Created</MenuItem>
+                    <MenuItem value="name">Name</MenuItem>
+                    <MenuItem value="startDate">Start Date</MenuItem>
+                    <MenuItem value="endDate">End Date</MenuItem>
+                    <MenuItem value="status">Status</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="sort-order-label">Order</InputLabel>
+                  <Select
+                    labelId="sort-order-label"
+                    label="Order"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                  >
+                    <MenuItem value="desc">Desc</MenuItem>
+                    <MenuItem value="asc">Asc</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Grid>
         </Grid>
       </Box>
@@ -299,7 +283,7 @@ const ProjectsPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" color="success.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'Active').length}
+              {projects.filter(p => p.status === 'active').length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Active Projects
@@ -309,7 +293,7 @@ const ProjectsPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'Completed').length}
+              {projects.filter(p => p.status === 'completed').length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Completed
@@ -319,7 +303,7 @@ const ProjectsPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="h4" color="warning.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'Planning').length}
+              {projects.filter(p => p.status === 'planning').length}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               In Planning
@@ -330,8 +314,8 @@ const ProjectsPage = () => {
 
       {/* Projects Grid */}
       <Grid container spacing={3}>
-        {filteredProjects.map((project) => (
-          <Grid item xs={12} md={6} lg={4} key={project.id}>
+        {projects.map((project) => (
+          <Grid item xs={12} md={6} lg={4} key={project._id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flexGrow: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -343,14 +327,16 @@ const ProjectsPage = () => {
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {project.name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {project.client}
-                      </Typography>
+                      {project.projectManager && (
+                        <Typography variant="body2" color="text.secondary">
+                          PM: {project.projectManager.firstName} {project.projectManager.lastName}
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                     <Badge variant={getStatusColor(project.status)}>
-                      {project.status}
+                      {project.status?.replace('_', ' ')}
                     </Badge>
                     <IconButton
                       size="small"
@@ -361,20 +347,22 @@ const ProjectsPage = () => {
                   </Box>
                 </Box>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {project.description}
-                </Typography>
+                {project.description && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {project.description}
+                  </Typography>
+                )}
 
                 <Box sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="body2">Progress</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {project.progress}%
+                      {computeProjectProgress(project)}%
                     </Typography>
                   </Box>
                   <LinearProgress
                     variant="determinate"
-                    value={project.progress}
+                    value={computeProjectProgress(project)}
                     sx={{ height: 8, borderRadius: 4 }}
                   />
                 </Box>
@@ -383,40 +371,24 @@ const ProjectsPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CalendarDaysIcon className="h-4 w-4 mr-1" />
                     <Typography variant="body2" color="text.secondary">
-                      {project.endDate}
+                      {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'No end date'}
                     </Typography>
                   </Box>
-                  <Badge variant={getPriorityColor(project.priority)}>
-                    {project.priority}
+                  <Badge variant={getPriorityColor()}>
+                    {project.modules?.length || 0} modules
                   </Badge>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Budget: {project.spent} / {project.budget}
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={calculateBudgetPercentage(project.spent, project.budget)}
-                    sx={{ width: 60, height: 4, borderRadius: 2 }}
-                  />
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.75rem' } }}>
-                    {project.team.map((member, index) => (
-                      <Avatar key={index} sx={{ bgcolor: 'primary.main' }}>
-                        {member.avatar}
+                    {(project.teamMembers || []).slice(0, 5).map((member, index) => (
+                      <Avatar key={member._id || index} sx={{ bgcolor: 'primary.main' }}>
+                        {member.firstName ? `${member.firstName[0] || ''}${member.lastName ? member.lastName[0] : ''}`.toUpperCase() : 'U'}
                       </Avatar>
                     ))}
                   </AvatarGroup>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {project.tags.slice(0, 2).map((tag, index) => (
-                      <Chip key={index} label={tag} size="small" variant="outlined" />
-                    ))}
-                    {project.tags.length > 2 && (
-                      <Chip label={`+${project.tags.length - 2}`} size="small" variant="outlined" />
-                    )}
+                    <Chip label={`Team: ${(project.teamMembers || []).length}`} size="small" variant="outlined" />
                   </Box>
                 </Box>
               </CardContent>
@@ -424,6 +396,24 @@ const ProjectsPage = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Pagination Controls */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button variant="outlined" disabled={!pagination.hasPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</Button>
+          <Typography variant="body2">Page {pagination.currentPage} of {pagination.totalPages}</Typography>
+          <Button variant="outlined" disabled={!pagination.hasNext} onClick={() => setPage((p) => p + 1)}>Next</Button>
+        </Box>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel id="limit-label">Per Page</InputLabel>
+          <Select labelId="limit-label" label="Per Page" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+            <MenuItem value={6}>6</MenuItem>
+            <MenuItem value={9}>9</MenuItem>
+            <MenuItem value={12}>12</MenuItem>
+            <MenuItem value={24}>24</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Context Menu */}
       <Menu
@@ -440,7 +430,7 @@ const ProjectsPage = () => {
         </MenuItem>
       </Menu>
 
-      {filteredProjects.length === 0 && (
+      {projects.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <FolderIcon className="h-16 w-16 mx-auto mb-4 text-neutral-400" />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
@@ -449,6 +439,12 @@ const ProjectsPage = () => {
           <Typography variant="body2" color="text.secondary">
             {searchTerm ? 'Try adjusting your search terms' : 'Create your first project to get started'}
           </Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" color="error.main">{error}</Typography>
         </Box>
       )}
     </Box>

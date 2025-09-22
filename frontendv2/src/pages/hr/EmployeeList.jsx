@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, IconButton, Paper, Stack, Typography } from '@mui/material';
 import { Add, Edit, ToggleOn } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { hrAPI } from '../../services/api';
 import DataTable from '../../components/shared/DataTable';
 
 const EmployeeList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,6 +39,15 @@ const EmployeeList = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  // Refetch when navigated back from create/edit with refresh flag
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchEmployees();
+      // remove the flag so it doesn't refire on further renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const handleToggleStatus = async (id) => {
     try {
@@ -78,9 +88,12 @@ const EmployeeList = () => {
           <Typography variant="h4" fontWeight="bold">Employees</Typography>
           <Typography variant="body2" color="text.secondary">Manage all employees in the organization</Typography>
         </div>
-        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/hr/employees/new')}>
-          New Employee
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" onClick={fetchEmployees}>Refresh</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/hr/employees/new')}>
+            New Employee
+          </Button>
+        </Stack>
       </Stack>
 
       {error && (

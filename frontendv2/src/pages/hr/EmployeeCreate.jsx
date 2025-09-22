@@ -11,7 +11,7 @@ const EmployeeCreate = () => {
       <EmployeeForm
         mode="create"
         onCancel={() => navigate('/hr/employees')}
-        onSuccess={() => navigate('/hr/employees')}
+        onSuccess={() => navigate('/hr/employees', { state: { refresh: true } })}
       />
     </Box>
   );

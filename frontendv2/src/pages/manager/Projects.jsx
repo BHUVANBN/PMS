@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
-import { projectsAPI } from '../../services/api';
+import { managerAPI } from '../../services/api';
 
 const Projects = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,9 +16,9 @@ const Projects = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await projectsAPI.getAllProjects();
-      const payload = res?.data || res || {};
-      const projects = payload.projects || payload;
+      const res = await managerAPI.getAllProjects();
+      const projList = res?.projects || res?.data?.projects || res?.data || res || [];
+      const projects = Array.isArray(projList) ? projList : [];
       const normalized = projects.map((p) => ({
         id: p._id || p.id,
         name: p.name,
@@ -39,40 +40,55 @@ const Projects = () => {
 
   useEffect(() => { fetchProjects(); }, []);
 
+  // If navigated with refresh flag from create/edit, refetch and clear flag
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchProjects();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   const handleDelete = async (id) => {
     if (!id) return;
     const ok = window.confirm('Are you sure you want to archive/delete this project?');
     if (!ok) return;
     try {
-      await projectsAPI.deleteProject(id);
+      await managerAPI.deleteProject(id);
       setRows((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       alert(e.message || 'Failed to delete project');
     }
   };
 
+  // Status filter options (map to backend values)
+  const STATUS_OPTIONS = [
+    { value: 'all', label: 'All' },
+    { value: 'planning', label: 'Planning' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'testing', label: 'Testing' },
+    { value: 'code_review', label: 'Code Review' },
+    { value: 'done', label: 'Done' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'on_hold', label: 'On Hold' },
+    { value: 'archived', label: 'Archived' },
+  ];
+
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filteredRows = useMemo(() => {
+    if (statusFilter === 'all') return rows;
+    return rows.filter(r => (r.status || '').toLowerCase() === statusFilter);
+  }, [rows, statusFilter]);
+
   const columns = useMemo(() => [
-    { key: 'name', label: 'Project', sortable: true },
-    { key: 'manager', label: 'Manager', sortable: true },
-    { key: 'modules', label: 'Modules' },
-    { key: 'status', label: 'Status', type: 'chip' },
-    { key: 'startDate', label: 'Start', type: 'date' },
-    { key: 'endDate', label: 'End', type: 'date' },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row) => (
-        <Stack direction="row" spacing={1}>
-          <IconButton size="small" onClick={() => navigate(`/manager/projects/${row.id}/edit`)}>
-            <Edit fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
-            <Delete fontSize="small" />
-          </IconButton>
-        </Stack>
-      ),
-    },
-  ], []);
+    { field: 'name', headerName: 'Project', sortable: true },
+    { field: 'manager', headerName: 'Manager', sortable: true },
+    { field: 'modules', headerName: 'Modules' },
+    { field: 'status', headerName: 'Status', type: 'status' },
+    { field: 'startDate', headerName: 'Start', type: 'date' },
+    { field: 'endDate', headerName: 'End', type: 'date' },
+    { field: 'actions', headerName: 'Actions' },
+  ], [navigate]);
 
   return (
     <Box>
@@ -87,6 +103,22 @@ const Projects = () => {
         </Stack>
       </Stack>
 
+      {/* Status Filter */}
+      <Stack direction="row" spacing={2} mb={2} alignItems="center">
+        <Typography variant="body2" color="text.secondary">Filter by status:</Typography>
+        <TextField
+          select
+          size="small"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          sx={{ minWidth: 200 }}
+        >
+          {STATUS_OPTIONS.map(opt => (
+            <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+
       {error && (
         <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
           <Typography color="error">{error}</Typography>
@@ -95,12 +127,26 @@ const Projects = () => {
 
       <DataTable
         columns={columns}
-        data={rows}
+        data={filteredRows}
         loading={loading}
-        enableSearch
-        searchableKeys={["name","manager","status"]}
-        initialPageSize={10}
-        emptyMessage="No projects found"
+        searchable
+        paginated
+        onRefresh={fetchProjects}
+        renderCell={(column, row) => {
+          if (column.field === 'actions') {
+            return (
+              <Stack direction="row" spacing={1}>
+                <IconButton size="small" onClick={() => navigate(`/manager/projects/${row.id}/edit`)}>
+                  <Edit fontSize="small" />
+                </IconButton>
+                <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Stack>
+            );
+          }
+          return undefined; // fall back to default rendering
+        }}
       />
     </Box>
   );

@@ -562,8 +562,11 @@ export const ticketsAPI = {
 };
 
 export const projectsAPI = {
-  getAllProjects: () => 
-    apiRequest('/projects'),
+  getAllProjects: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/projects${suffix}`);
+  },
 
   getProject: (projectId) => 
     apiRequest(`/projects/${projectId}`),

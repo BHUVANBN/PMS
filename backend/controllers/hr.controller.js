@@ -1,82 +1,80 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, USER_ROLES } from '../models/index.js';
+import { User, USER_ROLES, Leave, Standup } from '../models/index.js';
+
 /**
  * Create a new employee account
  * HR can create accounts for different roles
  */
 export const createEmployee = async (req, res) => {
-	try {
-		const { username, email, password, role, firstName, lastName } = req.body;
+  try {
+    const { username, email, password, role, firstName, lastName } = req.body;
 
-		// Validate required fields
-		if (!username || !email || !password || !firstName || !lastName) {
-			return res.status(400).json({
-				message: 'username, email, password, firstName, and lastName are required'
-			});
-		}
+    // Validate required fields
+    if (!username || !email || !password || !firstName || !lastName) {
+      return res.status(400).json({
+        message: 'username, email, password, firstName, and lastName are required'
+      });
+    }
 
-		// Validate role - HR can only assign certain roles
-		const allowedRolesForHR = [
-			USER_ROLES.EMPLOYEE,
-			USER_ROLES.DEVELOPER,
-			USER_ROLES.TESTER,
-			USER_ROLES.MARKETING,
-			USER_ROLES.SALES,
-			USER_ROLES.INTERN
-		];
+    // Validate role - HR can only assign certain roles
+    const allowedRolesForHR = [
+      USER_ROLES.EMPLOYEE,
+      USER_ROLES.DEVELOPER,
+      USER_ROLES.TESTER,
+      USER_ROLES.MARKETING,
+      USER_ROLES.SALES,
+      USER_ROLES.INTERN
+    ];
 
-		const selectedRole = role && allowedRolesForHR.includes(role) ? role : USER_ROLES.EMPLOYEE;
+    const selectedRole = role && allowedRolesForHR.includes(role) ? role : USER_ROLES.EMPLOYEE;
 
-		// Check if username or email already exists
-		const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-		if (existingUser) {
-			return res.status(409).json({
-				message: existingUser.username === username
-					? 'Username already exists'
-					: 'Email already exists'
-			});
-		}
+    // Check if username or email already exists
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(409).json({
+        message: existingUser.username === username ? 'Username already exists' : 'Email already exists'
+      });
+    }
 
-		// Hash password
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-		// Create new employee
-		const newEmployee = await User.create({
-			username,
-			email,
-			password: hashedPassword,
-			role: selectedRole,
-			firstName,
-			lastName,
-			isActive: true
-		});
+    // Create new employee
+    const newEmployee = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      role: selectedRole,
+      firstName,
+      lastName,
+      isActive: true
+    });
 
-		// Return employee data without password
-		const employeeResponse = {
-			_id: newEmployee._id,
-			username: newEmployee.username,
-			email: newEmployee.email,
-			role: newEmployee.role,
-			firstName: newEmployee.firstName,
-			lastName: newEmployee.lastName,
-			isActive: newEmployee.isActive,
-			createdAt: newEmployee.createdAt
-		};
+    // Return employee data without password
+    const employeeResponse = {
+      _id: newEmployee._id,
+      username: newEmployee.username,
+      email: newEmployee.email,
+      role: newEmployee.role,
+      firstName: newEmployee.firstName,
+      lastName: newEmployee.lastName,
+      isActive: newEmployee.isActive,
+      createdAt: newEmployee.createdAt
+    };
 
-		return res.status(201).json({
-			message: 'Employee created successfully',
-			employee: employeeResponse
-		});
-
-	} catch (error) {
-		console.error('Error creating employee:', error);
-		return res.status(500).json({
-			message: 'Server error while creating employee',
-			error: error.message
-		});
-	}
+    return res.status(201).json({
+      message: 'Employee created successfully',
+      employee: employeeResponse
+    });
+  } catch (error) {
+    console.error('Error creating employee:', error);
+    return res.status(500).json({
+      message: 'Server error while creating employee',
+      error: error.message
+    });
+  }
 };
 
 /**

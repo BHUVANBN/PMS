@@ -7,6 +7,7 @@ const ENTITY_TYPES = {
   SPRINT: 'sprint',   //Weekly Sprints
   KANBAN: 'kanban',   //Kanaban Board Activities
   BUG_TRACKER: 'bug_tracker',   //Bug Tracking Activities
+  MODULE: 'module',   // Project modules
   PROJECT: 'project',   //Projects
   STANDUP: 'standup',   //Daily standups
   USER: 'user'    //User profiles or Accounts

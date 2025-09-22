@@ -1,5 +1,5 @@
 // sprint.controller.js - Sprint Management Controller
-import { Sprint, Project, User, ActivityLog, SPRINT_STATUS, ASSIGNMENT_STATUS, USER_ROLES } from '../models/index.js';
+import { Sprint, Project, User, ActivityLog, SPRINT_STATUS, ASSIGNMENT_STATUS, USER_ROLES, ACTION_CATEGORIES } from '../models/index.js';
 import mongoose from 'mongoose';
 
 // Create a new sprint
@@ -48,6 +48,19 @@ export const createSprint = async (req, res) => {
     const existingSprints = await Sprint.find({ projectId }).sort({ sprintNumber: -1 }).limit(1);
     const sprintNumber = existingSprints.length > 0 ? existingSprints[0].sprintNumber + 1 : 1;
 
+    // Resolve sprint master (required by schema)
+    const providedSprintMaster = req.body?.sprintMaster;
+    const resolvedSprintMaster = providedSprintMaster || project.projectManager || req.user?._id;
+
+    if (!resolvedSprintMaster) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sprint master could not be resolved. Provide sprintMaster explicitly or ensure the project has a projectManager.'
+      });
+    }
+
+    const sprintMasterId = new mongoose.Types.ObjectId(resolvedSprintMaster);
+
     const sprint = new Sprint({
       projectId,
       name,
@@ -55,6 +68,8 @@ export const createSprint = async (req, res) => {
       sprintNumber,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      // Required by schema: person managing this sprint (usually the project manager)
+      sprintMaster: sprintMasterId,
       goals: goals || [],
       status: SPRINT_STATUS.PLANNING,
       createdBy: req.user._id,
@@ -83,7 +98,7 @@ export const createSprint = async (req, res) => {
       entityId: sprint._id,
       userId: req.user._id,
       action: 'created',
-      actionCategory: 'sprint_update',
+      actionCategory: ACTION_CATEGORIES.SPRINT_PLANNING,
       description: `Sprint "${name}" created`,
       metadata: {
         sprintNumber,
@@ -259,7 +274,7 @@ export const assignTicketToUser = async (req, res) => {
       entityId: sprintId,
       userId: req.user._id,
       action: 'ticket_assigned',
-      actionCategory: 'sprint_update',
+      actionCategory: ACTION_CATEGORIES.SPRINT_PLANNING,
       description: `Ticket assigned to ${assignee.firstName} ${assignee.lastName}`,
       metadata: {
         ticketId,
@@ -358,7 +373,7 @@ export const updateAssignmentStatus = async (req, res) => {
       entityId: sprintId,
       userId: req.user._id,
       action: 'assignment_updated',
-      actionCategory: 'sprint_update',
+      actionCategory: ACTION_CATEGORIES.SPRINT_PLANNING,
       description: `Assignment status changed from ${oldStatus} to ${status}`,
       metadata: {
         assignmentId,
@@ -495,7 +510,7 @@ export const startSprint = async (req, res) => {
       entityId: sprintId,
       userId: req.user._id,
       action: 'started',
-      actionCategory: 'sprint_update',
+      actionCategory: ACTION_CATEGORIES.SPRINT_PLANNING,
       description: `Sprint "${sprint.name}" started`,
       metadata: {
         sprintNumber: sprint.sprintNumber
@@ -585,7 +600,7 @@ export const completeSprint = async (req, res) => {
       entityId: sprintId,
       userId: req.user._id,
       action: 'completed',
-      actionCategory: 'sprint_update',
+      actionCategory: ACTION_CATEGORIES.SPRINT_PLANNING,
       description: `Sprint "${sprint.name}" completed`,
       metadata: {
         sprintNumber: sprint.sprintNumber,

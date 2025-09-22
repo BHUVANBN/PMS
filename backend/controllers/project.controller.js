@@ -263,7 +263,7 @@ export const updateProject = async (req, res) => {
       entityId: projectId,
       userId: req.user._id,
       action: 'updated',
-      actionCategory: 'project_update',
+      actionCategory: 'project_admin',
       description: `Project "${project.name}" updated`,
       metadata: {
         updatedFields: Object.keys(updateData)
@@ -409,7 +409,7 @@ export const updateModule = async (req, res) => {
       entityId: moduleId,
       userId: req.user._id,
       action: 'updated',
-      actionCategory: 'project_update',
+      actionCategory: 'project_admin',
       description: `Module "${module.name}" updated`,
       metadata: {
         updatedFields: Object.keys(updates)

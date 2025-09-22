@@ -9,7 +9,12 @@ import {
 	toggleEmployeeStatus,
 	getEmployeeStats,
 	getHRStats,
-	getEmployeeById
+	getEmployeeById,
+	getAllLeaveRequests,
+	approveLeaveRequest,
+	rejectLeaveRequest,
+	getAllStandups,
+	getEmployeeStandups
 } from '../controllers/hr.controller.js';
 
 const router = express.Router();
@@ -46,6 +51,15 @@ router.get('/employee-stats', getEmployeeStats);
 
 // Get HR dashboard statistics
 router.get('/stats', getHRStats);
+
+// Leave management
+router.get('/leave-requests', getAllLeaveRequests);
+router.put('/leave-requests/:leaveId/approve', approveLeaveRequest);
+router.put('/leave-requests/:leaveId/reject', rejectLeaveRequest);
+
+// Standup tracking
+router.get('/standups', getAllStandups);
+router.get('/standups/:employeeId', getEmployeeStandups);
 
 export default router;
 

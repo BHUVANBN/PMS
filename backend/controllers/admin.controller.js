@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, USER_ROLES } from '../models/index.js';
+import { User, USER_ROLES, Project, Sprint, BugTracker } from '../models/index.js';
 
 /**
  * Create a new user account with any role (Admin privilege)

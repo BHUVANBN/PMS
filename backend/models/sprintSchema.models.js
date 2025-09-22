@@ -53,6 +53,12 @@ const sprintSchema = new mongoose.Schema({
     enum: Object.values(SPRINT_STATUS),
     default: SPRINT_STATUS.PLANNING
   },
+  // Creator of the sprint (used for auditing and population in controllers)
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   goal: String,            // Sprint objectives
   
   // Sprint capacity planning

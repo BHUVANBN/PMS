@@ -21,6 +21,7 @@ import marketingRoutes from './routes/marketing.route.js';
 import projectRoutes from './routes/project.route.js';
 import sprintRoutes from './routes/sprint.route.js';
 import bugRoutes from './routes/bugTracker.route.js';
+import { initRealtime } from './utils/realtime.js';
 
 dotenv.config();
 
@@ -68,6 +69,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Attach cookie parser early so auth can read cookies
 app.use(cookieParser());
 
+// Initialize realtime SSE endpoint
+initRealtime(app);
+
 // Request logging middleware (for development)
 if (process.env.NODE_ENV !== 'production') {
     app.use((req, res, next) => {
@@ -99,6 +103,8 @@ app.use('/api/intern', internRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/projects', projectRoutes);
+// Singular alias for project routes
+app.use('/api/project', projectRoutes);
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/bugs', bugRoutes);
 

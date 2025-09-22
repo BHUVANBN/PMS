@@ -13,6 +13,7 @@ import {
   BUG_STATUS, BUG_SEVERITY, BUG_TYPES,
   KANBAN_BOARD_TYPES, DEFAULT_KANBAN_COLUMNS
 } from '../models/index.js';
+import { emitTicketEvent } from '../utils/realtime.js';
 
 export const getDeveloperKanbanBoard = async (req, res) => {
   try {
@@ -412,6 +413,13 @@ export const moveTicket = async (req, res) => {
         ticket: ticket
       }
     });
+
+    // Emit realtime event
+    emitTicketEvent({
+      projectId: board.projectId.toString(),
+      type: 'kanban.ticket_moved',
+      data: { boardId, ticketId, fromColumnId, toColumnId, newPosition }
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -530,6 +538,23 @@ export const updateTicketStatus = async (req, res) => {
         newStatus: status,
         ticket: ticket
       }
+    });
+
+    // Auto-assign tester if entering testing/done and no tester yet
+    if ((status === 'testing' || status === 'done') && !ticket.tester) {
+      const testerUser = await User.findOne({ _id: { $in: project.teamMembers }, role: 'tester' });
+      if (testerUser) {
+        ticket.tester = testerUser._id;
+        await project.save();
+      }
+    }
+
+    // Emit realtime events
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: [ticket.assignedDeveloper, ticket.tester, project.projectManager].filter(Boolean).map(id => id.toString()),
+      type: 'ticket.status_updated',
+      data: { ticketId, oldStatus, newStatus: status }
     });
   } catch (error) {
     res.status(500).json({

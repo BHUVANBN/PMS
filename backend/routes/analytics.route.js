@@ -4,7 +4,10 @@ import { verifyToken } from '../middleware/verifyToken.js';
 import {
   getDashboardAnalytics,
   getProjectAnalytics,
-  getUserPerformanceAnalytics
+  getUserPerformanceAnalytics,
+  getPerformanceMetricsSummary,
+  getTeamMetrics,
+  getBugMetrics
 } from '../controllers/analytics.controller.js';
 
 const router = express.Router();
@@ -20,5 +23,15 @@ router.get('/project/:projectId', getProjectAnalytics);
 
 // GET /api/analytics/user/:userId?timeframe=3months
 router.get('/user/:userId', getUserPerformanceAnalytics);
+
+// Additional analytics endpoints
+// GET /api/analytics/performance
+router.get('/performance', getPerformanceMetricsSummary);
+
+// GET /api/analytics/team/:teamId
+router.get('/team/:teamId', getTeamMetrics);
+
+// GET /api/analytics/bugs
+router.get('/bugs', getBugMetrics);
 
 export default router;

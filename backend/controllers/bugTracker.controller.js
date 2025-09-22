@@ -1,6 +1,7 @@
 // bugTracker.controller.js - Bug Tracker Management Controller
 import { BugTracker, Project, User, ActivityLog, BUG_STATUS, BUG_SEVERITY, BUG_PRIORITY } from '../models/index.js';
 import mongoose from 'mongoose';
+import { emitBugEvent, emitTicketEvent } from '../utils/realtime.js';
 
 // Create a new bug report
 export const createBugReport = async (req, res) => {
@@ -89,6 +90,14 @@ export const createBugReport = async (req, res) => {
       success: true,
       message: 'Bug report created successfully',
       data: bugReport
+    });
+
+    // Emit realtime events for bug creation
+    emitBugEvent({
+      projectId: projectId.toString(),
+      userIds: [req.user._id.toString()],
+      type: 'bug.created',
+      data: { bugId: bugReport._id, bugNumber }
     });
   } catch (error) {
     res.status(500).json({
@@ -270,6 +279,13 @@ export const assignBug = async (req, res) => {
       message: 'Bug assigned successfully',
       data: bug
     });
+
+    emitBugEvent({
+      projectId: bug.projectId.toString(),
+      userIds: [assignedTo.toString()],
+      type: 'bug.assigned',
+      data: { bugId: bugId.toString(), assignedTo: assignedTo.toString() }
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -390,6 +406,13 @@ export const updateBugStatus = async (req, res) => {
       message: 'Bug status updated successfully',
       data: bug
     });
+
+    emitBugEvent({
+      projectId: bug.projectId.toString(),
+      userIds: [bug.assignedTo, bug.reportedBy].filter(Boolean).map(id => id.toString()),
+      type: 'bug.status_updated',
+      data: { bugId: bugId.toString(), oldStatus, newStatus: status }
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -452,6 +475,13 @@ export const addBugComment = async (req, res) => {
       success: true,
       message: 'Comment added successfully',
       data: addedComment
+    });
+
+    emitBugEvent({
+      projectId: bug.projectId.toString(),
+      userIds: [bug.assignedTo, bug.reportedBy].filter(Boolean).map(id => id.toString()),
+      type: 'bug.comment_added',
+      data: { bugId: bugId.toString(), comment: addedComment }
     });
   } catch (error) {
     res.status(500).json({

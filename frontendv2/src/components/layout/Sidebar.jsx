@@ -53,7 +53,7 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
   },
 }));
 
-const StyledListItem = styled(ListItem)(({ theme, selected }) => ({
+const StyledListItem = styled(ListItem)(({ theme }) => ({
   '&.Mui-selected': {
     backgroundColor: theme.palette.action.selected,
     '&:hover': {
@@ -74,11 +74,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [open, setOpen] = React.useState({});
-
-  const handleClick = (item) => {
-    setOpen({ ...open, [item]: !open[item] });
-  };
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -96,7 +91,14 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
 
   const projectsPath = role === 'manager' ? '/manager/projects' : '/projects';
   const teamPath = role === 'manager' ? '/manager/team' : '/team';
-  const ticketsPath = role === 'developer' ? '/developer/tasks' : role === 'tester' ? '/tester/bugs' : role === 'manager' ? '/manager/kanban' : '/tickets';
+  // Route Tickets menu to Kanban for dev/tester, project Kanban for manager
+  const ticketsPath = role === 'developer'
+    ? '/developer/kanban'
+    : role === 'tester'
+      ? '/tester/kanban'
+      : role === 'manager'
+        ? '/manager/kanban'
+        : '/tickets';
 
   const menuItems = [
     {
@@ -182,7 +184,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       </Toolbar>
       <Divider />
       <List>
-        {filteredMenuItems.map((item, index) => (
+        {filteredMenuItems.map((item) => (
           <StyledListItem
             key={item.text}
             disablePadding

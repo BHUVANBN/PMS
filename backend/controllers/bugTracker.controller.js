@@ -258,6 +258,41 @@ export const assignBug = async (req, res) => {
 
     await bug.save();
 
+    // If bug is linked to a ticket, update the ticket status in the associated project for Kanban sync
+    try {
+      const linkedTicketId = bug.linkedTicket || bug.ticketId; // support either field
+      if (linkedTicketId) {
+        const project = await Project.findById(bug.projectId);
+        if (project) {
+          let ticketRef = null;
+          let moduleRef = null;
+          for (const mod of project.modules) {
+            const t = mod.tickets.id(linkedTicketId);
+            if (t) { ticketRef = t; moduleRef = mod; break; }
+          }
+          if (ticketRef) {
+            const prev = ticketRef.status;
+            // Map bug status to ticket status
+            const map = {
+              OPEN: 'testing',
+              ASSIGNED: 'testing',
+              IN_PROGRESS: 'testing',
+              FIXED: 'testing',
+              CLOSED: 'done'
+            };
+            const newTicketStatus = map[status] || map[status?.toUpperCase?.()] || prev;
+            if (newTicketStatus && newTicketStatus !== prev) {
+              ticketRef.status = newTicketStatus;
+              await project.save();
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      // Do not fail the request if sync fails; just log
+      console.warn('Ticket sync failed for bug status update:', syncErr.message);
+    }
+
     // Log activity
     await ActivityLog.create({
       projectId: bug.projectId,

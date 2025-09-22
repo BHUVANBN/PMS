@@ -30,6 +30,7 @@ import Tasks from './pages/developer/Tasks';
 import DevKanban from './pages/developer/Kanban';
 import TesterDashboard from './pages/tester/TesterDashboard';
 import Bugs from './pages/tester/Bugs';
+import TesterKanban from './pages/tester/Kanban';
 import SalesDashboard from './pages/sales/SalesDashboard';
 import MarketingDashboard from './pages/marketing/MarketingDashboard';
 import InternDashboard from './pages/intern/InternDashboard';
@@ -98,6 +99,7 @@ function App() {
 
               <Route path="tester/dashboard" element={<ProtectedRoute requiredRoles={["tester"]}><TesterDashboard /></ProtectedRoute>} />
               <Route path="tester/bugs" element={<ProtectedRoute requiredRoles={["tester"]}><Bugs /></ProtectedRoute>} />
+              <Route path="tester/kanban" element={<ProtectedRoute requiredRoles={["tester"]}><TesterKanban /></ProtectedRoute>} />
 
               <Route path="sales/dashboard" element={<ProtectedRoute requiredRoles={["sales"]}><SalesDashboard /></ProtectedRoute>} />
               <Route path="marketing/dashboard" element={<ProtectedRoute requiredRoles={["marketing"]}><MarketingDashboard /></ProtectedRoute>} />

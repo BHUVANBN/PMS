@@ -1,119 +1,134 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Box, Paper, Stack, Typography, Select, MenuItem, Button, Chip } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
-import { managerAPI } from '../../services/api';
-
-const Column = ({ title, tickets = [] }) => (
-  <Paper sx={{ p: 2, minWidth: 280, background: 'var(--mui-palette-background-paper)' }} elevation={1}>
-    <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>{title} <Chip size="small" label={tickets.length} sx={{ ml: 1 }} /></Typography>
-    <Stack spacing={1}>
-      {tickets.length === 0 ? (
-        <Typography variant="caption" color="text.secondary">No tickets</Typography>
-      ) : tickets.map((t) => (
-        <Paper key={t._id || t.id} sx={{ p: 1.5 }} variant="outlined">
-          <Typography variant="body2" fontWeight={600}>{t.title || t.name || 'Ticket'}</Typography>
-          <Typography variant="caption" color="text.secondary">#{(t.code || t.key || t._id || '').toString().slice(-6)}</Typography>
-          <Stack direction="row" spacing={1} mt={0.5}>
-            {t.priority && <Chip size="small" label={t.priority} />}
-            {t.type && <Chip size="small" label={t.type} />}
-          </Stack>
-        </Paper>
-      ))}
-    </Stack>
-  </Paper>
-);
+import React, { useCallback, useEffect, useState } from 'react';
+import { Stack, Select, MenuItem, Typography, Button } from '@mui/material';
+import KanbanBoard from '../../components/kanban/KanbanBoard';
+import { managerAPI, kanbanAPI } from '../../services/api';
+import CreateBoardModal from '../../components/kanban/CreateBoardModal';
+import AddTicketModal from '../../components/kanban/AddTicketModal';
+import ColumnSettingsModal from '../../components/kanban/ColumnSettingsModal';
 
 const Kanban = () => {
-  const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState('');
-  const [board, setBoard] = useState({ columns: {} });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [boards, setBoards] = useState([]);
+  const [boardId, setBoardId] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAddTicket, setShowAddTicket] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchProjects = useCallback(async () => {
+  const bumpRefresh = () => setRefreshKey((k) => k + 1);
+
+  const loadProjects = async () => {
     const res = await managerAPI.getAllProjects();
-    const list = res?.projects || res?.data?.projects || res?.data || [];
-    setProjects(list);
-    if (!projectId && list[0]) setProjectId(list[0]._id || list[0].id);
-  }, [projectId]);
+    return res?.projects || res?.data?.projects || res?.data || [];
+  };
 
-  const normalizeColumns = useCallback((columns = {}) => {
-    // Backend may send columns with names like 'To Do', 'In Progress', 'Testing', 'Code Review', 'Done'
-    // Normalize to keys: todo, inProgress, review, done
-    const get = (keys) => {
-      for (const k of keys) {
-        if (Array.isArray(columns[k])) return columns[k];
-        if (columns[k]?.tickets) return columns[k].tickets;
-      }
-      return [];
+  const fetchBoard = async (projectId) => {
+    if (!projectId) return {};
+    const res = await managerAPI.getProjectKanban(projectId);
+    const raw = res?.data || res?.kanban || res || {};
+    const normalize = (columns = {}) => {
+      const get = (keys) => {
+        for (const k of keys) {
+          if (Array.isArray(columns[k])) return columns[k];
+          if (columns[k]?.tickets) return columns[k].tickets;
+        }
+        return [];
+      };
+      return {
+        todo: get(['todo', 'To Do', 'toDo', 'open']),
+        inProgress: get(['inProgress', 'In Progress', 'in_progress']),
+        review: get(['review', 'Code Review', 'Testing', 'testing', 'code_review']),
+        done: get(['done', 'Done', 'closed'])
+      };
     };
-    return {
-      todo: get(['todo', 'To Do', 'toDo', 'open']),
-      inProgress: get(['inProgress', 'In Progress', 'in_progress']),
-      review: get(['review', 'Code Review', 'Testing', 'testing', 'code_review']),
-      done: get(['done', 'Done', 'closed'])
-    };
-  }, []);
+    return { columns: normalize(raw.columns || raw) };
+  };
 
-  const fetchBoard = useCallback(async (pid) => {
-    if (!pid) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await managerAPI.getProjectKanban(pid);
-      const raw = res?.data || res?.kanban || res || {};
-      const normalized = { columns: normalizeColumns(raw.columns || raw) };
-      setBoard(normalized);
-    } catch (e) {
-      setError(e.message || 'Failed to load Kanban board');
-    } finally {
-      setLoading(false);
+  const moveTicket = async ({ ticket, toKey, projectId, statusMap }) => {
+    const newStatus = statusMap[toKey];
+    if (newStatus && projectId) {
+      await kanbanAPI.updateTicketStatus(projectId, ticket._id || ticket.id, { status: newStatus });
     }
-  }, [normalizeColumns]);
+  };
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
-  useEffect(() => { if (projectId) fetchBoard(projectId); }, [projectId, fetchBoard]);
+  const loadBoards = useCallback(async (pid) => {
+    if (!pid) { setBoards([]); setBoardId(''); return; }
+    const res = await kanbanAPI.getProjectBoards(pid);
+    const list = res?.data || res?.boards || res || [];
+    setBoards(list);
+    if (list.length && !boardId) setBoardId(list[0]._id || list[0].id);
+  }, [boardId]);
 
-  const columns = useMemo(() => {
-    const cols = board?.columns || {};
-    return [
-      { key: 'todo', title: 'To Do', tickets: cols.todo || [] },
-      { key: 'inProgress', title: 'In Progress', tickets: cols.inProgress || [] },
-      { key: 'review', title: 'Review', tickets: cols.review || [] },
-      { key: 'done', title: 'Done', tickets: cols.done || [] },
-    ];
-  }, [board]);
+  useEffect(() => { loadBoards(projectId); }, [projectId, loadBoards, refreshKey]);
 
   return (
-    <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <div>
-          <Typography variant="h4" fontWeight="bold">Project Kanban</Typography>
-          <Typography variant="body2" color="text.secondary">Select a project to view its Kanban board</Typography>
-        </div>
-        <Stack direction="row" spacing={1}>
-          <Select size="small" value={projectId} onChange={(e) => setProjectId(e.target.value)} displayEmpty>
-            <MenuItem value="" disabled>Select Project</MenuItem>
-            {projects.map((p) => (
-              <MenuItem key={p._id || p.id} value={p._id || p.id}>{p.name}</MenuItem>
+    <>
+      {/* Board selector appears when a project is picked */}
+      {projectId && (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">Board:</Typography>
+          <Select size="small" value={boardId} onChange={(e) => setBoardId(e.target.value)} displayEmpty sx={{ minWidth: 220 }}>
+            {boards.length === 0 && <MenuItem value="" disabled>No boards</MenuItem>}
+            {boards.map((b) => (
+              <MenuItem key={b._id || b.id} value={b._id || b.id}>{b.boardName || b.name}</MenuItem>
             ))}
           </Select>
-          <Button variant="outlined" startIcon={<Refresh />} onClick={() => fetchBoard(projectId)} disabled={!projectId || loading}>Refresh</Button>
+          <Button size="small" onClick={() => setShowColumnSettings(true)} disabled={!boardId}>Column Settings</Button>
         </Stack>
-      </Stack>
-
-      {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
-          <Typography color="error">{error}</Typography>
-        </Paper>
       )}
 
-      <Stack direction="row" spacing={2} sx={{ overflowX: 'auto' }}>
-        {columns.map((c) => (
-          <Column key={c.key} title={c.title} tickets={c.tickets} />
-        ))}
-      </Stack>
-    </Box>
+      <KanbanBoard
+        title="Project Kanban"
+        description="Select a project and manage its tickets."
+        loadProjects={loadProjects}
+        fetchBoard={fetchBoard}
+        moveTicket={moveTicket}
+        showProjectSelector
+        onProjectChange={(pid) => setProjectId(pid)}
+        refreshKey={refreshKey}
+        sseParams={projectId ? { projectId } : undefined}
+        onCreateBoard={(pid) => {
+          if (!pid) return;
+          setProjectId(pid);
+          setShowCreate(true);
+        }}
+        onAddTicket={(pid) => {
+          if (!pid) return;
+          setProjectId(pid);
+          setShowAddTicket(true);
+        }}
+        onColumnSettings={() => {
+          if (!boardId) return;
+          setShowColumnSettings(true);
+        }}
+      />
+
+      {/* Modals */}
+      <CreateBoardModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        projectId={projectId}
+        onCreate={async (payload) => {
+          await kanbanAPI.createBoard(payload);
+          setShowCreate(false);
+          bumpRefresh();
+        }}
+      />
+
+      <AddTicketModal
+        open={showAddTicket}
+        onClose={() => setShowAddTicket(false)}
+        projectId={projectId}
+        onCreated={() => bumpRefresh()}
+      />
+
+      <ColumnSettingsModal
+        open={showColumnSettings}
+        onClose={() => setShowColumnSettings(false)}
+        boardId={boardId}
+        onUpdated={() => bumpRefresh()}
+      />
+    </>
   );
 };
 

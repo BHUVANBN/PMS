@@ -359,6 +359,98 @@ export const getHRStats = async (req, res) => {
 };
 
 /**
+ * Leave management: Approve a leave request
+ */
+export const approveLeaveRequest = async (req, res) => {
+	try {
+		// Stub implementation; integrate with Leave model/workflow as needed
+		return res.status(200).json({ message: 'Leave request approved (stub)' });
+	} catch (error) {
+		console.error('Error approving leave request:', error);
+		return res.status(500).json({
+			message: 'Server error while approving leave request',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Leave management: Get all leave requests
+ */
+export const getAllLeaveRequests = async (req, res) => {
+	try {
+		// Stub data; replace with real query to Leave model when available
+		const data = [
+			{ id: 1, employee: 'Alice', status: 'Pending' },
+			{ id: 2, employee: 'Bob', status: 'Approved' }
+		];
+		return res.status(200).json(data);
+	} catch (error) {
+		console.error('Error fetching leave requests:', error);
+		return res.status(500).json({
+			message: 'Server error while fetching leave requests',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Leave management: Reject a leave request
+ */
+export const rejectLeaveRequest = async (req, res) => {
+	try {
+		// Stub implementation; integrate with Leave model/workflow as needed
+		return res.status(200).json({ message: 'Leave request rejected (stub)' });
+	} catch (error) {
+		console.error('Error rejecting leave request:', error);
+		return res.status(500).json({
+			message: 'Server error while rejecting leave request',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Standups: Get all standups
+ */
+export const getAllStandups = async (req, res) => {
+	try {
+		// Stub data; replace with real query to Standup model when available
+		const data = [
+			{ id: 1, employee: 'Alice', date: new Date().toISOString(), summary: 'Did X, plan Y' },
+			{ id: 2, employee: 'Bob', date: new Date().toISOString(), summary: 'Fixed bug Z' }
+		];
+		return res.status(200).json(data);
+	} catch (error) {
+		console.error('Error fetching standups:', error);
+		return res.status(500).json({
+			message: 'Server error while fetching standups',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Standups: Get standups for a specific employee
+ */
+export const getEmployeeStandups = async (req, res) => {
+	try {
+		const { employeeId } = req.params;
+		// Stub data filtered by employeeId; replace with real Standup model query
+		const data = [
+			{ id: 1, employeeId, date: new Date().toISOString(), summary: 'Daily update (stub)' }
+		];
+		return res.status(200).json(data);
+	} catch (error) {
+		console.error('Error fetching employee standups:', error);
+		return res.status(500).json({
+			message: 'Server error while fetching employee standups',
+			error: error.message
+		});
+	}
+};
+
+/**
  * Get individual employee details by ID
  */
 export const getEmployeeById = async (req, res) => {

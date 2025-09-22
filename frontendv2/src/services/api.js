@@ -578,6 +578,10 @@ export const kanbanAPI = {
   getDeveloperPersonalBoard: () =>
     apiRequest('/kanbanboard/developer/personal'),
 
+  // Get tester's personal board
+  getTesterPersonalBoard: () =>
+    apiRequest('/kanbanboard/tester/personal'),
+
   // Get a specific board by ID
   getBoard: (boardId) => 
     apiRequest(`/kanbanboard/${boardId}`),

@@ -5,6 +5,7 @@ import {
   getKanbanBoard,
   getProjectKanbanBoards,
   getDeveloperKanbanBoard,
+  getTesterKanbanBoard,
   createKanbanBoard,
   moveTicket,
   updateTicketStatus,
@@ -31,6 +32,10 @@ router.get('/project/:projectId', getProjectKanbanBoards);
 // Get developer's personal kanban board (must be before /:boardId)
 // Usage: GET /api/kanbanboard/developer/personal
 router.get('/developer/personal', getDeveloperKanbanBoard);
+
+// Get tester's personal kanban board (must be before /:boardId)
+// Usage: GET /api/kanbanboard/tester/personal
+router.get('/tester/personal', getTesterKanbanBoard);
 
 // Update ticket status (direct status update)
 // Usage: PUT /api/kanbanboard/tickets/:projectId/:ticketId/status

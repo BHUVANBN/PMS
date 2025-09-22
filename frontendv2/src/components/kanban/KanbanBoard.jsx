@@ -1,0 +1,208 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Box, Stack, Typography, Paper, Button, Select, MenuItem, LinearProgress } from '@mui/material';
+import Column from './Column';
+import { subscribeToEvents } from '../../services/api';
+
+const defaultStatusMap = {
+  todo: 'open',
+  inProgress: 'in_progress',
+  review: 'code_review',
+  testing: 'testing',
+  done: 'done',
+};
+
+// KanbanBoard is a reusable board with drag/drop and header toolbar
+// Consumers pass in fetchBoard(), moveTicket(), and optional project selector props.
+const KanbanBoard = ({
+  title = 'Kanban',
+  description,
+  // Data
+  initialProjectId = '',
+  loadProjects, // async () => [{_id, name}]
+  fetchBoard, // async (projectId?) => boardShape
+  moveTicket, // async ({ ticket, fromKey, toKey, projectId, context }) => void
+  columnsOrder = ['todo', 'inProgress', 'review', 'testing', 'done'],
+  normalizeColumns, // optional (rawColumns) => key->tickets
+  sseParams, // { projectId?, userId?, role? }
+  showProjectSelector = false,
+  // Actions
+  onCreateBoard,
+  onAddTicket,
+  onColumnSettings,
+  onProjectChange,
+  refreshKey,
+}) => {
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState(initialProjectId || '');
+  const [board, setBoard] = useState({ columns: {} });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [dragCtx, setDragCtx] = useState(null);
+
+  const doLoadProjects = useCallback(async () => {
+    if (!loadProjects) return;
+    const list = await loadProjects();
+    setProjects(list);
+    if (!projectId && list[0]) setProjectId(list[0]._id || list[0].id);
+  }, [loadProjects, projectId]);
+
+  const doFetchBoard = useCallback(async (pid) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const raw = await fetchBoard?.(pid);
+      // Accept shapes used across app
+      const data = raw?.data?.board || raw?.data || raw?.board || raw || {};
+      let cols = data.columns || raw?.columns || {};
+      if (normalizeColumns) {
+        cols = normalizeColumns(cols);
+      } else {
+        // If array of columns
+        if (Array.isArray(cols)) {
+          const keyMap = {};
+          cols.forEach((c) => {
+            const key = (c.name || c.title || '').toLowerCase().replace(/\s+/g, '');
+            keyMap[key] = c.tickets || [];
+          });
+          cols = keyMap;
+        }
+      }
+      setBoard({ ...data, columns: cols });
+    } catch (e) {
+      setError(e.message || 'Failed to load board');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchBoard, normalizeColumns]);
+
+  useEffect(() => { doLoadProjects(); }, [doLoadProjects]);
+  useEffect(() => { doFetchBoard(projectId); }, [projectId, doFetchBoard]);
+  useEffect(() => { if (refreshKey !== undefined) doFetchBoard(projectId); }, [refreshKey, doFetchBoard, projectId]);
+
+  // notify parent of project change
+  useEffect(() => {
+    if (onProjectChange) onProjectChange(projectId);
+  }, [projectId, onProjectChange]);
+
+  // SSE
+  const sseKey = JSON.stringify(sseParams || {});
+  useEffect(() => {
+    if (!sseParams) return;
+    const unsub = subscribeToEvents(sseParams, (evt) => {
+      if (evt?.type && (evt.type.startsWith('ticket.') || evt.type.startsWith('kanban.') || evt.type.startsWith('bug.'))) {
+        doFetchBoard(projectId);
+      }
+    });
+    return () => unsub && unsub();
+  }, [sseKey, sseParams, projectId, doFetchBoard]);
+
+  const columns = useMemo(() => {
+    const cols = board?.columns || {};
+    return columnsOrder
+      .filter(Boolean)
+      .map((key) => ({
+        key,
+        title: key === 'todo' ? 'To Do'
+          : key === 'inProgress' ? 'In Progress'
+          : key === 'review' ? 'Review'
+          : key === 'testing' ? 'Testing'
+          : key === 'done' ? 'Done' : key,
+        tickets: cols[key] || [],
+      }));
+  }, [board, columnsOrder]);
+
+  const onDragStart = (e, ctx) => setDragCtx(ctx);
+  const onDrop = async (e, to) => {
+    e.preventDefault();
+    if (!dragCtx) return;
+    const toKey = to.key || to;
+    if (toKey === dragCtx.from) return;
+    try {
+      await moveTicket?.({
+        ticket: dragCtx.ticket,
+        fromKey: dragCtx.from,
+        toKey,
+        projectId,
+        context: { fromId: dragCtx.fromId, toId: to.id },
+        statusMap: defaultStatusMap,
+      });
+      setDragCtx(null);
+      doFetchBoard(projectId);
+    } catch (err) {
+      setError(err.message || 'Failed to move ticket');
+    }
+  };
+
+  return (
+    <Box>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 2,
+          borderRadius: 3,
+          background: 'linear-gradient(90deg, rgba(239,246,255,1) 0%, rgba(236,253,245,1) 100%)',
+          border: '1px solid rgba(148,163,184,0.3)'
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <div>
+            <Typography variant="h4" fontWeight={800}>{title}</Typography>
+            {description && (
+              <Typography variant="body2" color="text.secondary">{description}</Typography>
+            )}
+          </div>
+          <Stack direction="row" spacing={1}>
+            {showProjectSelector && (
+              <Select size="small" value={projectId} onChange={(e) => setProjectId(e.target.value)} displayEmpty>
+                <MenuItem value="" disabled>Select Project</MenuItem>
+                {projects.map((p) => (
+                  <MenuItem key={p._id || p.id} value={p._id || p.id}>{p.name}</MenuItem>
+                ))}
+              </Select>
+            )}
+            {onCreateBoard && (
+              <Button color="primary" variant="contained" onClick={() => onCreateBoard(projectId)} disabled={loading}>Create Board</Button>
+            )}
+            {onAddTicket && (
+              <Button color="secondary" variant="contained" onClick={() => onAddTicket(projectId)} disabled={loading}>Add Ticket</Button>
+            )}
+            {onColumnSettings && (
+              <Button variant="outlined" onClick={() => onColumnSettings(projectId)} disabled={loading}>Column Settings</Button>
+            )}
+            <Button variant="text" onClick={() => doFetchBoard(projectId)} disabled={loading}>Refresh</Button>
+          </Stack>
+        </Stack>
+        {loading && <LinearProgress sx={{ mt: 2 }} />}
+      </Paper>
+
+      {error && (
+        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light', borderRadius: 2 }}>
+          <Typography color="error">{error}</Typography>
+        </Paper>
+      )}
+
+      <Stack
+        direction="row"
+        spacing={2.5}
+        sx={{
+          overflowX: 'auto',
+          pb: 1,
+        }}
+      >
+        {columns.map((c) => (
+          <Column
+            key={c.key}
+            title={c.title}
+            columnKey={c.key}
+            tickets={c.tickets}
+            onDragStart={onDragStart}
+            onDrop={onDrop}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+};
+
+export default KanbanBoard;

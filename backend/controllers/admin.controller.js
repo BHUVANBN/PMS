@@ -344,6 +344,24 @@ export const getSystemStats = async (req, res) => {
 };
 
 /**
+ * Get organization analytics
+ */
+export const getOrganizationAnalytics = async (req, res) => {
+	try {
+		// Stub implementation; replace with real analytics aggregation as needed
+		return res.status(200).json({
+			message: 'Organization analytics endpoint working'
+		});
+	} catch (error) {
+		console.error('Error getting organization analytics:', error);
+		return res.status(500).json({
+			message: 'Server error while getting organization analytics',
+			error: error.message
+		});
+	}
+};
+
+/**
  * Reset user password
  */
 export const resetUserPassword = async (req, res) => {

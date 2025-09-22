@@ -21,7 +21,14 @@ export const getDeveloperKanbanBoard = async (req, res) => {
     const userRole = req.effectiveRole || req.userRole;
 
     // Check if user is a developer or has development permissions
-    if (!['developer', 'admin', 'manager'].includes(userRole)) {
+    // Admin must not access Kanban personal boards per requirement
+    if (userRole === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin cannot access Kanban boards'
+      });
+    }
+    if (!['developer', 'manager'].includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Only developers can access personal kanban board'
@@ -93,6 +100,82 @@ export const getDeveloperKanbanBoard = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching developer kanban board',
+      error: error.message
+    });
+  }
+};
+
+// Tester personal Kanban board: shows tickets ready for testing or under testing
+export const getTesterKanbanBoard = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.effectiveRole || req.userRole;
+
+    // Admin excluded from Kanban endpoints
+    if (userRole === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin cannot access Kanban boards'
+      });
+    }
+    if (!['tester', 'manager'].includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only testers can access tester kanban board'
+      });
+    }
+
+    // Find projects where tester is a team member
+    const projects = await Project.find({
+      teamMembers: userId,
+      status: { $in: ['active', 'planning'] }
+    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+
+    // Extract tickets assigned to this tester
+    const testerTickets = [];
+    projects.forEach(project => {
+      project.modules.forEach(module => {
+        module.tickets.forEach(ticket => {
+          if (ticket.tester && ticket.tester.toString() === userId.toString()) {
+            testerTickets.push({
+              ...ticket.toObject(),
+              projectId: project._id,
+              projectName: project.name,
+              moduleId: module._id,
+              moduleName: module.name
+            });
+          }
+        });
+      });
+    });
+
+    const kanbanData = {
+      columns: {
+        review: {
+          id: 'review',
+          title: 'Ready for Test',
+          tickets: testerTickets.filter(t => t.status === 'code_review')
+        },
+        testing: {
+          id: 'testing',
+          title: 'Testing',
+          tickets: testerTickets.filter(t => t.status === 'testing')
+        },
+        done: {
+          id: 'done',
+          title: 'Done',
+          tickets: testerTickets.filter(t => t.status === 'done')
+        }
+      },
+      totalTickets: testerTickets.length,
+      activeTickets: testerTickets.filter(t => ['code_review', 'testing'].includes(t.status)).length
+    };
+
+    res.json({ success: true, data: kanbanData });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching tester kanban board',
       error: error.message
     });
   }

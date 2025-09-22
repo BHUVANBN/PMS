@@ -481,8 +481,19 @@ export const reassignTicket = async (req, res) => {
       });
     }
 
-    // Update assignments
-    if (assignedDeveloper) ticket.assignedDeveloper = assignedDeveloper;
+    // Enforce permanent developer binding: once assigned, cannot be changed
+    if (assignedDeveloper) {
+      if (ticket.assignedDeveloper && ticket.assignedDeveloper.toString() !== assignedDeveloper.toString()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Assigned developer is permanent and cannot be changed once set'
+        });
+      }
+      // If not set before, set now
+      if (!ticket.assignedDeveloper) {
+        ticket.assignedDeveloper = assignedDeveloper;
+      }
+    }
     if (tester) ticket.tester = tester;
 
     await project.save();

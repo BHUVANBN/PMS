@@ -6,6 +6,7 @@ import {
   MODULE_STATUS,
   User, USER_ROLES
 } from '../models/index.js';
+import { emitTicketEvent } from '../utils/realtime.js';
 
 // Create a new ticket
 export const createTicket = async (req, res) => {
@@ -154,6 +155,14 @@ export const createTicket = async (req, res) => {
       const module = project.modules[project.modules.length - 1];
       createdTicket = module.tickets[module.tickets.length - 1];
     }
+
+    // Emit realtime event for ticket creation (notify project members and assignees)
+    emitTicketEvent({
+      projectId: project._id.toString(),
+      userIds: [assignedDeveloper, project.projectManager].filter(Boolean).map(id => id.toString()),
+      type: 'ticket.created',
+      data: { ticket: createdTicket, projectId: project._id, moduleId: createdTicket.moduleId }
+    });
 
     return res.status(201).json({
       success: true,
@@ -378,6 +387,14 @@ export const updateTicket = async (req, res) => {
 
     await project.save();
 
+    // Emit realtime event for ticket update
+    emitTicketEvent({
+      projectId: project._id.toString(),
+      userIds: [ticket.assignedDeveloper, project.projectManager, ticket.tester].filter(Boolean).map(id => id.toString()),
+      type: 'ticket.updated',
+      data: { ticketId: ticket._id, changes: updateData }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Ticket updated successfully',
@@ -443,6 +460,14 @@ export const deleteTicket = async (req, res) => {
     ticket.remove();
     await project.save();
 
+    // Emit realtime event for ticket deletion
+    emitTicketEvent({
+      projectId: project._id.toString(),
+      userIds: [project.projectManager].map(id => id.toString()),
+      type: 'ticket.deleted',
+      data: { ticketId }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Ticket deleted successfully'
@@ -501,6 +526,14 @@ export const addComment = async (req, res) => {
     });
 
     await project.save();
+
+    // Emit realtime event for comment addition
+    emitTicketEvent({
+      projectId: project._id.toString(),
+      userIds: [ticket.assignedDeveloper, ticket.tester, project.projectManager].filter(Boolean).map(id => id.toString()),
+      type: 'ticket.comment_added',
+      data: { ticketId: ticket._id, comment: ticket.comments[ticket.comments.length - 1] }
+    });
 
     return res.status(200).json({
       success: true,

@@ -254,7 +254,7 @@
     {
       "name": "Sprints",
       "item": [
-        {"name":"Create Sprint","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ }"},"url":{"raw":"{{base_url}}/api/sprints","host":["{{base_url}}"],"path":["api","sprints"]}}},
+        {"name":"Create Sprint","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"projectId\": \"<PROJECT_OBJECT_ID>\",\n  \"name\": \"Sprint 1\",\n  \"startDate\": \"2025-10-01\",\n  \"endDate\": \"2025-10-14\",\n  \"sprintMaster\": \"<MANAGER_USER_OBJECT_ID>\"\n}"},"url":{"raw":"{{base_url}}/api/sprints","host":["{{base_url}}"],"path":["api","sprints"]}}},
         {"name":"Project Sprints","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/project/:projectId","host":["{{base_url}}"],"path":["api","sprints","project",":projectId"]}}},
         {"name":"Get Sprint","request":{"method":"GET","url":{"raw":"{{base_url}}/api/sprints/:sprintId","host":["{{base_url}}"],"path":["api","sprints",":sprintId"]}}},
         {"name":"Assign Ticket To User","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{ \"userId\": \"...\", \"ticketId\": \"...\" }"},"url":{"raw":"{{base_url}}/api/sprints/:sprintId/assignments","host":["{{base_url}}"],"path":["api","sprints",":sprintId","assignments"]}}},

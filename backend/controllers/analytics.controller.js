@@ -632,5 +632,95 @@ function calculateAverageResolutionTime(bugs) {
 export default {
   getDashboardAnalytics,
   getProjectAnalytics,
-  getUserPerformanceAnalytics
+  getUserPerformanceAnalytics,
+  // keep default map updated if needed by consumers
+  getPerformanceMetricsSummary: undefined,
+  getTeamMetrics: undefined,
+  getBugMetrics: undefined
+};
+
+// New: Overall performance metrics
+export const getPerformanceMetricsSummary = async (req, res) => {
+  try {
+    const { timeframe = '3months' } = req.query;
+
+    // Permissions: admin, manager, hr
+    const userRole = req.effectiveRole || req.userRole;
+    if (!['admin', 'manager', 'hr'].includes(userRole)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Date filter
+    const now = new Date();
+    let createdAt = {};
+    if (timeframe === '1month') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 1)) };
+    else if (timeframe === '3months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 3)) };
+    else if (timeframe === '6months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 6)) };
+    else if (timeframe === '1year') createdAt = { $gte: new Date(now.setFullYear(now.getFullYear() - 1)) };
+
+    const [sprints, bugs, users] = await Promise.all([
+      Sprint.find(createdAt.$gte ? { createdAt } : {}),
+      BugTracker.find(createdAt.$gte ? { createdAt } : {}),
+      User.find({})
+    ]);
+
+    const metrics = calculatePerformanceMetrics(sprints, bugs, users);
+    return res.json({ success: true, data: metrics, timeframe });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error fetching performance metrics', error: error.message });
+  }
+};
+
+// New: Team metrics by teamId (interpreted as projectId)
+export const getTeamMetrics = async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const { timeframe = '3months' } = req.query;
+
+    const userRole = req.effectiveRole || req.userRole;
+    if (!['admin', 'manager', 'hr'].includes(userRole)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const project = await Project.findById(teamId).populate('teamMembers', 'firstName lastName role');
+    if (!project) return res.status(404).json({ success: false, message: 'Project (team) not found' });
+
+    // Date filter
+    const now = new Date();
+    let createdAt = {};
+    if (timeframe === '1month') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 1)) };
+    else if (timeframe === '3months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 3)) };
+    else if (timeframe === '6months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 6)) };
+
+    const sprints = await Sprint.find({ projectId: teamId, ...(createdAt.$gte ? { createdAt } : {}) });
+    const teamPerformance = calculateTeamPerformance(sprints, project.teamMembers);
+
+    return res.json({ success: true, data: { team: { id: project._id, name: project.name }, performance: teamPerformance, timeframe } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error fetching team metrics', error: error.message });
+  }
+};
+
+// New: Bug metrics overall
+export const getBugMetrics = async (req, res) => {
+  try {
+    const { projectId, timeframe = '3months' } = req.query;
+    const userRole = req.effectiveRole || req.userRole;
+    if (!['admin', 'manager', 'hr'].includes(userRole)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const now = new Date();
+    let createdAt = {};
+    if (timeframe === '1month') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 1)) };
+    else if (timeframe === '3months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 3)) };
+    else if (timeframe === '6months') createdAt = { $gte: new Date(now.setMonth(now.getMonth() - 6)) };
+
+    const filter = { ...(projectId ? { projectId } : {}), ...(createdAt.$gte ? { createdAt } : {}) };
+    const bugs = await BugTracker.find(filter);
+    const metrics = calculateBugMetrics(bugs);
+    return res.json({ success: true, data: metrics, timeframe });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error fetching bug metrics', error: error.message });
+  }
 };

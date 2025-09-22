@@ -78,7 +78,7 @@ const apiRequest = async (url, options = {}) => {
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (parseError) {
+      } catch {
         // If response is not JSON, use status text
         errorMessage = response.statusText || errorMessage;
       }
@@ -147,7 +147,7 @@ export const adminAPI = {
       body: JSON.stringify(hrData),
     }),
 
-  // Get organization analytics
+  // Get organization analytics (implemented on backend)
   getOrganizationAnalytics: () => 
     apiRequest('/admin/analytics'),
 
@@ -215,6 +215,7 @@ export const hrAPI = {
     }),
 
   // Leave management
+  // Implemented on backend
   getAllLeaveRequests: () => 
     apiRequest('/hr/leave-requests'),
 
@@ -296,6 +297,7 @@ export const managerAPI = {
       body: JSON.stringify(sprintData),
     }),
 
+  // Implemented on backend
   getSprintBoard: (teamId) => 
     apiRequest(`/manager/sprint-board/${teamId}`),
 
@@ -341,8 +343,9 @@ export const developerAPI = {
   getMyTickets: () => 
     apiRequest('/developer/tickets'),
 
-  updateTicketStatus: (ticketId, status) => 
-    apiRequest(`/developer/tickets/${ticketId}/status`, {
+  updateTicketStatus: (projectId, ticketId, status) => 
+    // Delegate to kanban controller's direct ticket status endpoint
+    apiRequest(`/kanbanboard/tickets/${projectId}/${ticketId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     }),
@@ -355,12 +358,12 @@ export const developerAPI = {
 
   // Kanban boards
   getKanbanBoard: () => 
-    apiRequest('/developer/kanban/boards'),
+    apiRequest('/kanbanboard/developer/personal'),
 
-  moveTicketOnBoard: (boardId, ticketId, newStatus) => 
-    apiRequest(`/developer/kanban/boards/${boardId}/move`, {
-      method: 'PATCH',
-      body: JSON.stringify({ ticketId, newStatus }),
+  moveTicketOnBoard: (boardId, payload) => 
+    apiRequest(`/kanbanboard/${boardId}/move`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     }),
 };
 
@@ -371,19 +374,14 @@ export const testerAPI = {
     apiRequest('/tester/dashboard'),
 
   // Test cases
-  getTestCases: () => 
-    apiRequest('/tester/test-cases'),
+  getTestCases: (projectId, moduleId) => 
+    apiRequest(`/tester/testcases/${projectId}/${moduleId}`),
 
-  createTestCase: (testCaseData) => 
-    apiRequest('/tester/test-cases', {
-      method: 'POST',
-      body: JSON.stringify(testCaseData),
-    }),
-
-  updateTestCase: (testCaseId, testCaseData) => 
-    apiRequest(`/tester/test-cases/${testCaseId}`, {
-      method: 'PUT',
-      body: JSON.stringify(testCaseData),
+  // Update test case execution results for a ticket
+  updateTestCase: (projectId, moduleId, ticketId, payload) => 
+    apiRequest(`/tester/testcases/${projectId}/${moduleId}/${ticketId}/result`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     }),
 
   // Bug tracking
@@ -393,166 +391,55 @@ export const testerAPI = {
       body: JSON.stringify(bugData),
     }),
 
+  // Update a bug report (details or status)
   updateBugStatus: (bugId, status) => 
-    apiRequest(`/tester/bugs/${bugId}/status`, {
+    apiRequest(`/tester/bugs/${bugId}`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     }),
-
-  // Kanban board
-  getKanbanBoard: () => 
-    apiRequest('/tester/kanban'),
-
-  validateTicket: (ticketId, validationData) => 
-    apiRequest(`/tester/tickets/${ticketId}/validate`, {
-      method: 'PUT',
-      body: JSON.stringify(validationData),
-    }),
 };
 
-// Employee API
+// Employee API (minimal, supported by backend)
 export const employeeAPI = {
-  // Profile
-  getProfile: () => 
-    apiRequest('/employee/profile'),
-
-  updateProfile: (profileData) => 
-    apiRequest('/employee/profile', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    }),
-
-  // Dashboard
   getDashboard: () => 
     apiRequest('/employee/dashboard'),
-
-  // Leave requests
-  submitLeaveRequest: (leaveData) => 
-    apiRequest('/employee/leave-request', {
-      method: 'POST',
-      body: JSON.stringify(leaveData),
-    }),
-
-  getMyLeaveRequests: () => 
-    apiRequest('/employee/leave-requests'),
-
-  // Standups
-  submitStandup: (standupData) => 
-    apiRequest('/employee/standup', {
-      method: 'POST',
-      body: JSON.stringify(standupData),
-    }),
-
-  getMyStandups: () => 
-    apiRequest('/employee/standups'),
 };
 
 // Sales API
 export const salesAPI = {
-  // Dashboard
+  // Dashboard (supported by backend)
   getDashboard: () => 
     apiRequest('/sales/dashboard'),
-
-  // Tickets
-  getMyTickets: () => 
-    apiRequest('/sales/tickets'),
-
-  updateTicketStatus: (ticketId, status) => 
-    apiRequest(`/sales/tickets/${ticketId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    }),
-
-  // Reports
-  getSalesReports: () => 
-    apiRequest('/sales/reports'),
-
-  createSalesReport: (reportData) => 
-    apiRequest('/sales/reports', {
-      method: 'POST',
-      body: JSON.stringify(reportData),
-    }),
-
-  // Kanban board
-  getKanbanBoard: () => 
-    apiRequest('/sales/kanban'),
 };
 
 // Marketing API
 export const marketingAPI = {
-  // Dashboard
+  // Dashboard (supported by backend)
   getDashboard: () => 
     apiRequest('/marketing/dashboard'),
-
-  // Tickets
-  getMyTickets: () => 
-    apiRequest('/marketing/tickets'),
-
-  updateTicketStatus: (ticketId, status) => 
-    apiRequest(`/marketing/tickets/${ticketId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    }),
-
-  // Campaigns
-  getCampaigns: () => 
-    apiRequest('/marketing/campaigns'),
-
-  createCampaign: (campaignData) => 
-    apiRequest('/marketing/campaigns', {
-      method: 'POST',
-      body: JSON.stringify(campaignData),
-    }),
-
-  updateCampaign: (campaignId, campaignData) => 
-    apiRequest(`/marketing/campaigns/${campaignId}`, {
-      method: 'PUT',
-      body: JSON.stringify(campaignData),
-    }),
-
-  // Kanban board
-  getKanbanBoard: () => 
-    apiRequest('/marketing/kanban'),
 };
 
 // Intern API
 export const internAPI = {
-  // Dashboard
+  // Dashboard (supported by backend)
   getDashboard: () => 
     apiRequest('/intern/dashboard'),
-
-  // Tickets (same as assigned role)
-  getMyTickets: () => 
-    apiRequest('/intern/tickets'),
-
-  updateTicketStatus: (ticketId, status) => 
-    apiRequest(`/intern/tickets/${ticketId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    }),
-
-  // Kanban board
-  getKanbanBoard: () => 
-    apiRequest('/intern/kanban'),
-
-  // Learning resources
-  getLearningResources: () => 
-    apiRequest('/intern/learning-resources'),
 };
 
 // Generic APIs
 export const ticketsAPI = {
-  getTicket: (ticketId) => 
-    apiRequest(`/tickets/${ticketId}`),
+  // Ticket endpoints require projectId path parameter on backend
+  getTicket: (projectId, ticketId) => 
+    apiRequest(`/tickets/${projectId}/${ticketId}`),
 
-  updateTicket: (ticketId, ticketData) => 
-    apiRequest(`/tickets/${ticketId}`, {
+  updateTicket: (projectId, ticketId, ticketData) => 
+    apiRequest(`/tickets/${projectId}/${ticketId}`, {
       method: 'PUT',
       body: JSON.stringify(ticketData),
     }),
 
-  addComment: (ticketId, comment) => 
-    apiRequest(`/tickets/${ticketId}/comments`, {
+  addComment: (projectId, ticketId, comment) => 
+    apiRequest(`/tickets/${projectId}/${ticketId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ comment }),
     }),
@@ -740,15 +627,18 @@ export const analyticsAPI = {
   getDashboardData: () => 
     apiRequest('/analytics/dashboard'),
 
+  // New endpoint implemented on backend
   getPerformanceMetrics: () => 
     apiRequest('/analytics/performance'),
 
   getProjectMetrics: (projectId) => 
     apiRequest(`/analytics/project/${projectId}`),
 
+  // New endpoint implemented on backend
   getTeamMetrics: (teamId) => 
     apiRequest(`/analytics/team/${teamId}`),
 
+  // New endpoint implemented on backend
   getBugMetrics: () => 
     apiRequest('/analytics/bugs'),
 };
@@ -814,6 +704,30 @@ export const apiUtils = {
   },
 };
 
+// Realtime: Server-Sent Events subscription helper
+export const subscribeToEvents = ({ userId, projectId, role } = {}, onMessage, onError) => {
+  const params = new URLSearchParams();
+  if (userId) params.append('userId', userId);
+  else if (projectId) params.append('projectId', projectId);
+  else if (role) params.append('role', role);
+  const url = `${API_BASE_URL.replace(/\/$/, '')}/events${params.toString() ? `?${params.toString()}` : ''}`;
+  const es = new EventSource(url, { withCredentials: true });
+  es.onmessage = (evt) => {
+    try {
+      const payload = JSON.parse(evt.data);
+      onMessage && onMessage(payload);
+    } catch {
+      // ignore non-JSON (e.g., heartbeat)
+    }
+  };
+  es.onerror = (err) => {
+    onError && onError(err);
+  };
+  return () => {
+    es.close();
+  };
+};
+
 // Default export with all APIs
 export default {
   auth: authAPI,
@@ -834,4 +748,5 @@ export default {
   analytics: analyticsAPI,
   users: usersAPI,
   utils: apiUtils,
+  subscribeToEvents,
 };

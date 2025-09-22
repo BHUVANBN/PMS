@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Box, Paper, Stack, Typography, Select, MenuItem, Button, Chip } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { managerAPI } from '../../services/api';
@@ -30,14 +30,14 @@ const Kanban = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     const res = await managerAPI.getAllProjects();
     const list = res?.projects || res?.data?.projects || res?.data || [];
     setProjects(list);
     if (!projectId && list[0]) setProjectId(list[0]._id || list[0].id);
-  };
+  }, [projectId]);
 
-  const normalizeColumns = (columns = {}) => {
+  const normalizeColumns = useCallback((columns = {}) => {
     // Backend may send columns with names like 'To Do', 'In Progress', 'Testing', 'Code Review', 'Done'
     // Normalize to keys: todo, inProgress, review, done
     const get = (keys) => {
@@ -53,9 +53,9 @@ const Kanban = () => {
       review: get(['review', 'Code Review', 'Testing', 'testing', 'code_review']),
       done: get(['done', 'Done', 'closed'])
     };
-  };
+  }, []);
 
-  const fetchBoard = async (pid) => {
+  const fetchBoard = useCallback(async (pid) => {
     if (!pid) return;
     try {
       setLoading(true);
@@ -69,10 +69,10 @@ const Kanban = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [normalizeColumns]);
 
-  useEffect(() => { fetchProjects(); }, []);
-  useEffect(() => { if (projectId) fetchBoard(projectId); }, [projectId]);
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => { if (projectId) fetchBoard(projectId); }, [projectId, fetchBoard]);
 
   const columns = useMemo(() => {
     const cols = board?.columns || {};

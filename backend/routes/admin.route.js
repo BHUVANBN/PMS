@@ -2,16 +2,17 @@ import express from 'express';
 import { verifyToken, allowAdminOnly } from '../middleware/verifyToken.js';
 import { USER_ROLES } from '../models/userschema.models.js';
 import {
-	createUser,
-	createHR,
-	getAllUsers,
-	getUsersByRole,
-	updateUser,
-	deleteUser,
-	getSystemStats,
-	resetUserPassword,
-	getActivityLogs,
-	getSystemHealth
+    createUser,
+    createHR,
+    getAllUsers,
+    getUsersByRole,
+    updateUser,
+    deleteUser,
+    getSystemStats,
+    resetUserPassword,
+    getActivityLogs,
+    getSystemHealth,
+    getOrganizationAnalytics
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -48,6 +49,9 @@ router.patch('/users/:id/reset-password', resetUserPassword);
 
 // Get system statistics
 router.get('/stats', getSystemStats);
+
+// Get organization analytics
+router.get('/analytics', getOrganizationAnalytics);
 
 // Get activity logs
 router.get('/activity', getActivityLogs);

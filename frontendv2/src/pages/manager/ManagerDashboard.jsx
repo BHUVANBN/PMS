@@ -41,12 +41,13 @@ const ManagerDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     activeProjects: 0,
-    teamMembers: 0,
-    completedTasks: 0,
-    pendingTasks: 0
+    pendingTasks: 0,
+    inProgressTasks: 0,
+    completedTasks: 0
   });
   const [projects, setProjects] = useState([]);
   const [teamPerformance, setTeamPerformance] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -58,21 +59,21 @@ const ManagerDashboard = () => {
       subtitle: 'Start new project',
       icon: <Add />,
       color: 'primary',
-      path: '/projects/new'
+      path: '/manager/projects/new'
     },
     {
       title: 'Assign Tasks',
       subtitle: 'Delegate work',
       icon: <Assignment />,
       color: 'success',
-      path: '/tickets/assign'
+      path: '/manager/kanban'
     },
     {
-      title: 'Team Meeting',
-      subtitle: 'Schedule meeting',
+      title: 'Team Management',
+      subtitle: 'Manage team & roles',
       icon: <Group />,
       color: 'info',
-      path: '/calendar/new'
+      path: '/manager/team'
     },
     {
       title: 'View Reports',
@@ -92,9 +93,10 @@ const ManagerDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const [projectsResponse, statsResponse] = await Promise.all([
+      const [projectsResponse, statsResponse, ticketsResponse] = await Promise.all([
         managerAPI.getAllProjects(),
         managerAPI.getManagerStats(),
+        managerAPI.getAllTickets?.() || Promise.resolve({ data: [] })
       ]);
 
       const projList = projectsResponse?.projects || projectsResponse?.data?.projects || projectsResponse?.data || [];
@@ -102,10 +104,10 @@ const ManagerDashboard = () => {
 
       const s = statsResponse?.stats || statsResponse?.data?.stats || statsResponse;
       const normalizedStats = {
-        activeProjects: s?.projectStats?.active ?? s?.projects?.active ?? s?.projectsActive ?? 0,
-        teamMembers: s?.team?.totalMembers ?? s?.teamStats?.totalMembers ?? 0,
-        completedTasks: s?.tickets?.completed ?? s?.ticketStats?.completed ?? 0,
+        activeProjects: s?.projects?.active ?? s?.projectStats?.active ?? s?.projectsActive ?? 0,
         pendingTasks: s?.tickets?.open ?? s?.ticketStats?.open ?? 0,
+        inProgressTasks: s?.tickets?.inProgress ?? s?.ticketStats?.inProgress ?? 0,
+        completedTasks: s?.tickets?.completed ?? s?.ticketStats?.completed ?? 0,
       };
       setStats(normalizedStats);
 
@@ -121,6 +123,28 @@ const ManagerDashboard = () => {
         avatar: m.avatar || undefined,
       })) : [];
       setTeamPerformance(mappedPerf);
+
+      // Build real tasks list from tickets endpoint
+      const tickets = ticketsResponse?.data || ticketsResponse || [];
+      const progressMap = {
+        open: 0,
+        'in_progress': 50,
+        testing: 75,
+        'code_review': 85,
+        done: 100,
+        completed: 100,
+        blocked: 10,
+      };
+      const mappedTasks = (Array.isArray(tickets) ? tickets : []).slice(0, 10).map((t, idx) => ({
+        id: t._id || t.id || idx,
+        title: t.title || t.ticketNumber || 'Ticket',
+        status: t.status || 'open',
+        priority: t.priority || 'medium',
+        dueDate: t.dueDate || null,
+        assignee: t.assignedDeveloper?.username || t.assignedDeveloper?.name || t.assignedDeveloper ? 'Assigned' : 'Unassigned',
+        progress: progressMap[t.status] ?? 0,
+      }));
+      setTasks(mappedTasks);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError(error.message || 'Failed to load manager dashboard');
@@ -163,52 +187,44 @@ const ManagerDashboard = () => {
           <StatsCard
             title="Active Projects"
             value={stats.activeProjects}
-            change="+2 this month"
-            changeType="positive"
             icon={Assignment}
             color="primary"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
-            title="Team Members"
-            value={stats.teamMembers}
-            change="All active"
-            changeType="neutral"
-            icon={Group}
-            color="success"
+            title="Pending Tasks"
+            value={stats.pendingTasks}
+            icon={Schedule}
+            color="warning"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatsCard
+            title="In Progress Tasks"
+            value={stats.inProgressTasks}
+            icon={Assignment}
+            color="info"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="Completed Tasks"
             value={stats.completedTasks}
-            change="+15 this week"
-            changeType="positive"
             icon={CheckCircle}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Pending Tasks"
-            value={stats.pendingTasks}
-            change="-5 from last week"
-            changeType="positive"
-            icon={Schedule}
-            color="warning"
+            color="success"
           />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
-        {/* Project Overview */}
-        <Grid item xs={12} lg={8}>
-          <ProjectOverview projects={projects} />
+        {/* Project Overview - full width for better grid layout */}
+        <Grid item xs={12}>
+          <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
         </Grid>
 
-        {/* Quick Actions */}
-        <Grid item xs={12} lg={4}>
+        {/* Quick Actions - placed below project grid */}
+        <Grid item xs={12} md={6} lg={4}>
           <QuickActions actions={quickActions} />
         </Grid>
 
@@ -278,7 +294,7 @@ const ManagerDashboard = () => {
 
         {/* Task Progress */}
         <Grid item xs={12} lg={6}>
-          <TaskProgress />
+          <TaskProgress tasks={tasks} />
         </Grid>
       </Grid>
     </Box>

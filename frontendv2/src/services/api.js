@@ -284,6 +284,10 @@ export const managerAPI = {
       body: JSON.stringify(ticketData),
     }),
 
+  // View all tickets across modules for manager
+  getAllTickets: () =>
+    apiRequest('/manager/tickets'),
+
   assignTicket: (projectId, moduleId, ticketId, assignmentData) => 
     apiRequest(`/manager/ticket/${projectId}/${moduleId}/${ticketId}/assign`, {
       method: 'PATCH',
@@ -311,6 +315,10 @@ export const managerAPI = {
   // Manager stats
   getManagerStats: () =>
     apiRequest('/manager/stats'),
+
+  // Permanently delete a project owned by current manager
+  deleteProjectHard: (projectId) =>
+    apiRequest(`/manager/project/${projectId}/hard`, { method: 'DELETE' }),
 
   // Team management
   getTeamManagement: () =>

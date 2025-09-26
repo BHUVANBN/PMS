@@ -3,7 +3,7 @@ import { Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typog
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
-import { managerAPI } from '../../services/api';
+import { managerAPI, projectsAPI } from '../../services/api';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -50,10 +50,14 @@ const Projects = () => {
 
   const handleDelete = async (id) => {
     if (!id) return;
-    const ok = window.confirm('Are you sure you want to archive/delete this project?');
+    const ok = window.confirm('Are you sure you want to permanently delete this project? This cannot be undone.');
     if (!ok) return;
     try {
-      await managerAPI.deleteProject(id);
+      if (managerAPI.deleteProjectHard) {
+        await managerAPI.deleteProjectHard(id);
+      } else {
+        await projectsAPI.deleteProject(id);
+      }
       setRows((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       alert(e.message || 'Failed to delete project');

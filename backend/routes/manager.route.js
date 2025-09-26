@@ -8,6 +8,7 @@ import {
   createProject,
   updateProject,
   archiveProject,
+  deleteManagedProject,
   
   // Module & Sprint Control
   addModule,
@@ -56,6 +57,9 @@ router.patch('/project/:id', updateProject);
 
 // Archive/close project
 router.delete('/project/:id', archiveProject);
+
+// Permanently delete project (owned by current manager)
+router.delete('/project/:id/hard', deleteManagedProject);
 
 // ========================================
 // 2. MODULE & SPRINT CONTROL

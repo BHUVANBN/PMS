@@ -85,13 +85,13 @@ function App() {
               <Route path="hr/employees/new" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeCreate /></ProtectedRoute>} />
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
 
-              <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager"]}><ManagerDashboard /></ProtectedRoute>} />
-              <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager"]}><Projects /></ProtectedRoute>} />
-              <Route path="manager/projects/new" element={<ProtectedRoute requiredRoles={["manager"]}><ProjectCreate /></ProtectedRoute>} />
-              <Route path="manager/projects/:id/edit" element={<ProtectedRoute requiredRoles={["manager"]}><ProjectEdit /></ProtectedRoute>} />
-              <Route path="manager/team" element={<ProtectedRoute requiredRoles={["manager"]}><TeamManagement /></ProtectedRoute>} />
-              <Route path="manager/kanban" element={<ProtectedRoute requiredRoles={["manager"]}><Kanban /></ProtectedRoute>} />
-              <Route path="manager/sprint/:id/summary" element={<ProtectedRoute requiredRoles={["manager"]}><SprintSummary /></ProtectedRoute>} />
+              <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
+              <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Projects /></ProtectedRoute>} />
+              <Route path="manager/projects/new" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ProjectCreate /></ProtectedRoute>} />
+              <Route path="manager/projects/:id/edit" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ProjectEdit /></ProtectedRoute>} />
+              <Route path="manager/team" element={<ProtectedRoute requiredRoles={["manager","admin"]}><TeamManagement /></ProtectedRoute>} />
+              <Route path="manager/kanban" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Kanban /></ProtectedRoute>} />
+              <Route path="manager/sprint/:id/summary" element={<ProtectedRoute requiredRoles={["manager","admin"]}><SprintSummary /></ProtectedRoute>} />
 
               <Route path="developer/dashboard" element={<ProtectedRoute requiredRoles={["developer"]}><DeveloperDashboard /></ProtectedRoute>} />
               <Route path="developer/tasks" element={<ProtectedRoute requiredRoles={["developer"]}><Tasks /></ProtectedRoute>} />

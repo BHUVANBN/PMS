@@ -6,6 +6,7 @@ import {
   getProjects,
   getProject,
   updateProject,
+  getProjectModules,
   addModule,
   updateModule,
   addTicket,
@@ -28,6 +29,7 @@ router.put('/:projectId', updateProject);
 router.delete('/:projectId', deleteProject);
 
 // Modules
+router.get('/:projectId/modules', getProjectModules);
 router.post('/:projectId/modules', addModule);
 router.put('/:projectId/modules/:moduleId', updateModule);
 

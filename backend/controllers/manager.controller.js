@@ -38,6 +38,38 @@ export const getMyProjects = async (req, res) => {
 };
 
 /**
+ * Permanently delete a project owned by the current manager
+ */
+export const deleteManagedProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const managerId = req.user._id;
+
+    // Verify project ownership
+    const project = await Project.findOne({ _id: id, projectManager: managerId });
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    await Project.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Project deleted permanently'
+    });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete project'
+    });
+  }
+};
+
+/**
  * Get detailed project information
  */
 export const getProjectDetails = async (req, res) => {

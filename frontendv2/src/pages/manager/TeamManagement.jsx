@@ -4,7 +4,8 @@ import { Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
 import { managerAPI } from '../../services/api';
 
-const ROLE_OPTIONS = ['developer', 'tester'];
+// Note: Team role assignment on backend is project/module-scoped (teamMember/moduleLead),
+// not changing the user's global role (developer/tester). Actions are adjusted accordingly.
 
 const TeamManagement = () => {
   const [overview, setOverview] = useState(null);
@@ -18,7 +19,8 @@ const TeamManagement = () => {
       setLoading(true);
       setError(null);
       const res = await managerAPI.getTeamManagement();
-      const data = res?.overview || res?.data?.overview || res?.data || res || {};
+      // Backend returns: { success, message, team: { projects, members, statistics } }
+      const data = res?.team || res?.data?.team || {};
       setOverview(data);
       // Default select first project if not chosen
       if (!selectedProjectId) {
@@ -58,14 +60,8 @@ const TeamManagement = () => {
   useEffect(() => { fetchOverview(); }, []);
   useEffect(() => { if (selectedProjectId) fetchProjectTeam(selectedProjectId); }, [selectedProjectId]);
 
-  const handleAssignRole = async (row, newRole) => {
-    try {
-      await managerAPI.assignTeamRole(selectedProjectId, row.id, { role: newRole });
-      setMembers((prev) => prev.map((m) => (m.id === row.id ? { ...m, role: newRole } : m)));
-    } catch (e) {
-      alert(e.message || 'Failed to assign role');
-    }
-  };
+  // Assignment actions are project/module-scoped in backend and require module context.
+  // This page currently focuses on viewing team per project; actions are deferred to a dedicated UI.
 
   const columns = useMemo(() => [
     { key: 'name', label: 'Name', sortable: true },
@@ -73,19 +69,6 @@ const TeamManagement = () => {
     { key: 'role', label: 'Role', type: 'chip' },
     { key: 'modules', label: 'Modules' },
     { key: 'isActive', label: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row) => (
-        <Stack direction="row" spacing={1}>
-          {ROLE_OPTIONS.filter((r) => r !== row.role).map((r) => (
-            <Button key={r} size="small" variant="outlined" onClick={() => handleAssignRole(row, r)}>
-              {`Make ${r}`}
-            </Button>
-          ))}
-        </Stack>
-      ),
-    },
   ], [selectedProjectId]);
 
   const projectOptions = (overview?.projects || []).map((p) => ({

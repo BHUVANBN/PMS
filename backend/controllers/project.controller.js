@@ -93,6 +93,51 @@ export const createProject = async (req, res) => {
   }
 };
 
+// Get modules for a specific project
+export const getProjectModules = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId)
+      .select('name projectManager teamMembers modules')
+      .populate('projectManager', 'firstName lastName email role');
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check access permissions
+    const userRole = req.effectiveRole || req.userRole;
+    const hasAccess = ['admin', 'hr'].includes(userRole) ||
+                     project.projectManager._id.toString() === req.user._id.toString() ||
+                     (project.teamMembers || []).some(member => member.toString() === req.user._id.toString());
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied to this project'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        projectId: project._id,
+        modules: project.modules || []
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching project modules',
+      error: error.message
+    });
+  }
+};
+
 // Get all projects with filtering and pagination
 export const getProjects = async (req, res) => {
   try {

@@ -15,56 +15,7 @@ import {
 import { Circle } from '@mui/icons-material';
 
 const TaskProgress = ({ tasks = [] }) => {
-  // Mock data if no tasks provided
-  const mockTasks = [
-    {
-      id: 1,
-      title: 'User Authentication Module',
-      progress: 85,
-      status: 'in_progress',
-      dueDate: '2024-01-25',
-      assignee: 'John Doe',
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'Dashboard UI Components',
-      progress: 100,
-      status: 'completed',
-      dueDate: '2024-01-20',
-      assignee: 'Jane Smith',
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      title: 'API Integration',
-      progress: 60,
-      status: 'in_progress',
-      dueDate: '2024-01-30',
-      assignee: 'Mike Johnson',
-      priority: 'high'
-    },
-    {
-      id: 4,
-      title: 'Testing & Bug Fixes',
-      progress: 30,
-      status: 'in_progress',
-      dueDate: '2024-02-05',
-      assignee: 'Sarah Wilson',
-      priority: 'medium'
-    },
-    {
-      id: 5,
-      title: 'Documentation',
-      progress: 15,
-      status: 'todo',
-      dueDate: '2024-02-10',
-      assignee: 'Alex Brown',
-      priority: 'low'
-    }
-  ];
-
-  const displayTasks = tasks.length > 0 ? tasks : mockTasks;
+  const displayTasks = tasks;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -127,70 +78,76 @@ const TaskProgress = ({ tasks = [] }) => {
         }
       />
       <CardContent sx={{ pt: 0 }}>
-        <List sx={{ p: 0 }}>
-          {displayTasks.map((task, index) => (
-            <ListItem key={task.id} sx={{ px: 0, py: 2 }}>
-              <ListItemText
-                primary={
-                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                    <Typography variant="body1" fontWeight="medium">
-                      {task.title}
-                    </Typography>
-                    <Box display="flex" gap={0.5}>
-                      <Chip
-                        label={task.priority}
-                        size="small"
-                        color={getPriorityColor(task.priority)}
-                        variant="outlined"
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                      />
-                      <Chip
-                        label={task.status.replace('_', ' ')}
-                        size="small"
-                        color={getStatusColor(task.status)}
-                        variant="filled"
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                      />
-                    </Box>
-                  </Box>
-                }
-                secondary={
-                  <Box>
+        {displayTasks.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">No tasks to display.</Typography>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {displayTasks.map((task) => (
+              <ListItem key={task.id} sx={{ px: 0, py: 2 }}>
+                <ListItemText
+                  primary={
                     <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-                      <Typography variant="body2" color="text.secondary">
-                        {task.assignee}
+                      <Typography variant="body1" fontWeight="medium">
+                        {task.title}
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        color={isOverdue(task.dueDate) ? 'error.main' : 'text.secondary'}
-                        fontWeight={isOverdue(task.dueDate) ? 'bold' : 'normal'}
-                      >
-                        Due: {formatDate(task.dueDate)}
-                        {isOverdue(task.dueDate) && ' (Overdue)'}
-                      </Typography>
+                      <Box display="flex" gap={0.5}>
+                        <Chip
+                          label={task.priority}
+                          size="small"
+                          color={getPriorityColor(task.priority)}
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem', height: 20 }}
+                        />
+                        <Chip
+                          label={(task.status || '').replace('_', ' ')}
+                          size="small"
+                          color={getStatusColor(task.status)}
+                          variant="filled"
+                          sx={{ fontSize: '0.7rem', height: 20 }}
+                        />
+                      </Box>
                     </Box>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={task.progress}
-                        color={getProgressColor(task.progress)}
-                        sx={{ 
-                          flexGrow: 1, 
-                          height: 8, 
-                          borderRadius: 4,
-                          backgroundColor: 'grey.200'
-                        }}
-                      />
-                      <Typography variant="body2" color="text.secondary" minWidth={40}>
-                        {task.progress}%
-                      </Typography>
+                  }
+                  secondary={
+                    <Box>
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          {task.assignee || 'Unassigned'}
+                        </Typography>
+                        {task.dueDate && (
+                          <Typography 
+                            variant="body2" 
+                            color={isOverdue(task.dueDate) ? 'error.main' : 'text.secondary'}
+                            fontWeight={isOverdue(task.dueDate) ? 'bold' : 'normal'}
+                          >
+                            Due: {formatDate(task.dueDate)}
+                            {isOverdue(task.dueDate) && ' (Overdue)'}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={task.progress || 0}
+                          color={getProgressColor(task.progress || 0)}
+                          sx={{ 
+                            flexGrow: 1, 
+                            height: 8, 
+                            borderRadius: 4,
+                            backgroundColor: 'grey.200'
+                          }}
+                        />
+                        <Typography variant="body2" color="text.secondary" minWidth={40}>
+                          {task.progress || 0}%
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                }
-              />
-            </ListItem>
-          ))}
-        </List>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
       </CardContent>
     </Card>
   );

@@ -32,7 +32,7 @@ import {
 } from '@heroicons/react/24/outline';
 import DashboardCard from '../components/dashboard/DashboardCard';
 import Badge from '../components/ui/Badge';
-import { projectsAPI, adminAPI } from '../services/api';
+import { projectsAPI, adminAPI, managerAPI } from '../services/api';
 
 const ProjectsPage = () => {
   const [projects, setProjects] = useState([]);
@@ -103,14 +103,27 @@ const ProjectsPage = () => {
       if (projectManager) params.projectManager = projectManager;
       if (searchTerm) params.search = searchTerm;
 
-      const res = await projectsAPI.getAllProjects(params);
+      let res;
+      try {
+        // Try projectsAPI first (should work for admin to see all projects)
+        res = await projectsAPI.getAllProjects(params);
+      } catch (projectsError) {
+        console.warn('projectsAPI failed, trying managerAPI fallback:', projectsError);
+        // Fallback to managerAPI to ensure admin can see manager-created projects
+        res = await managerAPI.getAllProjects();
+        // Transform managerAPI response to match expected format
+        if (res && !res.data) {
+          res = { data: { projects: res.projects || res.data?.projects || res || [] } };
+        }
+      }
+
       const { data } = res || {};
-      const proj = data?.projects || [];
-      setProjects(proj);
+      const proj = data?.projects || res?.projects || res?.data || [];
+      setProjects(Array.isArray(proj) ? proj : []);
       if (data?.pagination) setPagination(data.pagination);
     } catch (err) {
       console.error('Error fetching projects:', err);
-      setError(err?.message || 'Failed to load projects');
+      setError(err?.message || 'Failed to load projects. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -123,6 +136,15 @@ const ProjectsPage = () => {
       case 'completed': return 'primary';
       case 'on_hold': return 'error';
       default: return 'secondary';
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'error';
+      case 'medium': return 'warning';
+      case 'low': return 'success';
+      default: return 'info';
     }
   };
 
@@ -374,7 +396,7 @@ const ProjectsPage = () => {
                       {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'No end date'}
                     </Typography>
                   </Box>
-                  <Badge variant={getPriorityColor()}>
+                  <Badge variant={getPriorityColor(project.priority)}>
                     {project.modules?.length || 0} modules
                   </Badge>
                 </Box>

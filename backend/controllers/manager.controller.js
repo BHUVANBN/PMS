@@ -988,36 +988,38 @@ export const getProjectKanban = async (req, res) => {
 
     // Organize tickets by status for Kanban view
     const kanbanColumns = {
-      'To Do': [],
-      'In Progress': [],
-      'Testing': [],
-      'Code Review': [],
-      'Done': []
+      todo: [],
+      inProgress: [],
+      review: [],
+      testing: [],
+      done: []
     };
 
     project.modules.forEach(module => {
       module.tickets.forEach(ticket => {
         const ticketWithContext = {
           ...ticket.toObject(),
+          moduleId: module._id,
           moduleName: module.name,
+          projectId: project._id,
           projectName: project.name
         };
 
         switch (ticket.status) {
           case 'open':
-            kanbanColumns['To Do'].push(ticketWithContext);
+            kanbanColumns.todo.push(ticketWithContext);
             break;
           case 'in_progress':
-            kanbanColumns['In Progress'].push(ticketWithContext);
-            break;
-          case 'testing':
-            kanbanColumns['Testing'].push(ticketWithContext);
+            kanbanColumns.inProgress.push(ticketWithContext);
             break;
           case 'code_review':
-            kanbanColumns['Code Review'].push(ticketWithContext);
+            kanbanColumns.review.push(ticketWithContext);
+            break;
+          case 'testing':
+            kanbanColumns.testing.push(ticketWithContext);
             break;
           case 'done':
-            kanbanColumns['Done'].push(ticketWithContext);
+            kanbanColumns.done.push(ticketWithContext);
             break;
         }
       });
@@ -1028,6 +1030,7 @@ export const getProjectKanban = async (req, res) => {
       data: {
         projectId,
         projectName: project.name,
+        modules: project.modules,
         columns: kanbanColumns
       }
     });

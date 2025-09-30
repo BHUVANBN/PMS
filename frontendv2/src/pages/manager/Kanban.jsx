@@ -4,6 +4,7 @@ import KanbanBoard from '../../components/kanban/KanbanBoard';
 import { managerAPI, kanbanAPI } from '../../services/api';
 import CreateBoardModal from '../../components/kanban/CreateBoardModal';
 import AddTicketModal from '../../components/kanban/AddTicketModal';
+import AddModuleModal from '../../components/kanban/AddModuleModal';
 import ColumnSettingsModal from '../../components/kanban/ColumnSettingsModal';
 
 const Kanban = () => {
@@ -12,6 +13,7 @@ const Kanban = () => {
   const [boardId, setBoardId] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showAddTicket, setShowAddTicket] = useState(false);
+  const [showAddModule, setShowAddModule] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -73,6 +75,7 @@ const Kanban = () => {
               <MenuItem key={b._id || b.id} value={b._id || b.id}>{b.boardName || b.name}</MenuItem>
             ))}
           </Select>
+          <Button size="small" variant="outlined" onClick={() => setShowAddModule(true)}>Add Module</Button>
           <Button size="small" onClick={() => setShowColumnSettings(true)} disabled={!boardId}>Column Settings</Button>
         </Stack>
       )}
@@ -118,6 +121,13 @@ const Kanban = () => {
       <AddTicketModal
         open={showAddTicket}
         onClose={() => setShowAddTicket(false)}
+        projectId={projectId}
+        onCreated={() => bumpRefresh()}
+      />
+
+      <AddModuleModal
+        open={showAddModule}
+        onClose={() => setShowAddModule(false)}
         projectId={projectId}
         onCreated={() => bumpRefresh()}
       />

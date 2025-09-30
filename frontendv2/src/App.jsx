@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -54,9 +57,11 @@ import NotFoundPage from './pages/NotFoundPage';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-          <Routes>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -121,9 +126,10 @@ function App() {
             
             {/* 404 page */}
             <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

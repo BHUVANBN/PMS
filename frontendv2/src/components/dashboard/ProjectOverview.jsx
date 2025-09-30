@@ -23,33 +23,14 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
-import { MoreVert, FolderOpen, Group, Schedule } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { FolderOpen, Group, Schedule } from '@mui/icons-material';
 import { projectsAPI, managerAPI } from '../../services/api';
 
 const ProjectOverview = ({ projects = [], onRefresh }) => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [selectedProject, setSelectedProject] = React.useState(null);
-  const navigate = useNavigate();
   const [editOpen, setEditOpen] = React.useState(false);
   const [editValues, setEditValues] = React.useState({ id: '', name: '', description: '', status: 'planning', endDate: '' });
   const [editLoading, setEditLoading] = React.useState(false);
   const [editError, setEditError] = React.useState('');
-
-  const goToEdit = (pid) => {
-    if (!pid) return;
-    try {
-      navigate(`/manager/projects/${pid}/edit`);
-      // In case Router navigation is blocked by guard or context hiccup, hard navigate as fallback
-      setTimeout(() => {
-        if (window?.location?.pathname?.includes(`/manager/projects/${pid}/edit`) === false) {
-          window.location.href = `/manager/projects/${pid}/edit`;
-        }
-      }, 0);
-    } catch (_) {
-      window.location.href = `/manager/projects/${pid}/edit`;
-    }
-  };
 
   const deleteFromDialog = async () => {
     try {
@@ -68,15 +49,6 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
     }
   };
 
-  const handleMenuClick = (event, project) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedProject(project);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedProject(null);
-  };
 
   const openEdit = (project) => {
     if (!project) return;
@@ -205,14 +177,6 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   const getDaysRemaining = (dueDate) => {
     const today = new Date();
@@ -251,10 +215,7 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
                         variant="h6" 
                         fontWeight="bold"
                         sx={{ cursor: 'pointer' }}
-                        onClick={() => {
-                          const pid = project.rawId || project.id;
-                          openEdit(project);
-                        }}
+                        onClick={() => openEdit(project)}
                       >
                         {project.name}
                       </Typography>
@@ -263,21 +224,13 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
                       </Typography>
                     </Box>
                   </Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Button 
-                      size="small" 
-                      variant="outlined" 
-                      onClick={() => openEdit(project)}
-                    >
-                      Edit
-                    </Button>
-                    <IconButton 
-                      size="small"
-                      onClick={(e) => handleMenuClick(e, project)}
-                    >
-                      <MoreVert />
-                    </IconButton>
-                  </Box>
+                  <Button 
+                    size="small" 
+                    variant="outlined" 
+                    onClick={() => openEdit(project)}
+                  >
+                    Edit
+                  </Button>
                 </Box>
 
                 <Box mb={2}>

@@ -58,6 +58,7 @@ export const FormInput = forwardRef(({
   fullWidth = true,
   size = 'medium',
   variant = 'outlined',
+  sx = {},
   ...props
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -103,6 +104,19 @@ export const FormInput = forwardRef(({
       fullWidth={fullWidth}
       size={size}
       variant={variant}
+      sx={{
+        '& .MuiInputBase-root': {
+          minHeight: '48px',
+          fontSize: '1rem',
+        },
+        '& .MuiInputLabel-root': {
+          fontSize: '1rem',
+        },
+        '& .MuiInputBase-input': {
+          padding: '14px 14px',
+        },
+        ...sx
+      }}
       InputProps={{
         startAdornment,
         endAdornment: getEndAdornment(),
@@ -129,10 +143,33 @@ export const FormSelect = ({
   fullWidth = true,
   size = 'medium',
   variant = 'outlined',
+  sx = {},
   ...props
 }) => {
   return (
-    <FormControl fullWidth={fullWidth} error={!!error} size={size} variant={variant}>
+    <FormControl 
+      fullWidth={fullWidth} 
+      error={!!error} 
+      size={size} 
+      variant={variant}
+      sx={{
+        minWidth: '250px',
+        flex: 1,
+        '& .MuiInputBase-root': {
+          minHeight: '48px',
+          fontSize: '1rem',
+          width: '100%',
+        },
+        '& .MuiInputLabel-root': {
+          fontSize: '1rem',
+        },
+        '& .MuiSelect-select': {
+          padding: '14px 14px',
+          minWidth: '200px',
+        },
+        ...sx
+      }}
+    >
       <InputLabel required={required}>{label}</InputLabel>
       <Select
         name={name}
@@ -553,12 +590,10 @@ export const FormArray = ({
   onChange,
   renderItem,
   addButtonText = 'Add Item',
-  removeButtonText = 'Remove',
   minItems = 0,
   maxItems,
   error,
   helperText,
-  ...props
 }) => {
   const addItem = () => {
     if (maxItems && value.length >= maxItems) return;
@@ -700,6 +735,13 @@ export const FormActions = ({
           variant="outlined"
           onClick={onCancel}
           disabled={loading}
+          size="large"
+          sx={{ 
+            minHeight: '48px',
+            fontSize: '1rem',
+            px: 3,
+            py: 1.5
+          }}
         >
           {cancelText}
         </Button>
@@ -710,6 +752,13 @@ export const FormActions = ({
         color={submitColor}
         onClick={onSubmit}
         disabled={disabled || loading}
+        size="large"
+        sx={{ 
+          minHeight: '48px',
+          fontSize: '1rem',
+          px: 3,
+          py: 1.5
+        }}
       >
         {loading ? 'Loading...' : submitText}
       </Button>

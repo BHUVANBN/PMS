@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Select, InputLabel, FormControl, Stack, Alert, Typography } from '@mui/material';
-import { projectsAPI } from '../../services/api';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Select, InputLabel, FormControl, Stack, Alert, Typography, Avatar, Divider } from '@mui/material';
+import { projectsAPI, usersAPI, managerAPI } from '../../services/api';
 
 const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
   const [modules, setModules] = useState([]);
@@ -9,16 +9,22 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [type, setType] = useState('feature');
+  const [developers, setDevelopers] = useState([]);
+  const [testers, setTesters] = useState([]);
+  const [selectedDeveloper, setSelectedDeveloper] = useState('');
+  const [selectedTester, setSelectedTester] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const loadModules = async () => {
+    const loadData = async () => {
       if (!projectId) return;
       try {
         setLoading(true);
         setError('');
+        
+        // Load modules
         const res = await projectsAPI.getProjectModules(projectId);
         const list = res?.modules || res?.data?.modules || res?.data || [];
         setModules(list);
@@ -27,24 +33,62 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
         } else {
           setError('No modules found. Please create a module first before adding tickets.');
         }
+        
+        // Load developers and testers
+        const usersRes = await usersAPI.getAllUsers();
+        const allUsers = usersRes?.data || usersRes?.users || [];
+        
+        const devs = allUsers.filter(u => u.role === 'developer' && u.isActive !== false);
+        const tests = allUsers.filter(u => u.role === 'tester' && u.isActive !== false);
+        
+        setDevelopers(devs);
+        setTesters(tests);
+        
       } catch (err) {
-        setError(err.message || 'Failed to load modules');
+        setError(err.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
-    if (open) loadModules();
+    if (open) loadData();
   }, [open, projectId]);
 
   const handleCreate = async () => {
     if (!projectId || !moduleId || !title) return;
     try {
       setSubmitting(true);
-      await projectsAPI.addTicket(projectId, moduleId, { title, description, priority, type });
+      
+      // Create ticket
+      const ticketRes = await projectsAPI.addTicket(projectId, moduleId, { 
+        title, 
+        description, 
+        priority, 
+        type 
+      });
+      
+      // If developer or tester selected, assign them
+      if (selectedDeveloper || selectedTester) {
+        const ticketId = ticketRes?.data?._id || ticketRes?.data?.ticket?._id;
+        if (ticketId) {
+          const assignmentData = {};
+          if (selectedDeveloper) assignmentData.assignedDeveloper = selectedDeveloper;
+          if (selectedTester) assignmentData.tester = selectedTester;
+          
+          await managerAPI.assignTicket(projectId, moduleId, ticketId, assignmentData);
+        }
+      }
+      
       onCreated && onCreated();
       onClose && onClose();
+      
+      // Reset form
       setTitle('');
       setDescription('');
+      setSelectedDeveloper('');
+      setSelectedTester('');
+      
+    } catch (err) {
+      setError(err.message || 'Failed to create ticket');
     } finally {
       setSubmitting(false);
     }
@@ -94,13 +138,71 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
             </Select>
           </FormControl>
         </Stack>
+        
+        <Divider sx={{ my: 2 }} />
+        
+        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+          Assign Team Members (Optional)
+        </Typography>
+        
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="developer-assign-label">Assign Developer</InputLabel>
+          <Select 
+            labelId="developer-assign-label" 
+            label="Assign Developer" 
+            value={selectedDeveloper} 
+            onChange={(e) => setSelectedDeveloper(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>None</em>
+            </MenuItem>
+            {developers.map((dev) => (
+              <MenuItem key={dev._id} value={dev._id}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Avatar sx={{ width: 24, height: 24 }}>
+                    {(dev.firstName || dev.username || '?')[0].toUpperCase()}
+                  </Avatar>
+                  <Typography>
+                    {dev.firstName} {dev.lastName}
+                  </Typography>
+                </Stack>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="tester-assign-label">Assign Tester</InputLabel>
+          <Select 
+            labelId="tester-assign-label" 
+            label="Assign Tester" 
+            value={selectedTester} 
+            onChange={(e) => setSelectedTester(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>None</em>
+            </MenuItem>
+            {testers.map((tester) => (
+              <MenuItem key={tester._id} value={tester._id}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Avatar sx={{ width: 24, height: 24 }}>
+                    {(tester.firstName || tester.username || '?')[0].toUpperCase()}
+                  </Avatar>
+                  <Typography>
+                    {tester.firstName} {tester.lastName}
+                  </Typography>
+                </Stack>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
           </>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="contained" onClick={handleCreate} disabled={!title || !moduleId || submitting || modules.length === 0}>
-          {submitting ? 'Creating...' : 'Create'}
+          {submitting ? 'Creating...' : 'Create Ticket'}
         </Button>
       </DialogActions>
     </Dialog>

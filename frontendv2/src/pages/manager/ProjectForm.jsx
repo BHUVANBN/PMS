@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Grid, MenuItem, Paper, Stack, Typography } from '@mui/material';
+import { Box, Button, Grid, MenuItem, Paper, Stack, Typography, Chip } from '@mui/material';
 import { FormInput, FormSelect, FormSection, FormActions } from '../../components/shared/FormComponents';
 import { projectsAPI, usersAPI, managerAPI } from '../../services/api';
 
@@ -36,7 +36,10 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
     (async () => {
       try {
         const res = await usersAPI.getAllUsers();
+        console.log('Users API response:', res);
         const list = res?.data || res?.users || res || [];
+        console.log('Extracted users list:', list);
+        
         // Deduplicate by _id and normalize shape
         const seen = new Set();
         const normalized = [];
@@ -53,9 +56,11 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           const bn = (b.firstName || b.username || b.email || '').toLowerCase();
           return an.localeCompare(bn);
         });
+        console.log('Normalized users:', normalized);
         setUsers(normalized);
-      } catch (_) {
-        // ignore
+      } catch (err) {
+        console.error('Error loading users:', err);
+        setError('Failed to load users: ' + (err.message || 'Unknown error'));
       }
     })();
     if (mode === 'edit' && projectId) {
@@ -74,11 +79,13 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
             teamMembers: Array.isArray(p.teamMembers) ? p.teamMembers.map(u => u._id || u) : [],
           });
           // Load current team
+          let currentTeam = [];
           try {
             const tRes = await managerAPI.getProjectTeam(projectId);
             const t = tRes?.data || tRes?.team || tRes || [];
-            setTeam(Array.isArray(t) ? t : (t.data || []));
-          } catch (_) {
+            currentTeam = Array.isArray(t) ? t : (t.data || []);
+            setTeam(currentTeam);
+          } catch {
             // ignore
           }
           // Load candidate users by roles
@@ -92,8 +99,8 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                 pool.push(...list);
               }
             });
-            // Dedup and exclude already in team
-            const teamIds = new Set((Array.isArray(team) ? team : []).map(u => u._id || u.id));
+            // Dedup and exclude already in team - use currentTeam from above, not stale state
+            const teamIds = new Set((Array.isArray(currentTeam) ? currentTeam : []).map(u => u._id || u.id));
             const seen = new Set();
             const cand = [];
             pool.forEach(u => {
@@ -103,7 +110,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
               cand.push(u);
             });
             setCandidates(cand);
-          } catch (_) {
+          } catch {
             // ignore
           }
         } catch (e) {
@@ -130,27 +137,6 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           startDate: values.startDate,
           endDate: values.endDate || undefined,
         };
-
-  // Team management handlers
-  const filteredCandidates = candidates.filter(u => {
-    const matchRole = roleFilter === 'all' || u.role === roleFilter;
-    const q = search.trim().toLowerCase();
-    const label = (u.firstName ? `${u.firstName} ${u.lastName||''}` : (u.username || u.email || '')).toLowerCase();
-    const matchSearch = !q || label.includes(q);
-    return matchRole && matchSearch;
-  });
-
-  const handleAddToTeam = async (userId) => {
-    try {
-      await managerAPI.assignTeamRole(projectId, userId, { role: 'teamMember' });
-      // Move from candidates to team
-      const user = candidates.find(u => (u._id || u.id) === userId);
-      if (user) setTeam(prev => [...prev, user]);
-      setCandidates(prev => prev.filter(u => (u._id || u.id) !== userId));
-    } catch (e) {
-      alert(e.message || 'Failed to add to team');
-    }
-  };
         await managerAPI.createProject(payload);
       } else {
         const payload = {
@@ -170,10 +156,31 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
     }
   };
 
+  // Team management helpers (outside of handleSubmit)
+  const filteredCandidates = candidates.filter(u => {
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+    const q = search.trim().toLowerCase();
+    const label = (u.firstName ? `${u.firstName} ${u.lastName||''}` : (u.username || u.email || '')).toLowerCase();
+    const matchSearch = !q || label.includes(q);
+    return matchRole && matchSearch;
+  });
+
+  const handleAddToTeam = async (userId) => {
+    try {
+      await managerAPI.assignTeamRole(projectId, userId, { role: 'teamMember' });
+      // Move from candidates to team
+      const user = candidates.find(u => (u._id || u.id) === userId);
+      if (user) setTeam(prev => [...prev, user]);
+      setCandidates(prev => prev.filter(u => (u._id || u.id) !== userId));
+    } catch (e) {
+      alert(e.message || 'Failed to add to team');
+    }
+  };
+
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper sx={{ p: 4 }}>
       <form onSubmit={handleSubmit}>
-        <Stack spacing={3}>
+        <Stack spacing={4}>
           <Typography variant="h5" fontWeight="bold">
             {mode === 'create' ? 'Create Project' : 'Edit Project'}
           </Typography>
@@ -183,7 +190,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           )}
 
           <FormSection title="Basic Info">
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormInput label="Project Name" value={values.name} onChange={(e)=>handleChange('name', e.target.value)} required />
               </Grid>
@@ -205,7 +212,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           </FormSection>
 
           <FormSection title="Team">
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               {mode !== 'create' && (
                 <Grid item xs={12} sm={6}>
                   <FormSelect
@@ -213,12 +220,17 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                     value={values.projectManager}
                     onChange={(e)=>handleChange('projectManager', e.target.value)}
                     required
+                    disabled={users.length === 0}
                   >
-                    {users.filter(u => (u.role === 'manager' || u.role === 'admin')).map(u => (
-                      <MenuItem key={u._id||u.id} value={u._id||u.id}>
-                        {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
-                      </MenuItem>
-                    ))}
+                    {users.length === 0 ? (
+                      <MenuItem disabled>Loading managers...</MenuItem>
+                    ) : (
+                      users.filter(u => (u.role === 'manager' || u.role === 'admin')).map(u => (
+                        <MenuItem key={u._id||u.id} value={u._id||u.id}>
+                          {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
+                        </MenuItem>
+                      ))
+                    )}
                   </FormSelect>
                 </Grid>
               )}
@@ -229,12 +241,17 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                     value={values.teamMembers}
                     onChange={(e)=>handleChange('teamMembers', e.target.value)}
                     multiple
+                    disabled={users.length === 0}
                   >
-                    {users.map(u => (
-                      <MenuItem key={u._id||u.id} value={u._id||u.id}>
-                        {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
-                      </MenuItem>
-                    ))}
+                    {users.length === 0 ? (
+                      <MenuItem disabled>Loading team members...</MenuItem>
+                    ) : (
+                      users.map(u => (
+                        <MenuItem key={u._id||u.id} value={u._id||u.id}>
+                          {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
+                        </MenuItem>
+                      ))
+                    )}
                   </FormSelect>
                 </Grid>
               ) : (
@@ -283,9 +300,16 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                       <Typography variant="body2" color="text.secondary">No candidates found</Typography>
                     ) : (
                       filteredCandidates.map((u) => (
-                        <Box key={u._id || u.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
+                        <Box key={u._id || u.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
                           <Typography variant="body2">{u.firstName ? `${u.firstName} ${u.lastName||''}` : (u.username || u.email || u._id)}</Typography>
-                          <Button variant="outlined" size="small" onClick={() => handleAddToTeam(u._id || u.id)}>Add</Button>
+                          <Button 
+                            variant="outlined" 
+                            size="medium" 
+                            onClick={() => handleAddToTeam(u._id || u.id)}
+                            sx={{ minHeight: '40px', px: 2 }}
+                          >
+                            Add
+                          </Button>
                         </Box>
                       ))
                     )}

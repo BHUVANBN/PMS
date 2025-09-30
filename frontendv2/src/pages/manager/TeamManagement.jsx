@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { 
   Box, Button, Paper, Select, MenuItem, Stack, Typography, 
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { Refresh, Add, PersonAdd, Close, MoreVert, Delete, Edit } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
-import { managerAPI, adminAPI, usersAPI, hrAPI } from '../../services/api';
+import { managerAPI, hrAPI } from '../../services/api';
 
 // Note: Team role assignment on backend is project/module-scoped (teamMember/moduleLead),
 // not changing the user's global role (developer/tester). Actions are adjusted accordingly.
@@ -32,7 +32,7 @@ const TeamManagement = () => {
   // Manual user input (workaround)
   const [manualUserEmail, setManualUserEmail] = useState('');
 
-  const fetchOverview = async () => {
+  const fetchOverview = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -63,9 +63,9 @@ const TeamManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProjectId]);
 
-  const fetchProjectTeam = async (projectId) => {
+  const fetchProjectTeam = useCallback(async (projectId) => {
     if (!projectId) return;
     try {
       setLoading(true);
@@ -86,7 +86,7 @@ const TeamManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const fetchAllUsers = async () => {
     try {
@@ -285,8 +285,8 @@ const TeamManagement = () => {
     }
   };
 
-  useEffect(() => { fetchOverview(); }, []);
-  useEffect(() => { if (selectedProjectId) fetchProjectTeam(selectedProjectId); }, [selectedProjectId]);
+  useEffect(() => { fetchOverview(); }, [fetchOverview]);
+  useEffect(() => { if (selectedProjectId) fetchProjectTeam(selectedProjectId); }, [selectedProjectId, fetchProjectTeam]);
 
   // Assignment actions are project/module-scoped in backend and require module context.
   // This page currently focuses on viewing team per project; actions are deferred to a dedicated UI.

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, IconButton, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
@@ -140,12 +140,22 @@ const Projects = () => {
           if (column.field === 'actions') {
             return (
               <Stack direction="row" spacing={1}>
-                <IconButton size="small" onClick={() => navigate(`/manager/projects/${row.id}/edit`)}>
-                  <Edit fontSize="small" />
-                </IconButton>
-                <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
-                  <Delete fontSize="small" />
-                </IconButton>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Edit />}
+                  onClick={() => navigate(`/manager/projects/${row.id}/edit`)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<Delete />}
+                  onClick={() => handleDelete(row.id)}
+                >
+                  Delete
+                </Button>
               </Stack>
             );
           }

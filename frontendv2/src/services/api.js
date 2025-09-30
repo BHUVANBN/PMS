@@ -665,6 +665,9 @@ export const usersAPI = {
   getUser: (userId) => 
     apiRequest(`/users/${userId}`),
 
+  getUsersByRole: (role) =>
+    apiRequest(`/users/role/${role}`),
+
   updateUser: (userId, userData) => 
     apiRequest(`/users/${userId}`, {
       method: 'PUT',

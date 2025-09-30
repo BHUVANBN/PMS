@@ -513,27 +513,45 @@ export const reassignTicket = async (req, res) => {
       });
     }
 
-    // Enforce permanent developer binding: once assigned, cannot be changed
+    // Track old assignments for notifications
+    const oldDeveloper = ticket.assignedDeveloper;
+    const oldTester = ticket.tester;
+    
+    // Update assignments
     if (assignedDeveloper) {
-      if (ticket.assignedDeveloper && ticket.assignedDeveloper.toString() !== assignedDeveloper.toString()) {
-        return res.status(400).json({
-          success: false,
-          error: 'Assigned developer is permanent and cannot be changed once set'
-        });
-      }
-      // If not set before, set now
-      if (!ticket.assignedDeveloper) {
-        ticket.assignedDeveloper = assignedDeveloper;
-      }
+      ticket.assignedDeveloper = assignedDeveloper;
     }
-    if (tester) ticket.tester = tester;
+    if (tester) {
+      ticket.tester = tester;
+    }
 
     await project.save();
+
+    // Emit real-time events to notify assigned users
+    const { emitTicketEvent } = await import('../utils/realtime.js');
+    const notifyUsers = [];
+    if (assignedDeveloper) notifyUsers.push(assignedDeveloper.toString());
+    if (tester) notifyUsers.push(tester.toString());
+    if (oldDeveloper) notifyUsers.push(oldDeveloper.toString());
+    if (oldTester) notifyUsers.push(oldTester.toString());
+    
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: [...new Set(notifyUsers)], // Remove duplicates
+      type: 'ticket.assigned',
+      data: { 
+        ticketId, 
+        moduleId,
+        assignedDeveloper, 
+        tester,
+        ticket: ticket.toObject()
+      }
+    });
 
     res.json({
       success: true,
       data: ticket,
-      message: 'Ticket reassigned successfully'
+      message: 'Ticket assigned successfully'
     });
   } catch (error) {
     console.error('Error reassigning ticket:', error);

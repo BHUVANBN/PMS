@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Select, InputLabel, FormControl, Stack } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Select, InputLabel, FormControl, Stack, Alert, Typography } from '@mui/material';
 import { projectsAPI } from '../../services/api';
 
 const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
@@ -10,14 +10,28 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
   const [priority, setPriority] = useState('medium');
   const [type, setType] = useState('feature');
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadModules = async () => {
       if (!projectId) return;
-      const res = await projectsAPI.getProjectModules(projectId);
-      const list = res?.modules || res?.data?.modules || res?.data || [];
-      setModules(list);
-      if (list[0]) setModuleId(list[0]._id || list[0].id);
+      try {
+        setLoading(true);
+        setError('');
+        const res = await projectsAPI.getProjectModules(projectId);
+        const list = res?.modules || res?.data?.modules || res?.data || [];
+        setModules(list);
+        if (list.length > 0) {
+          setModuleId(list[0]._id || list[0].id);
+        } else {
+          setError('No modules found. Please create a module first before adding tickets.');
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to load modules');
+      } finally {
+        setLoading(false);
+      }
     };
     if (open) loadModules();
   }, [open, projectId]);
@@ -40,14 +54,24 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Add Ticket</DialogTitle>
       <DialogContent>
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="module-label">Module</InputLabel>
-          <Select labelId="module-label" label="Module" value={moduleId} onChange={(e) => setModuleId(e.target.value)}>
-            {modules.map((m) => (
-              <MenuItem key={m._id || m.id} value={m._id || m.id}>{m.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {error && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <Typography>Loading modules...</Typography>
+        ) : (
+          <>
+            <FormControl fullWidth margin="normal" disabled={modules.length === 0}>
+              <InputLabel id="module-label">Module</InputLabel>
+              <Select labelId="module-label" label="Module" value={moduleId} onChange={(e) => setModuleId(e.target.value)}>
+                {modules.length === 0 && <MenuItem value="">No modules available</MenuItem>}
+                {modules.map((m) => (
+                  <MenuItem key={m._id || m.id} value={m._id || m.id}>{m.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
         <TextField fullWidth label="Title" margin="normal" value={title} onChange={(e) => setTitle(e.target.value)} />
         <TextField fullWidth multiline minRows={3} label="Description" margin="normal" value={description} onChange={(e) => setDescription(e.target.value)} />
         <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
@@ -70,10 +94,14 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
             </Select>
           </FormControl>
         </Stack>
+          </>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleCreate} disabled={!title || !moduleId || submitting}>Create</Button>
+        <Button variant="contained" onClick={handleCreate} disabled={!title || !moduleId || submitting || modules.length === 0}>
+          {submitting ? 'Creating...' : 'Create'}
+        </Button>
       </DialogActions>
     </Dialog>
   );

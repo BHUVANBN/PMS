@@ -17,6 +17,8 @@ import {
   createSprint,
   updateSprint,
   getAllTickets,
+  createTicket,
+  getAllEmployees,
   reassignTicket,
   updateTicketStatus,
   getTicketReports,
@@ -83,6 +85,12 @@ router.post('/project/:projectId/sprint', createSprint);
 
 // View all tickets across modules (bird's-eye view)
 router.get('/tickets', getAllTickets);
+
+// Create a new ticket within a module
+router.post('/ticket/:projectId/:moduleId', createTicket);
+
+// Get all employees for assignment
+router.get('/employees', getAllEmployees);
 
 // Re-assign tickets (dev ↔ tester)
 router.patch('/ticket/:projectId/:moduleId/:ticketId/assign', reassignTicket);

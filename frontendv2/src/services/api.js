@@ -265,7 +265,7 @@ export const managerAPI = {
     apiRequest(`/manager/project/${projectId}`),
 
   // Module management (align with backend manager.route.js)
-  createModule: (projectId, moduleData) => 
+  addModule: (projectId, moduleData) => 
     apiRequest(`/manager/project/${projectId}/module`, {
       method: 'POST',
       body: JSON.stringify(moduleData),
@@ -279,7 +279,7 @@ export const managerAPI = {
 
   // Ticket management (manager ticket routes require projectId and moduleId)
   createTicket: (projectId, moduleId, ticketData) => 
-    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets`, {
+    apiRequest(`/manager/ticket/${projectId}/${moduleId}`, {
       method: 'POST',
       body: JSON.stringify(ticketData),
     }),
@@ -287,6 +287,12 @@ export const managerAPI = {
   // View all tickets across modules for manager
   getAllTickets: () =>
     apiRequest('/manager/tickets'),
+
+  // Get all employees for assignment
+  getEmployees: (params) => {
+    const query = params?.role ? `?role=${params.role}` : '';
+    return apiRequest(`/manager/employees${query}`);
+  },
 
   assignTicket: (projectId, moduleId, ticketId, assignmentData) => 
     apiRequest(`/manager/ticket/${projectId}/${moduleId}/${ticketId}/assign`, {
@@ -347,9 +353,20 @@ export const developerAPI = {
   getDashboard: () => 
     apiRequest('/developer/dashboard'),
 
+  // Get developer stats
+  getStats: () =>
+    apiRequest('/developer/stats'),
+
   // Tickets
   getMyTickets: () => 
     apiRequest('/developer/tickets'),
+
+  // Complete a ticket (moves to testing if tester assigned)
+  completeTicket: (projectId, moduleId, ticketId, payload) =>
+    apiRequest(`/developer/tickets/${projectId}/${moduleId}/${ticketId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   updateTicketStatus: (projectId, ticketId, status) => 
     // Delegate to kanban controller's direct ticket status endpoint
@@ -380,6 +397,35 @@ export const testerAPI = {
   // Dashboard
   getDashboard: () => 
     apiRequest('/tester/dashboard'),
+
+  // Get tester stats
+  getStats: () =>
+    apiRequest('/tester/stats'),
+
+  // Get tickets assigned to tester
+  getMyTestTickets: () =>
+    apiRequest('/tester/tickets'),
+
+  // Approve/validate a ticket after testing
+  approveTicket: (projectId, moduleId, ticketId, payload) =>
+    apiRequest(`/tester/tickets/${projectId}/${moduleId}/${ticketId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // Start testing a ticket
+  startTesting: (projectId, moduleId, ticketId, payload) =>
+    apiRequest(`/tester/tickets/${projectId}/${moduleId}/${ticketId}/start-testing`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // Complete testing for a ticket
+  completeTesting: (projectId, moduleId, ticketId, payload) =>
+    apiRequest(`/tester/tickets/${projectId}/${moduleId}/${ticketId}/complete-testing`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   // Test cases
   getTestCases: (projectId, moduleId) => 

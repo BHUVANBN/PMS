@@ -1173,6 +1173,83 @@ export const completeTicketTesting = async (req, res) => {
 };
 
 /**
+ * Approve/Validate a ticket after testing
+ */
+export const approveTicket = async (req, res) => {
+  try {
+    const { projectId, moduleId, ticketId } = req.params;
+    const { approvalNotes } = req.body;
+    const testerId = req.user._id;
+
+    const project = await Project.findOne({
+      _id: projectId
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found'
+      });
+    }
+
+    const module = project.modules.find(
+      module => module._id.toString() === moduleId
+    );
+
+    if (!module) {
+      return res.status(404).json({
+        success: false,
+        error: 'Module not found'
+      });
+    }
+
+    const ticket = module.tickets.find(
+      ticket => ticket._id.toString() === ticketId
+    );
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: 'Ticket not found'
+      });
+    }
+
+    // Verify tester is assigned to this ticket
+    if (ticket.tester && ticket.tester.toString() !== testerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this ticket'
+      });
+    }
+
+    // Approve ticket - mark as done
+    ticket.status = 'done';
+    ticket.testingNotes = approvalNotes || 'Ticket approved by tester';
+    
+    // Add approval comment
+    ticket.comments.push({
+      userId: testerId,
+      comment: `[Tester] Ticket approved and validated. ${approvalNotes || ''}`,
+      createdAt: new Date()
+    });
+
+    await project.save();
+
+    res.json({
+      success: true,
+      data: ticket,
+      message: 'Ticket approved successfully'
+    });
+  } catch (error) {
+    console.error('Error approving ticket:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get Tester dashboard statistics
  */
 export const getTesterStats = async (req, res) => {

@@ -17,19 +17,36 @@ const EmployeeList = () => {
       setLoading(true);
       setError(null);
       const res = await hrAPI.getAllEmployees();
-      const employees = res?.employees || res?.data?.employees || res?.data || [];
+      console.log('HR API Response:', res);
+      
+      // Handle different response structures
+      let employees = [];
+      if (Array.isArray(res)) {
+        employees = res;
+      } else if (res?.employees) {
+        employees = res.employees;
+      } else if (res?.data?.employees) {
+        employees = res.data.employees;
+      } else if (res?.data && Array.isArray(res.data)) {
+        employees = res.data;
+      }
+      
+      console.log('Extracted employees:', employees);
+      
       const normalized = employees.map((e) => ({
         id: e._id || e.id,
-        name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim(),
-        email: e.email,
-        role: e.role,
-        department: e.department || e.dept || '-'
-        ,
+        name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'N/A',
+        email: e.email || 'N/A',
+        role: e.role || 'N/A',
+        department: e.department || e.dept || '-',
         isActive: e.isActive !== false,
         createdAt: e.createdAt,
       }));
+      
+      console.log('Normalized employees:', normalized);
       setRows(normalized);
     } catch (err) {
+      console.error('Error fetching employees:', err);
       setError(err.message || 'Failed to load employees');
     } finally {
       setLoading(false);
@@ -43,7 +60,11 @@ const EmployeeList = () => {
   // Refetch when navigated back from create/edit with refresh flag
   useEffect(() => {
     if (location.state?.refresh) {
-      fetchEmployees();
+      console.log('Refresh triggered from navigation state');
+      // Small delay to ensure backend has processed the creation
+      setTimeout(() => {
+        fetchEmployees();
+      }, 100);
       // remove the flag so it doesn't refire on further renders
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -102,15 +123,29 @@ const EmployeeList = () => {
         </Paper>
       )}
 
-      <DataTable
-        columns={columns}
-        data={rows}
-        loading={loading}
-        initialPageSize={10}
-        enableSearch
-        searchableKeys={['name', 'email', 'role', 'department']}
-        emptyMessage="No employees found"
-      />
+      {rows.length === 0 && !loading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No employees found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Create your first employee to get started
+          </Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/hr/employees/new')}>
+            Create Employee
+          </Button>
+        </Paper>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={rows}
+          loading={loading}
+          initialPageSize={10}
+          enableSearch
+          searchableKeys={['name', 'email', 'role', 'department']}
+          emptyMessage="No employees found"
+        />
+      )}
     </Box>
   );
 };

@@ -383,4 +383,88 @@ export const getDeveloperStats = async (req, res) => {
 	}
 };
 
+/**
+ * Mark ticket as completed - automatically moves to tester
+ */
+export const completeTicket = async (req, res) => {
+	try {
+		const developerId = new mongoose.Types.ObjectId(req.user.id);
+		const { projectId, moduleId, ticketId } = req.params;
+		const { actualHours, completionNotes } = req.body;
+
+		// Find the project
+		const project = await Project.findById(projectId);
+		if (!project) {
+			return res.status(404).json({
+				success: false,
+				message: 'Project not found'
+			});
+		}
+
+		// Find the module
+		const module = project.modules.id(moduleId);
+		if (!module) {
+			return res.status(404).json({
+				success: false,
+				message: 'Module not found'
+			});
+		}
+
+		// Find the ticket
+		const ticket = module.tickets.id(ticketId);
+		if (!ticket) {
+			return res.status(404).json({
+				success: false,
+				message: 'Ticket not found'
+			});
+		}
+
+		// Verify developer is assigned to this ticket
+		if (ticket.assignedDeveloper.toString() !== developerId.toString()) {
+			return res.status(403).json({
+				success: false,
+				message: 'You are not assigned to this ticket'
+			});
+		}
+
+		// Update ticket status
+		if (ticket.tester) {
+			// If tester is assigned, move to testing
+			ticket.status = TICKET_STATUS.TESTING;
+		} else {
+			// If no tester, mark as done
+			ticket.status = TICKET_STATUS.DONE;
+		}
+
+		// Update completion details
+		ticket.completedAt = new Date();
+		if (actualHours) {
+			ticket.actualHours = actualHours;
+		}
+
+		// Add completion comment
+		ticket.comments.push({
+			userId: developerId,
+			comment: `[Developer] Marked as completed. ${completionNotes || ''}`,
+			createdAt: new Date()
+		});
+
+		await project.save();
+
+		return res.status(200).json({
+			success: true,
+			message: ticket.tester ? 'Ticket completed and moved to testing' : 'Ticket completed',
+			data: ticket
+		});
+
+	} catch (error) {
+		console.error('Error completing ticket:', error);
+		return res.status(500).json({
+			success: false,
+			message: 'Server error while completing ticket',
+			error: error.message
+		});
+	}
+};
+
 

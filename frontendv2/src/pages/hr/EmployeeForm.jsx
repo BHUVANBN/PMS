@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Grid, MenuItem, Paper, Stack, Typography } from '@mui/material';
-import { FormInput, FormSelect, FormSection, FormActions } from '../../components/shared/FormComponents';
+import { 
+  Box, Button, Grid, Paper, Stack, Typography,
+  FormControl, FormLabel, RadioGroup, FormControlLabel, Radio,
+  Alert
+} from '@mui/material';
+import { FormInput, FormSection, FormActions } from '../../components/shared/FormComponents';
 import { hrAPI } from '../../services/api';
 
+// Roles that HR can assign (matches backend hr.controller.js allowedRolesForHR)
 const ROLE_OPTIONS = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'HR', value: 'hr' },
-  { label: 'Manager', value: 'manager' },
+  { label: 'Employee', value: 'employee' },
   { label: 'Developer', value: 'developer' },
   { label: 'Tester', value: 'tester' },
-  { label: 'Sales', value: 'sales' },
   { label: 'Marketing', value: 'marketing' },
+  { label: 'Sales', value: 'sales' },
   { label: 'Intern', value: 'intern' },
 ];
 
@@ -20,12 +23,13 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
     lastName: '',
     email: '',
     username: '',
-    role: 'developer',
+    role: 'employee',
     department: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (mode === 'edit' && employeeId) {
@@ -61,15 +65,35 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
     try {
       setLoading(true);
       setError(null);
+      setSuccess(false);
       const payload = { ...values };
+      
       if (mode === 'create') {
-        await hrAPI.createEmployee(payload);
+        const response = await hrAPI.createEmployee(payload);
+        console.log('Employee created:', response);
+        setSuccess(true);
+        
+        // Wait a moment to show success message, then redirect
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 1000);
       } else {
         delete payload.password; // avoid sending empty password
-        await hrAPI.updateEmployee(employeeId, payload);
+        const response = await hrAPI.updateEmployee(employeeId, payload);
+        console.log('Employee updated:', response);
+        setSuccess(true);
+        
+        // Wait a moment to show success message, then redirect
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 1000);
       }
-      onSuccess?.();
     } catch (e) {
+      console.error('Error saving employee:', e);
       setError(e.message || 'Failed to save employee');
     } finally {
       setLoading(false);
@@ -85,7 +109,15 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
           </Typography>
 
           {error && (
-            <Box className="text-red-600 text-sm">{error}</Box>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Employee {mode === 'create' ? 'created' : 'updated'} successfully! Redirecting...
+            </Alert>
           )}
 
           <FormSection title="Basic Information">
@@ -127,18 +159,64 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormSelect
-                  label="Role"
-                  name="role"
-                  value={values.role}
-                  onChange={(e) => handleChange('role', e.target.value)}
-                  required
+              <Grid item xs={12}>
+                <FormControl 
+                  component="fieldset" 
+                  required 
+                  fullWidth
+                  sx={{
+                    border: '1px solid rgba(0, 0, 0, 0.23)',
+                    borderRadius: '4px',
+                    padding: '16px',
+                    '&:hover': {
+                      borderColor: 'rgba(0, 0, 0, 0.87)',
+                    },
+                    '&:focus-within': {
+                      borderColor: 'primary.main',
+                      borderWidth: '2px',
+                    }
+                  }}
                 >
-                  {ROLE_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                  ))}
-                </FormSelect>
+                  <FormLabel 
+                    component="legend" 
+                    sx={{ 
+                      mb: 1.5, 
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      color: 'rgba(0, 0, 0, 0.6)',
+                      '&.Mui-focused': {
+                        color: 'primary.main',
+                      }
+                    }}
+                  >
+                    Role *
+                  </FormLabel>
+                  <RadioGroup
+                    name="role"
+                    value={values.role}
+                    onChange={(e) => handleChange('role', e.target.value)}
+                    row
+                    sx={{
+                      gap: 2,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {ROLE_OPTIONS.map((opt) => (
+                      <FormControlLabel
+                        key={opt.value}
+                        value={opt.value}
+                        control={<Radio />}
+                        label={opt.label}
+                        sx={{
+                          margin: 0,
+                          '& .MuiFormControlLabel-label': {
+                            fontSize: '0.95rem',
+                          }
+                        }}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <FormInput

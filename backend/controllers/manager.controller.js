@@ -471,6 +471,120 @@ export const getAllTickets = async (req, res) => {
 };
 
 /**
+ * Create a new ticket within a module
+ */
+export const createTicket = async (req, res) => {
+  try {
+    const { projectId, moduleId } = req.params;
+    const managerId = req.user._id;
+    const { title, description, type, priority, assignedDeveloper, tester, estimatedHours, storyPoints, dueDate } = req.body;
+
+    // Validate required fields
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title is required'
+      });
+    }
+
+    const project = await Project.findOne({
+      _id: projectId,
+      projectManager: managerId
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    const module = project.modules.find(
+      module => module._id.toString() === moduleId
+    );
+
+    if (!module) {
+      return res.status(404).json({
+        success: false,
+        error: 'Module not found'
+      });
+    }
+
+    // Generate ticket number
+    const ticketCount = module.tickets.length;
+    const ticketNumber = `${module.name.substring(0, 3).toUpperCase()}-${String(ticketCount + 1).padStart(3, '0')}`;
+
+    // Create new ticket
+    const newTicket = {
+      ticketNumber,
+      title,
+      description: description || '',
+      type: type || 'task',
+      priority: priority || 'medium',
+      status: 'open',
+      assignedDeveloper: assignedDeveloper || null,
+      tester: tester || null,
+      estimatedHours: estimatedHours || 0,
+      storyPoints: storyPoints || 0,
+      dueDate: dueDate || null,
+      createdBy: managerId,
+      comments: []
+    };
+
+    module.tickets.push(newTicket);
+    await project.save();
+
+    const createdTicket = module.tickets[module.tickets.length - 1];
+
+    res.status(201).json({
+      success: true,
+      data: createdTicket,
+      message: 'Ticket created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating ticket:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all employees (developers and testers) for assignment
+ */
+export const getAllEmployees = async (req, res) => {
+  try {
+    const { role } = req.query;
+    
+    let query = { 
+      isActive: true,
+      role: { $in: ['developer', 'tester', 'manager', 'employee'] }
+    };
+    
+    if (role) {
+      query.role = role;
+    }
+
+    const employees = await User.find(query)
+      .select('firstName lastName username email role')
+      .sort({ firstName: 1 });
+
+    res.json({
+      success: true,
+      data: employees,
+      count: employees.length
+    });
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch employees'
+    });
+  }
+};
+
+/**
  * Re-assign tickets (dev ↔ tester)
  */
 export const reassignTicket = async (req, res) => {

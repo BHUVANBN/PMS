@@ -9,7 +9,8 @@ import {
 	moveOnKanbanBoard,
 	getMyStandups,
 	upsertMyStandupUpdate,
-	getDeveloperStats
+	getDeveloperStats,
+	completeTicket
 } from '../controllers/dev.controller.js';
 
 const router = express.Router();
@@ -41,6 +42,9 @@ router.post('/standups/:standupId/updates', verifyToken, allowDeveloperOnly, exp
 
 // Get developer dashboard statistics
 router.get('/stats', verifyToken, allowDeveloperOnly, getDeveloperStats);
+
+// Complete a ticket (moves to testing if tester assigned, or done if no tester)
+router.post('/tickets/:projectId/:moduleId/:ticketId/complete', verifyToken, allowDeveloperOnly, express.json(), completeTicket);
 
 export default router;
 

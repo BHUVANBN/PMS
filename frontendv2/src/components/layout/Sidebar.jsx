@@ -50,6 +50,8 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
     boxSizing: 'border-box',
     borderRight: '1px solid rgba(0, 0, 0, 0.12)',
     backgroundColor: theme.palette.background.paper,
+    borderRightWidth: '1px',
+    borderRightStyle: 'solid',
   },
 }));
 
@@ -245,7 +247,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
         }}
         sx={{
           display: { xs: 'block', sm: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: drawerWidth,
+            border: 'none',
+            borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+          },
         }}
       >
         {drawer}

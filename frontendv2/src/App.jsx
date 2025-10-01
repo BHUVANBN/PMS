@@ -17,6 +17,7 @@ import UserList from './pages/admin/UserList';
 import SystemStats from './pages/admin/SystemStats';
 import SystemSettings from './pages/admin/SystemSettings';
 import UserCreate from './pages/admin/UserCreate';
+import UserEdit from './pages/admin/UserEdit';
 import HRDashboard from './pages/hr/HRDashboard';
 import EmployeeList from './pages/hr/EmployeeList';
 import EmployeeCreate from './pages/hr/EmployeeCreate';
@@ -82,6 +83,7 @@ function App() {
               <Route path="admin/dashboard" element={<ProtectedRoute requiredRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
               <Route path="admin/users" element={<ProtectedRoute requiredRoles={["admin"]}><UserList /></ProtectedRoute>} />
               <Route path="admin/users/new" element={<ProtectedRoute requiredRoles={["admin"]}><UserCreate /></ProtectedRoute>} />
+              <Route path="admin/users/:id/edit" element={<ProtectedRoute requiredRoles={["admin"]}><UserEdit /></ProtectedRoute>} />
               <Route path="admin/stats" element={<ProtectedRoute requiredRoles={["admin"]}><SystemStats /></ProtectedRoute>} />
               <Route path="admin/settings" element={<ProtectedRoute requiredRoles={["admin"]}><SystemSettings /></ProtectedRoute>} />
 

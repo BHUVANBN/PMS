@@ -16,7 +16,21 @@ const UserList = () => {
       setLoading(true);
       setError(null);
       const res = await adminAPI.getAllUsers();
-      const users = res?.users || res?.data?.users || res?.data || [];
+      
+      console.log('UserList API Response:', res);
+      
+      // Handle different response formats
+      let users = [];
+      if (Array.isArray(res)) {
+        users = res;
+      } else if (res?.users) {
+        users = res.users;
+      } else if (res?.data?.users) {
+        users = res.data.users;
+      } else if (res?.data && Array.isArray(res.data)) {
+        users = res.data;
+      }
+      
       const normalized = users.map((u) => ({
         id: u._id || u.id,
         username: u.username || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
@@ -25,8 +39,11 @@ const UserList = () => {
         isActive: u.isActive !== false,
         createdAt: u.createdAt,
       }));
+      
+      console.log('Normalized users:', normalized);
       setRows(normalized);
     } catch (e) {
+      console.error('Error fetching users:', e);
       setError(e.message || 'Failed to load users');
     } finally {
       setLoading(false);
@@ -43,6 +60,10 @@ const UserList = () => {
     } catch (e) {
       alert(e.message || 'Failed to delete');
     }
+  };
+
+  const handleEdit = (row) => {
+    navigate(`/admin/users/${row.id}/edit`);
   };
 
   const handleChangeRole = async (row, newRole) => {
@@ -65,10 +86,10 @@ const UserList = () => {
       label: 'Actions',
       render: (row) => (
         <Stack direction="row" spacing={1}>
-          <IconButton size="small" onClick={() => handleChangeRole(row, row.role === 'manager' ? 'developer' : 'manager')}>
+          <IconButton size="small" onClick={() => handleEdit(row)} title="Edit User">
             <Edit fontSize="small" />
           </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+          <IconButton size="small" color="error" onClick={() => handleDelete(row.id)} title="Delete User">
             <Delete fontSize="small" />
           </IconButton>
         </Stack>

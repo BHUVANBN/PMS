@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import StatsCard from '../../components/dashboard/StatsCard';
 import RecentActivity from '../../components/dashboard/RecentActivity';
+import UserDialog from '../../components/admin/UserDialog';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -67,27 +68,41 @@ export default function AdminDashboard() {
         adminAPI.getSystemHealth(),
       ]);
 
-      // Normalize users
-      const realUsers = (usersResponse?.users || usersResponse?.data?.users || usersResponse?.data || [])
-        .map(u => ({
-          id: u._id || u.id,
-          username: u.username || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-          email: u.email,
-          role: u.role,
-          status: u.isActive === false ? 'inactive' : 'active',
-          lastLogin: u.lastLogin || u.updatedAt || u.createdAt,
-          createdAt: u.createdAt,
-        }));
+      console.log('Users Response:', usersResponse);
+      console.log('Stats Response:', statsResponse);
+      console.log('Health Response:', healthResponse);
+
+      // Normalize users - handle direct array response
+      let realUsers = [];
+      if (Array.isArray(usersResponse)) {
+        realUsers = usersResponse;
+      } else if (usersResponse?.users) {
+        realUsers = usersResponse.users;
+      } else if (usersResponse?.data?.users) {
+        realUsers = usersResponse.data.users;
+      } else if (usersResponse?.data && Array.isArray(usersResponse.data)) {
+        realUsers = usersResponse.data;
+      }
+
+      const normalizedUsers = realUsers.map(u => ({
+        id: u._id || u.id,
+        username: u.username || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        email: u.email,
+        role: u.role,
+        status: u.isActive === false ? 'inactive' : 'active',
+        lastLogin: u.lastLogin || u.updatedAt || u.createdAt,
+        createdAt: u.createdAt,
+      }));
 
       // Normalize stats
-      const s = statsResponse?.stats || statsResponse?.data?.stats || {};
-      const h = healthResponse?.health || healthResponse?.data?.health || {};
+      const s = statsResponse || {};
+      const h = healthResponse?.health || healthResponse || {};
 
-      setUsers(realUsers);
+      setUsers(normalizedUsers);
       setStats({
-        totalUsers: s.totalUsers ?? realUsers.length,
-        activeProjects: s.activeProjects ?? s.projectsActive ?? 0,
-        systemHealth: h.database?.status === 'connected' ? 100 : 75,
+        totalUsers: s.totalUsers ?? normalizedUsers.length,
+        activeProjects: s.activeProjects ?? 0,
+        systemHealth: h.status === 'healthy' ? 100 : 75,
         securityAlerts: s.securityAlerts ?? 0,
       });
     } catch (error) {
@@ -114,14 +129,38 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateUserRole = async (userId, newRole) => {
+  const handleUpdateUser = async (userData) => {
     try {
-      await adminAPI.updateUserRole(userId, { role: newRole });
+      await adminAPI.updateUserRole(userData.id, userData);
       setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
+        user.id === userData.id ? { ...user, ...userData } : user
       ));
+      setOpenDialog(false);
+      setSelectedUser(null);
     } catch (error) {
-      console.error('Error updating user role:', error);
+      console.error('Error updating user:', error);
+      alert('Failed to update user: ' + error.message);
+    }
+  };
+
+  const handleCreateUser = async (userData) => {
+    try {
+      const response = await adminAPI.createUser(userData);
+      const newUser = {
+        id: response.user._id,
+        username: response.user.username,
+        email: response.user.email,
+        role: response.user.role,
+        status: response.user.isActive ? 'active' : 'inactive',
+        lastLogin: response.user.createdAt,
+        createdAt: response.user.createdAt,
+      };
+      setUsers([...users, newUser]);
+      setOpenDialog(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Failed to create user: ' + error.message);
     }
   };
 
@@ -218,7 +257,10 @@ export default function AdminDashboard() {
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => setOpenDialog(true)}
+                onClick={() => {
+                  setSelectedUser(null);
+                  setOpenDialog(true);
+                }}
               >
                 Add User
               </Button>
@@ -313,54 +355,15 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* User Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {selectedUser ? 'Edit User' : 'Add New User'}
-        </DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <TextField
-              label="Username"
-              fullWidth
-              defaultValue={selectedUser?.username || ''}
-            />
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              defaultValue={selectedUser?.email || ''}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
-                defaultValue={selectedUser?.role || 'developer'}
-                label="Role"
-              >
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="developer">Developer</MenuItem>
-                <MenuItem value="tester">Tester</MenuItem>
-                <MenuItem value="hr">HR</MenuItem>
-                <MenuItem value="sales">Sales</MenuItem>
-                <MenuItem value="marketing">Marketing</MenuItem>
-              </Select>
-            </FormControl>
-            {!selectedUser && (
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>
-            {selectedUser ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <UserDialog
+        open={openDialog}
+        user={selectedUser}
+        onClose={() => {
+          setOpenDialog(false);
+          setSelectedUser(null);
+        }}
+        onSave={selectedUser ? handleUpdateUser : handleCreateUser}
+      />
     </Box>
   );
 }

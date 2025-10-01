@@ -35,6 +35,16 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
+/* Fix main content alignment with sidebar */
+main.MuiBox-root {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+main.MuiBox-root > div:first-child {
+  margin-left: 0 !important;
+}
+
 .MuiButton-contained {
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15) !important;
 }

@@ -26,18 +26,28 @@ const MainLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
           backgroundColor: theme.palette.background.default,
           minHeight: '100vh',
+          position: 'relative',
+          margin: 0,
+          padding: 0,
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Box sx={{ 
           mt: { xs: 8, sm: 9 },
-          mb: 4,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 2, sm: 3 },
           maxWidth: '100%',
-          overflow: 'hidden'
+          overflow: 'auto',
+          minHeight: 'calc(100vh - 72px)',
+          margin: 0,
+          marginLeft: 0,
         }}>
           <Outlet />
         </Box>

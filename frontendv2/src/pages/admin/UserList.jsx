@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Add, Delete, Edit, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
 import { adminAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const UserList = () => {
   const navigate = useNavigate();
+  const { user, authLoading, isAuthenticated } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,7 +38,7 @@ const UserList = () => {
         username: u.username || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
         email: u.email,
         role: u.role,
-        isActive: u.isActive !== false,
+        isActive: u.isActive !== false ? 'Active' : 'Inactive',
         createdAt: u.createdAt,
       }));
       
@@ -50,13 +52,18 @@ const UserList = () => {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      fetchUsers();
+    }
+  }, [authLoading, isAuthenticated, user]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this user?')) return;
     try {
       await adminAPI.deleteUser(id);
-      setRows((prev) => prev.filter((r) => r.id !== id));
+      // Refresh the data from the database
+      await fetchUsers();
     } catch (e) {
       alert(e.message || 'Failed to delete');
     }
@@ -76,26 +83,33 @@ const UserList = () => {
   };
 
   const columns = useMemo(() => [
-    { key: 'username', label: 'Username', sortable: true },
-    { key: 'email', label: 'Email', sortable: true },
-    { key: 'role', label: 'Role', type: 'chip' },
-    { key: 'isActive', label: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
-    { key: 'createdAt', label: 'Created', type: 'date' },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row) => (
-        <Stack direction="row" spacing={1}>
-          <IconButton size="small" onClick={() => handleEdit(row)} title="Edit User">
-            <Edit fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(row.id)} title="Delete User">
-            <Delete fontSize="small" />
-          </IconButton>
-        </Stack>
-      ),
-    },
+    { field: 'username', headerName: 'Username', sortable: true },
+    { field: 'email', headerName: 'Email', sortable: true },
+    { field: 'role', headerName: 'Role', type: 'chip' },
+    { field: 'isActive', headerName: 'Status', type: 'status' },
+    { field: 'createdAt', headerName: 'Created', type: 'date' },
   ], []);
+
+  const actions = useMemo(() => [
+    {
+      label: 'Edit User',
+      icon: <Edit fontSize="small" />,
+      onClick: (row) => handleEdit(row)
+    },
+    {
+      label: 'Delete User',
+      icon: <Delete fontSize="small" />,
+      onClick: (row) => handleDelete(row.id)
+    }
+  ], []);
+
+  if (authLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Typography>Verifying authentication...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -120,9 +134,12 @@ const UserList = () => {
         columns={columns}
         data={rows}
         loading={loading}
-        initialPageSize={10}
-        enableSearch
-        searchableKeys={['username', 'email', 'role']}
+        actions={actions}
+        onAction={(action, row) => action.onClick(row)}
+        searchable={true}
+        sortable={true}
+        paginated={true}
+        rowsPerPage={10}
         emptyMessage="No users found"
       />
     </Box>

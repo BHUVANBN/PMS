@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, USER_ROLES, Project, Sprint, BugTracker } from '../models/index.js';
+import { User, USER_ROLES, Project, Sprint, BugTracker, ActivityLog } from '../models/index.js';
 
 /**
  * Create a new user account with any role (Admin privilege)
@@ -414,31 +414,139 @@ export const resetUserPassword = async (req, res) => {
  */
 export const getActivityLogs = async (req, res) => {
 	try {
-		const { limit = 50, offset = 0 } = req.query;
-		
-		// Get recent user activities (registrations, logins, etc.)
+		const { limit = 20 } = req.query;
+		const activities = [];
+
+		// 1. Get recent user activities (registrations)
 		const recentUsers = await User.find({ isActive: true })
 			.sort({ createdAt: -1 })
-			.limit(parseInt(limit))
-			.skip(parseInt(offset))
+			.limit(5)
 			.select('username email role createdAt updatedAt');
 
-		// Convert user data to activity format (real data only)
-		const activities = recentUsers.map(user => ({
-			id: user._id,
-			type: 'user_created',
-			description: `User ${user.username} (${user.role}) was created`,
-			timestamp: user.createdAt,
-			user: {
-				username: user.username,
-				role: user.role
+		recentUsers.forEach(user => {
+			activities.push({
+				id: `user_${user._id}`,
+				type: 'user_joined',
+				title: 'New team member',
+				description: `${user.username} (${user.role}) joined the team`,
+				user: 'System',
+				timestamp: user.createdAt
+			});
+
+			// Add user update activity if user was recently updated
+			if (user.updatedAt && user.updatedAt !== user.createdAt) {
+				const timeDiff = new Date(user.updatedAt) - new Date(user.createdAt);
+				if (timeDiff > 1000) { // More than 1 second difference
+					activities.push({
+						id: `user_update_${user._id}`,
+						type: 'comment_added',
+						title: 'User profile updated',
+						description: `${user.username}'s profile was updated`,
+						user: 'Admin',
+						timestamp: user.updatedAt
+					});
+				}
 			}
-		}));
+		});
+
+		// 2. Get recent projects
+		const recentProjects = await Project.find({})
+			.sort({ createdAt: -1 })
+			.limit(5)
+			.populate('managerId', 'username')
+			.select('name description managerId createdAt');
+
+		recentProjects.forEach(project => {
+			activities.push({
+				id: `project_${project._id}`,
+				type: 'ticket_created',
+				title: 'New project created',
+				description: `Project "${project.name}" was created`,
+				user: project.managerId?.username || 'Unknown',
+				timestamp: project.createdAt
+			});
+		});
+
+		// 3. Get recent bugs
+		try {
+			const recentBugs = await BugTracker.find({})
+				.sort({ createdAt: -1 })
+				.limit(5)
+				.populate('reportedBy', 'username')
+				.select('title description reportedBy createdAt status');
+
+			recentBugs.forEach(bug => {
+				activities.push({
+					id: `bug_${bug._id}`,
+					type: 'bug_reported',
+					title: 'Bug reported',
+					description: `"${bug.title}" - ${bug.description?.substring(0, 50) || 'No description'}...`,
+					user: bug.reportedBy?.username || 'Unknown',
+					timestamp: bug.createdAt
+				});
+			});
+		} catch (bugError) {
+			console.log('No bugs found, continuing with other activities');
+		}
+
+		// 4. Get recent sprints
+		try {
+			const recentSprints = await Sprint.find({})
+				.sort({ createdAt: -1 })
+				.limit(3)
+				.populate('projectId', 'name')
+				.select('name projectId createdAt status');
+
+			recentSprints.forEach(sprint => {
+				activities.push({
+					id: `sprint_${sprint._id}`,
+					type: 'task_completed',
+					title: 'Sprint created',
+					description: `Sprint "${sprint.name}" for ${sprint.projectId?.name || 'Unknown Project'}`,
+					user: 'System',
+					timestamp: sprint.createdAt
+				});
+			});
+		} catch (sprintError) {
+			console.log('No sprints found, continuing with other activities');
+		}
+
+		// 5. Get activity logs if they exist
+		try {
+			const activityLogs = await ActivityLog.find({})
+				.sort({ timestamp: -1 })
+				.limit(5)
+				.populate('userId', 'username')
+				.select('description userId timestamp action entityType');
+
+			activityLogs.forEach(log => {
+				let activityType = 'comment_added';
+				if (log.action === 'created') activityType = 'ticket_created';
+				else if (log.action === 'updated') activityType = 'task_completed';
+				else if (log.entityType === 'bug_tracker') activityType = 'bug_reported';
+
+				activities.push({
+					id: `log_${log._id}`,
+					type: activityType,
+					title: `${log.entityType} ${log.action}`,
+					description: log.description,
+					user: log.userId?.username || 'Unknown',
+					timestamp: log.timestamp
+				});
+			});
+		} catch (logError) {
+			console.log('No activity logs found, continuing with other activities');
+		}
+
+		// Sort all activities by timestamp (newest first) and limit
+		const sortedActivities = activities
+			.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+			.slice(0, parseInt(limit));
 
 		return res.status(200).json({
 			message: 'Activity logs retrieved successfully',
-			activities,
-			total: activities.length
+			activities: sortedActivities,
+			total: sortedActivities.length
 		});
 
 	} catch (error) {

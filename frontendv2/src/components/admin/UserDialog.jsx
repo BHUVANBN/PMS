@@ -80,9 +80,17 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
           delete submitData.password;
         }
       }
+      
+      // Ensure username is properly formatted for new users
+      if (!user && formData.firstName && formData.lastName) {
+        submitData.username = `${formData.firstName} ${formData.lastName}`;
+      }
+      
+      console.log('Submitting user data:', submitData);
       await onSave(submitData);
     } catch (error) {
       console.error('Error saving user:', error);
+      // Don't set loading to false here as the parent component will handle the dialog closing
     } finally {
       setLoading(false);
     }

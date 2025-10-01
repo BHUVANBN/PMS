@@ -112,13 +112,23 @@ const RecentActivity = ({ activities = [] }) => {
     }
   ];
 
-  const displayActivities = activities.length > 0 ? activities : mockActivities;
+  const displayActivities = activities.length > 0 ? activities.slice(0, 5) : mockActivities;
 
   return (
     <Card sx={{ height: '100%' }}>
       <CardHeader
         title="Recent Activity"
         titleTypographyProps={{ variant: 'h6', fontWeight: 'bold' }}
+        action={
+          activities.length > 0 && (
+            <Chip 
+              label="Live" 
+              size="small" 
+              color="success" 
+              variant="outlined"
+            />
+          )
+        }
       />
       <CardContent sx={{ pt: 0 }}>
         <List sx={{ p: 0 }}>

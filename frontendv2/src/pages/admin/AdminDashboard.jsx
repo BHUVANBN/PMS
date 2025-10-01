@@ -38,9 +38,10 @@ import RecentActivity from '../../components/dashboard/RecentActivity';
 import UserDialog from '../../components/admin/UserDialog';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { Snackbar, Alert } from '@mui/material';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, authLoading, isAuthenticated } = useAuth();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -48,29 +49,35 @@ export default function AdminDashboard() {
     systemHealth: 100,
     securityAlerts: 0,
   });
+  const [activities, setActivities] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (!authLoading && isAuthenticated && user) {
+      fetchDashboardData();
+    }
+  }, [authLoading, isAuthenticated, user]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [usersResponse, statsResponse, healthResponse] = await Promise.all([
+      const [usersResponse, statsResponse, healthResponse, activitiesResponse] = await Promise.all([
         adminAPI.getAllUsers(),
         adminAPI.getSystemStats(),
         adminAPI.getSystemHealth(),
+        adminAPI.getActivityLogs(),
       ]);
 
       console.log('Users Response:', usersResponse);
       console.log('Stats Response:', statsResponse);
       console.log('Health Response:', healthResponse);
+      console.log('Activities Response:', activitiesResponse);
 
       // Normalize users - handle direct array response
       let realUsers = [];
@@ -98,7 +105,23 @@ export default function AdminDashboard() {
       const s = statsResponse || {};
       const h = healthResponse?.health || healthResponse || {};
 
+      // Normalize activities
+      let realActivities = [];
+      if (Array.isArray(activitiesResponse)) {
+        realActivities = activitiesResponse;
+      } else if (activitiesResponse?.activities) {
+        realActivities = activitiesResponse.activities;
+      } else if (activitiesResponse?.data?.activities) {
+        realActivities = activitiesResponse.data.activities;
+      }
+
+      console.log('Real activities found:', realActivities.length);
+      if (realActivities.length > 0) {
+        console.log('Sample activity:', realActivities[0]);
+      }
+
       setUsers(normalizedUsers);
+      setActivities(realActivities);
       setStats({
         totalUsers: s.totalUsers ?? normalizedUsers.length,
         activeProjects: s.activeProjects ?? 0,
@@ -121,46 +144,77 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await adminAPI.deleteUser(userId);
-        setUsers(users.filter(user => user.id !== userId));
+        const response = await adminAPI.deleteUser(userId);
+        console.log('Delete response:', response);
+        
+        // Refresh the user list from the database
+        await fetchDashboardData();
+        
+        setSnackbar({
+          open: true,
+          message: 'User deleted successfully',
+          severity: 'success'
+        });
       } catch (error) {
         console.error('Error deleting user:', error);
+        setSnackbar({
+          open: true,
+          message: `Failed to delete user: ${error.message}`,
+          severity: 'error'
+        });
       }
     }
   };
 
   const handleUpdateUser = async (userData) => {
     try {
-      await adminAPI.updateUserRole(userData.id, userData);
-      setUsers(users.map(user => 
-        user.id === userData.id ? { ...user, ...userData } : user
-      ));
+      const response = await adminAPI.updateUserRole(userData.id, userData);
+      console.log('Update response:', response);
+      
+      // Refresh the user list from the database
+      await fetchDashboardData();
+      
       setOpenDialog(false);
       setSelectedUser(null);
+      
+      setSnackbar({
+        open: true,
+        message: 'User updated successfully',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Failed to update user: ' + error.message);
+      setSnackbar({
+        open: true,
+        message: `Failed to update user: ${error.message}`,
+        severity: 'error'
+      });
     }
   };
 
   const handleCreateUser = async (userData) => {
     try {
       const response = await adminAPI.createUser(userData);
-      const newUser = {
-        id: response.user._id,
-        username: response.user.username,
-        email: response.user.email,
-        role: response.user.role,
-        status: response.user.isActive ? 'active' : 'inactive',
-        lastLogin: response.user.createdAt,
-        createdAt: response.user.createdAt,
-      };
-      setUsers([...users, newUser]);
+      console.log('Create response:', response);
+      
+      // Refresh the user list from the database
+      await fetchDashboardData();
+      
       setOpenDialog(false);
       setSelectedUser(null);
+      
+      setSnackbar({
+        open: true,
+        message: 'User created successfully',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user: ' + error.message);
+      setSnackbar({
+        open: true,
+        message: `Failed to create user: ${error.message}`,
+        severity: 'error'
+      });
     }
   };
 
@@ -180,12 +234,25 @@ export default function AdminDashboard() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  if (authLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Typography>Verifying authentication...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -350,7 +417,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <Grid item xs={12} lg={4}>
-          <RecentActivity />
+          <RecentActivity activities={activities} />
         </Grid>
       </Grid>
 
@@ -364,6 +431,22 @@ export default function AdminDashboard() {
         }}
         onSave={selectedUser ? handleUpdateUser : handleCreateUser}
       />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -17,6 +17,30 @@ import {
 
 const router = express.Router();
 
+// Debug route for testing activity logs (remove in production) - before auth middleware
+router.get('/activity-debug', async (req, res) => {
+	try {
+		const { User, Project, BugTracker, Sprint } = await import('../models/index.js');
+		
+		const userCount = await User.countDocuments();
+		const projectCount = await Project.countDocuments();
+		const bugCount = await BugTracker.countDocuments();
+		const sprintCount = await Sprint.countDocuments();
+		
+		return res.json({
+			message: 'Activity debug info',
+			counts: {
+				users: userCount,
+				projects: projectCount,
+				bugs: bugCount,
+				sprints: sprintCount
+			}
+		});
+	} catch (error) {
+		return res.status(500).json({ error: error.message });
+	}
+});
+
 // All admin routes require authentication and admin role
 router.use(verifyToken);
 router.use(allowAdminOnly);
@@ -63,6 +87,7 @@ router.get('/health', getSystemHealth);
 router.get('/all', (req, res) => {
 	return res.json({ message: 'Admin can do everything' });
 });
+
 
 export default router;
 

@@ -103,7 +103,7 @@ const DataTable = ({
     return data.filter(row =>
       columns.some(column => {
         const value = row[column.field];
-        if (value == null) return false;
+        if (value == null || value === '') return false;
         return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
       })
     );
@@ -211,7 +211,7 @@ const DataTable = ({
 
     const value = row[column.field];
     
-    if (value == null) return '-';
+    if (value == null || value === '') return '';
     
     // Handle different column types
     switch (column.type) {

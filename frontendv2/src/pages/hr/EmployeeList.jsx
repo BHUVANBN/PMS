@@ -39,7 +39,7 @@ const EmployeeList = () => {
         email: e.email || 'N/A',
         role: e.role || 'N/A',
         department: e.department || e.dept || '-',
-        isActive: e.isActive !== false,
+        isActive: e.isActive !== false ? 'Active' : 'Inactive',
         createdAt: e.createdAt,
       }));
       
@@ -73,34 +73,34 @@ const EmployeeList = () => {
   const handleToggleStatus = async (id) => {
     try {
       await hrAPI.toggleEmployeeStatus(id);
-      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, isActive: !r.isActive } : r)));
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, isActive: r.isActive === 'Active' ? 'Inactive' : 'Active' } : r)));
     } catch (err) {
       alert(err.message || 'Failed to toggle status');
     }
   };
 
   const columns = useMemo(() => [
-    { key: 'name', label: 'Name', sortable: true },
-    { key: 'email', label: 'Email', sortable: true },
-    { key: 'role', label: 'Role', type: 'chip' },
-    { key: 'department', label: 'Department' },
-    { key: 'isActive', label: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
-    { key: 'createdAt', label: 'Joined', type: 'date' },
+    { field: 'name', headerName: 'Name', sortable: true },
+    { field: 'email', headerName: 'Email', sortable: true },
+    { field: 'role', headerName: 'Role', type: 'chip' },
+    { field: 'department', headerName: 'Department' },
+    { field: 'isActive', headerName: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
+    { field: 'createdAt', headerName: 'Joined', type: 'date' },
     {
-      key: 'actions',
-      label: 'Actions',
+      field: 'actions',
+      headerName: 'Actions',
       render: (row) => (
         <Stack direction="row" spacing={1}>
           <IconButton size="small" onClick={() => navigate(`/hr/employees/${row.id}/edit`)}>
             <Edit fontSize="small" />
           </IconButton>
-          <IconButton size="small" color={row.isActive ? 'warning' : 'success'} onClick={() => handleToggleStatus(row.id)}>
+          <IconButton size="small" color={row.isActive === 'Active' ? 'warning' : 'success'} onClick={() => handleToggleStatus(row.id)}>
             <ToggleOn fontSize="small" />
           </IconButton>
         </Stack>
       ),
     },
-  ], []);
+  ], [navigate]);
 
   return (
     <Box>

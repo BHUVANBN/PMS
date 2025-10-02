@@ -82,9 +82,13 @@ export const createEmployee = async (req, res) => {
  */
 export const getAllEmployees = async (req, res) => {
 	try {
+		// HR can see all users except other HR users and admins (unless they need to)
+		// For now, let's allow HR to see all users for management purposes
 		const employees = await User.find({})
 			.select('-password') // Exclude password from response
 			.sort({ createdAt: -1 }); // Sort by newest first
+
+		console.log(`HR getAllEmployees: Found ${employees.length} employees`);
 
 		return res.status(200).json({
 			message: 'Employees retrieved successfully',

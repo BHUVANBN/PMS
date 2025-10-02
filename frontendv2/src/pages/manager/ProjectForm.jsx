@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Button, Grid, MenuItem, Paper, Stack, Typography, Chip } from '@mui/material';
 import { FormInput, FormSelect, FormSection, FormActions } from '../../components/shared/FormComponents';
-import { projectsAPI, usersAPI, managerAPI } from '../../services/api';
+import { projectsAPI, usersAPI, managerAPI, adminAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Align with backend PROJECT_STATUS enum
 const STATUS_OPTIONS = [
@@ -13,6 +14,9 @@ const STATUS_OPTIONS = [
 ];
 
 const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const [values, setValues] = useState({
     name: '',
     description: '',
@@ -25,6 +29,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
+  const [managers, setManagers] = useState([]);
   // Team management state (edit mode)
   const [team, setTeam] = useState([]);
   const [candidates, setCandidates] = useState([]);
@@ -39,6 +44,17 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
         console.log('Users API response:', res);
         const list = res?.data || res?.users || res || [];
         console.log('Extracted users list:', list);
+        
+        // Load managers for admin
+        if (isAdmin) {
+          try {
+            const managersRes = await adminAPI.getUsersByRole('manager');
+            const managersList = managersRes?.data || managersRes?.users || managersRes || [];
+            setManagers(Array.isArray(managersList) ? managersList : []);
+          } catch (err) {
+            console.error('Error loading managers:', err);
+          }
+        }
         
         // Deduplicate by _id and normalize shape
         const seen = new Set();
@@ -130,14 +146,30 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
       setLoading(true);
       setError(null);
       if (mode === 'create') {
-        // Manager creation: backend sets projectManager from authenticated user
         const payload = {
           name: values.name,
           description: values.description,
           startDate: values.startDate,
           endDate: values.endDate || undefined,
+          status: values.status,
         };
-        await managerAPI.createProject(payload);
+        
+        // Admin can assign manager and team, otherwise backend sets from authenticated user
+        if (isAdmin) {
+          if (!values.projectManager) {
+            setError('Please select a project manager');
+            setLoading(false);
+            return;
+          }
+          payload.projectManager = values.projectManager;
+          // Add team members if selected (optional)
+          if (values.teamMembers && values.teamMembers.length > 0) {
+            payload.teamMembers = values.teamMembers;
+          }
+          await projectsAPI.createProject(payload);
+        } else {
+          await managerAPI.createProject(payload);
+        }
       } else {
         const payload = {
           name: values.name,
@@ -195,9 +227,13 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                 <FormInput label="Project Name" value={values.name} onChange={(e)=>handleChange('name', e.target.value)} required />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormSelect label="Status" value={values.status} onChange={(e)=>handleChange('status', e.target.value)} required disabled={mode==='create'}>
-                  {STATUS_OPTIONS.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
-                </FormSelect>
+                <FormSelect 
+                  label="Status" 
+                  value={values.status} 
+                  onChange={(e)=>handleChange('status', e.target.value)} 
+                  options={STATUS_OPTIONS}
+                  required
+                />
               </Grid>
               <Grid item xs={12}>
                 <FormInput label="Description" multiline rows={3} value={values.description} onChange={(e)=>handleChange('description', e.target.value)} />
@@ -213,54 +249,47 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
 
           <FormSection title="Team">
             <Grid container spacing={3}>
-              {mode !== 'create' && (
+              {/* Show manager selection for admin during creation, or for edit mode */}
+              {(isAdmin && mode === 'create') || mode === 'edit' ? (
                 <Grid item xs={12} sm={6}>
                   <FormSelect
                     label="Project Manager"
                     value={values.projectManager}
                     onChange={(e)=>handleChange('projectManager', e.target.value)}
-                    required
-                    disabled={users.length === 0}
-                  >
-                    {users.length === 0 ? (
-                      <MenuItem disabled>Loading managers...</MenuItem>
-                    ) : (
-                      users.filter(u => (u.role === 'manager' || u.role === 'admin')).map(u => (
-                        <MenuItem key={u._id||u.id} value={u._id||u.id}>
-                          {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
-                        </MenuItem>
-                      ))
-                    )}
-                  </FormSelect>
+                    options={managers.map(m => ({
+                      value: m._id || m.id,
+                      label: `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.username || m.email
+                    }))}
+                    required={isAdmin && mode === 'create'}
+                    disabled={managers.length === 0}
+                  />
                 </Grid>
-              )}
-              {mode !== 'create' ? (
+              ) : null}
+              
+              {/* Team Members - show for admin during creation or edit mode */}
+              {(isAdmin && mode === 'create') || mode === 'edit' ? (
                 <Grid item xs={12} sm={6}>
                   <FormSelect
-                    label="Team Members"
+                    label="Team Members (Optional)"
                     value={values.teamMembers}
                     onChange={(e)=>handleChange('teamMembers', e.target.value)}
+                    options={users
+                      .filter(u => u.role !== 'admin' && u.role !== 'hr')
+                      .map(u => ({
+                        value: u._id || u.id,
+                        label: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username || u.email
+                      }))}
                     multiple
                     disabled={users.length === 0}
-                  >
-                    {users.length === 0 ? (
-                      <MenuItem disabled>Loading team members...</MenuItem>
-                    ) : (
-                      users.map(u => (
-                        <MenuItem key={u._id||u.id} value={u._id||u.id}>
-                          {u.firstName ? `${u.firstName} ${u.lastName||''}`.trim() : (u.username || u.email || u._id)}
-                        </MenuItem>
-                      ))
-                    )}
-                  </FormSelect>
+                  />
                 </Grid>
-              ) : (
+              ) : mode === 'create' ? (
                 <Grid item xs={12}>
                   <Typography variant="body2" color="text.secondary">
-                    Team can be added after creating the project in the Team Management section.
+                    Team members can be added after creating the project.
                   </Typography>
                 </Grid>
-              )}
+              ) : null}
             </Grid>
           </FormSection>
 

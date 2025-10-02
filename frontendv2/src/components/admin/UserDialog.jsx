@@ -151,8 +151,10 @@ const UserDialog = ({ open, user, onClose, onSave }) => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Role</InputLabel>
+                <InputLabel id="role-select-label">Role</InputLabel>
                 <Select
+                  labelId="role-select-label"
+                  id="role-select"
                   value={formData.role}
                   label="Role"
                   onChange={(e) => handleChange('role', e.target.value)}

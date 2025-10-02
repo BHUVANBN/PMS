@@ -5,7 +5,15 @@ import { FormInput, FormSelect, FormSection, FormActions } from '../../component
 import { adminAPI } from '../../services/api';
 
 const ROLE_OPTIONS = [
-  'admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern', 'employee'
+  { value: 'admin', label: 'Admin' },
+  { value: 'hr', label: 'HR' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'developer', label: 'Developer' },
+  { value: 'tester', label: 'Tester' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'intern', label: 'Intern' },
+  { value: 'employee', label: 'Employee' }
 ];
 
 const UserEdit = () => {
@@ -160,14 +168,9 @@ const UserEdit = () => {
                     label="Role" 
                     value={values.role} 
                     onChange={(e) => handleChange('role', e.target.value)} 
+                    options={ROLE_OPTIONS}
                     required
-                  >
-                    {ROLE_OPTIONS.map(r => (
-                      <MenuItem key={r} value={r}>
-                        {r.charAt(0).toUpperCase() + r.slice(1)}
-                      </MenuItem>
-                    ))}
-                  </FormSelect>
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormInput 

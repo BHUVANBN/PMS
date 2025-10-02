@@ -325,11 +325,23 @@ export const getSystemStats = async (req, res) => {
 
 		const totalUsers = await User.countDocuments();
 		const activeUsers = await User.countDocuments({ isActive: true });
+		
+		// Get active projects count
+		const activeProjects = await Project.countDocuments({ 
+			status: 'active'
+		});
+		
+		// Get security alerts (count of recent failed login attempts or inactive admins)
+		// For now, we'll count inactive users as a security metric
+		const inactiveUsers = totalUsers - activeUsers;
+		const securityAlerts = inactiveUsers > 5 ? Math.floor(inactiveUsers / 5) : 0;
 
 		return res.status(200).json({
 			message: 'System statistics retrieved successfully',
 			totalUsers,
 			activeUsers,
+			activeProjects,
+			securityAlerts,
 			inactiveUsers: totalUsers - activeUsers,
 			byRole: stats
 		});
@@ -453,8 +465,8 @@ export const getActivityLogs = async (req, res) => {
 		const recentProjects = await Project.find({})
 			.sort({ createdAt: -1 })
 			.limit(5)
-			.populate('managerId', 'username')
-			.select('name description managerId createdAt');
+			.populate('projectManager', 'username')
+			.select('name description projectManager createdAt');
 
 		recentProjects.forEach(project => {
 			activities.push({
@@ -462,7 +474,7 @@ export const getActivityLogs = async (req, res) => {
 				type: 'ticket_created',
 				title: 'New project created',
 				description: `Project "${project.name}" was created`,
-				user: project.managerId?.username || 'Unknown',
+				user: project.projectManager?.username || 'Unknown',
 				timestamp: project.createdAt
 			});
 		});

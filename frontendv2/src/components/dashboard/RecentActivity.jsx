@@ -68,51 +68,9 @@ const RecentActivity = ({ activities = [] }) => {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  // Mock data if no activities provided
-  const mockActivities = [
-    {
-      id: 1,
-      type: 'ticket_created',
-      title: 'New ticket created',
-      description: 'User authentication bug reported',
-      user: 'John Doe',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000)
-    },
-    {
-      id: 2,
-      type: 'task_completed',
-      title: 'Task completed',
-      description: 'Dashboard UI implementation finished',
-      user: 'Jane Smith',
-      timestamp: new Date(Date.now() - 45 * 60 * 1000)
-    },
-    {
-      id: 3,
-      type: 'bug_reported',
-      title: 'Bug reported',
-      description: 'Login form validation issue',
-      user: 'Mike Johnson',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-    },
-    {
-      id: 4,
-      type: 'comment_added',
-      title: 'Comment added',
-      description: 'Added review comments on PR #123',
-      user: 'Sarah Wilson',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000)
-    },
-    {
-      id: 5,
-      type: 'user_joined',
-      title: 'New team member',
-      description: 'Alex Brown joined the development team',
-      user: 'System',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
-    }
-  ];
-
-  const displayActivities = activities.length > 0 ? activities.slice(0, 5) : mockActivities;
+  // Only show real activities - no mock data
+  const displayActivities = activities.slice(0, 5);
+  const isLiveData = activities.length > 0;
 
   return (
     <Card sx={{ height: '100%' }}>
@@ -120,62 +78,94 @@ const RecentActivity = ({ activities = [] }) => {
         title="Recent Activity"
         titleTypographyProps={{ variant: 'h6', fontWeight: 'bold' }}
         action={
-          activities.length > 0 && (
+          isLiveData ? (
             <Chip 
               label="Live" 
               size="small" 
               color="success" 
+              variant="filled"
+              sx={{ 
+                animation: 'pulse 2s infinite',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.7 }
+                }
+              }}
+            />
+          ) : (
+            <Chip 
+              label="Demo Data" 
+              size="small" 
+              color="default" 
               variant="outlined"
             />
           )
         }
       />
       <CardContent sx={{ pt: 0 }}>
-        <List sx={{ p: 0 }}>
-          {displayActivities.map((activity, index) => (
-            <React.Fragment key={activity.id}>
-              <ListItem sx={{ px: 0, py: 1 }}>
-                <ListItemAvatar>
-                  <Avatar
-                    sx={{
-                      bgcolor: `${getActivityColor(activity.type)}.main`,
-                      width: 40,
-                      height: 40,
-                    }}
-                  >
-                    {getActivityIcon(activity.type)}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {activity.title}
-                      </Typography>
-                      <Chip
-                        label={formatTimeAgo(activity.timestamp)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                      />
-                    </Box>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {activity.description}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        by {activity.user}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </ListItem>
-              {index < displayActivities.length - 1 && <Divider variant="inset" />}
-            </React.Fragment>
-          ))}
-        </List>
+        {displayActivities.length === 0 ? (
+          <Box 
+            display="flex" 
+            flexDirection="column" 
+            alignItems="center" 
+            justifyContent="center" 
+            py={4}
+          >
+            <Schedule sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              No recent activity yet
+            </Typography>
+            <Typography variant="caption" color="text.secondary" textAlign="center">
+              Activity will appear here as users interact with the system
+            </Typography>
+          </Box>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {displayActivities.map((activity, index) => (
+              <React.Fragment key={activity.id}>
+                <ListItem sx={{ px: 0, py: 1 }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      sx={{
+                        bgcolor: `${getActivityColor(activity.type)}.main`,
+                        width: 40,
+                        height: 40,
+                      }}
+                    >
+                      {getActivityIcon(activity.type)}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="body2" fontWeight="medium">
+                          {activity.title}
+                        </Typography>
+                        <Chip
+                          label={formatTimeAgo(activity.timestamp)}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem', height: 20 }}
+                        />
+                      </Box>
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {activity.description}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          by {activity.user}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </ListItem>
+                {index < displayActivities.length - 1 && <Divider variant="inset" />}
+              </React.Fragment>
+            ))}
+          </List>
+        )}
       </CardContent>
     </Card>
   );

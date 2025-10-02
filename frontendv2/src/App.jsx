@@ -42,6 +42,7 @@ import InternDashboard from './pages/intern/InternDashboard';
 // Generic pages
 import ProjectsPage from './pages/ProjectsPage';
 import TicketsPage from './pages/TicketsPage';
+import AdminTicketsPage from './pages/AdminTicketsPage';
 import TeamPage from './pages/TeamPage';
 import SprintsPage from './pages/SprintsPage';
 import BugsPage from './pages/BugsPage';
@@ -114,7 +115,7 @@ function App() {
 
               {/* Generic sections */}
               <Route path="projects" element={<ProjectsPage />} />
-              <Route path="tickets" element={<TicketsPage />} />
+              <Route path="tickets" element={<ProtectedRoute requiredRoles={["admin"]}><AdminTicketsPage /></ProtectedRoute>} />
               <Route path="team" element={<TeamPage />} />
               <Route path="sprints" element={<SprintsPage />} />
               <Route path="bugs" element={<BugsPage />} />

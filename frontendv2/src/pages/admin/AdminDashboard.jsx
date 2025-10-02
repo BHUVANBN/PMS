@@ -59,8 +59,37 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       fetchDashboardData();
+      
+      // Set up polling for real-time activity updates every 30 seconds
+      const activityInterval = setInterval(() => {
+        fetchActivities();
+      }, 30000);
+      
+      return () => {
+        clearInterval(activityInterval);
+      };
     }
   }, [authLoading, isAuthenticated, user]);
+
+  const fetchActivities = async () => {
+    try {
+      const activitiesResponse = await adminAPI.getActivityLogs();
+      
+      // Normalize activities
+      let realActivities = [];
+      if (Array.isArray(activitiesResponse)) {
+        realActivities = activitiesResponse;
+      } else if (activitiesResponse?.activities) {
+        realActivities = activitiesResponse.activities;
+      } else if (activitiesResponse?.data?.activities) {
+        realActivities = activitiesResponse.data.activities;
+      }
+
+      setActivities(realActivities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -275,8 +304,8 @@ export default function AdminDashboard() {
           <StatsCard
             title="Total Users"
             value={stats.totalUsers}
-            change="+12% from last month"
-            changeType="positive"
+            change={`${stats.totalUsers} registered users`}
+            changeType="neutral"
             icon={People}
             color="primary"
           />
@@ -285,8 +314,8 @@ export default function AdminDashboard() {
           <StatsCard
             title="Active Projects"
             value={stats.activeProjects}
-            change="+2 new this week"
-            changeType="positive"
+            change={`${stats.activeProjects} in progress`}
+            changeType="neutral"
             icon={Business}
             color="success"
           />
@@ -295,8 +324,8 @@ export default function AdminDashboard() {
           <StatsCard
             title="System Health"
             value={`${stats.systemHealth}%`}
-            change="All systems operational"
-            changeType="neutral"
+            change={stats.systemHealth === 100 ? "All systems operational" : "System degraded"}
+            changeType={stats.systemHealth === 100 ? "positive" : "negative"}
             icon={Assessment}
             color="info"
           />

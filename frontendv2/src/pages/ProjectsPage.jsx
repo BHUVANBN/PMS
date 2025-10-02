@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Typography, 
   Grid, 
@@ -35,6 +36,7 @@ import Badge from '../components/ui/Badge';
 import { projectsAPI, adminAPI, managerAPI } from '../services/api';
 
 const ProjectsPage = () => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
@@ -183,6 +185,7 @@ const ProjectsPage = () => {
           variant="contained"
           startIcon={<PlusIcon className="h-4 w-4" />}
           sx={{ borderRadius: 2 }}
+          onClick={() => navigate('/manager/projects/new')}
         >
           New Project
         </Button>
@@ -210,7 +213,7 @@ const ProjectsPage = () => {
           <Grid item xs={12} md={6}>
             <Grid container spacing={2} justifyContent="flex-end">
               <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="medium">
                   <InputLabel id="status-filter-label">Status</InputLabel>
                   <Select
                     labelId="status-filter-label"
@@ -228,7 +231,7 @@ const ProjectsPage = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="medium">
                   <InputLabel id="pm-filter-label">Project Manager</InputLabel>
                   <Select
                     labelId="pm-filter-label"
@@ -246,7 +249,7 @@ const ProjectsPage = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="medium">
                   <InputLabel id="sort-by-label">Sort By</InputLabel>
                   <Select
                     labelId="sort-by-label"
@@ -263,7 +266,7 @@ const ProjectsPage = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="medium">
                   <InputLabel id="sort-order-label">Order</InputLabel>
                   <Select
                     labelId="sort-order-label"

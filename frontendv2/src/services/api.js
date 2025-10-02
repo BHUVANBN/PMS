@@ -482,6 +482,20 @@ export const internAPI = {
 
 // Generic APIs
 export const ticketsAPI = {
+  // Get all tickets across all projects (admin/HR only)
+  getAllTickets: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/tickets${suffix}`);
+  },
+
+  // Get all tickets for a specific project
+  getProjectTickets: (projectId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/tickets/project/${projectId}${suffix}`);
+  },
+
   // Ticket endpoints require projectId path parameter on backend
   getTicket: (projectId, ticketId) => 
     apiRequest(`/tickets/${projectId}/${ticketId}`),

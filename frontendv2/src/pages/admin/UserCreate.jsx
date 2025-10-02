@@ -7,7 +7,15 @@ import { adminAPI } from '../../services/api';
 import { Button, Grid, MenuItem, Paper, Stack } from '@mui/material';
 
 const ROLE_OPTIONS = [
-  'admin','hr','manager','developer','tester','sales','marketing','intern'
+  { value: 'admin', label: 'Admin' },
+  { value: 'hr', label: 'HR' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'developer', label: 'Developer' },
+  { value: 'tester', label: 'Tester' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'intern', label: 'Intern' },
+  { value: 'employee', label: 'Employee' }
 ];
 
 const UserCreate = () => {
@@ -61,9 +69,13 @@ const UserCreate = () => {
                   <FormInput label="Email" type="email" value={values.email} onChange={(e)=>handleChange('email', e.target.value)} required />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormSelect label="Role" value={values.role} onChange={(e)=>handleChange('role', e.target.value)} required>
-                    {ROLE_OPTIONS.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-                  </FormSelect>
+                  <FormSelect 
+                    label="Role" 
+                    value={values.role} 
+                    onChange={(e)=>handleChange('role', e.target.value)} 
+                    options={ROLE_OPTIONS}
+                    required 
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormInput label="Password" type="password" value={values.password} onChange={(e)=>handleChange('password', e.target.value)} required />

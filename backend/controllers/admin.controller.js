@@ -628,3 +628,146 @@ export const getSystemHealth = async (req, res) => {
 		});
 	}
 };
+
+/**
+ * Get all projects in the system (Admin only)
+ */
+export const getAllProjects = async (req, res) => {
+	try {
+		const projects = await Project.find({})
+			.populate('projectManager', 'firstName lastName username email')
+			.populate('teamMembers', 'firstName lastName username email role')
+			.select('-__v')
+			.sort({ createdAt: -1 });
+
+		return res.status(200).json({
+			message: 'Projects retrieved successfully',
+			projects: projects,
+			count: projects.length
+		});
+
+	} catch (error) {
+		console.error('Error getting all projects:', error);
+		return res.status(500).json({
+			message: 'Server error while getting projects',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Create a new project (Admin only)
+ */
+export const createProject = async (req, res) => {
+	try {
+		const { 
+			projectName, 
+			description, 
+			projectManager, 
+			teamMembers = [], 
+			startDate, 
+			endDate,
+			priority = 'medium',
+			status = 'planning'
+		} = req.body;
+
+		// Validate required fields
+		if (!projectName || !description || !projectManager) {
+			return res.status(400).json({
+				message: 'Project name, description, and project manager are required'
+			});
+		}
+
+		// Verify project manager exists and has manager role
+		const manager = await User.findById(projectManager);
+		if (!manager) {
+			return res.status(404).json({
+				message: 'Project manager not found'
+			});
+		}
+
+		if (manager.role !== USER_ROLES.MANAGER) {
+			return res.status(400).json({
+				message: 'Assigned user must have manager role'
+			});
+		}
+
+		// Verify team members exist
+		if (teamMembers.length > 0) {
+			const members = await User.find({ _id: { $in: teamMembers } });
+			if (members.length !== teamMembers.length) {
+				return res.status(400).json({
+					message: 'One or more team members not found'
+				});
+			}
+		}
+
+		// Create new project
+		const newProject = await Project.create({
+			projectName,
+			description,
+			projectManager,
+			teamMembers,
+			startDate: startDate ? new Date(startDate) : new Date(),
+			endDate: endDate ? new Date(endDate) : null,
+			priority,
+			status,
+			modules: []
+		});
+
+		// Populate the response
+		const populatedProject = await Project.findById(newProject._id)
+			.populate('projectManager', 'firstName lastName username email')
+			.populate('teamMembers', 'firstName lastName username email role');
+
+		return res.status(201).json({
+			message: 'Project created successfully',
+			project: populatedProject
+		});
+
+	} catch (error) {
+		console.error('Error creating project:', error);
+		return res.status(500).json({
+			message: 'Server error while creating project',
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Get all teams (projects with their team members) created by managers
+ */
+export const getAllTeams = async (req, res) => {
+	try {
+		const teams = await Project.find({})
+			.populate('projectManager', 'firstName lastName username email')
+			.populate('teamMembers', 'firstName lastName username email role')
+			.select('projectName description projectManager teamMembers createdAt status')
+			.sort({ createdAt: -1 });
+
+		// Transform data to focus on team structure
+		const teamData = teams.map(project => ({
+			id: project._id,
+			teamName: project.projectName,
+			description: project.description,
+			manager: project.projectManager,
+			members: project.teamMembers,
+			memberCount: project.teamMembers.length,
+			createdAt: project.createdAt,
+			status: project.status
+		}));
+
+		return res.status(200).json({
+			message: 'Teams retrieved successfully',
+			teams: teamData,
+			count: teamData.length
+		});
+
+	} catch (error) {
+		console.error('Error getting all teams:', error);
+		return res.status(500).json({
+			message: 'Server error while getting teams',
+			error: error.message
+		});
+	}
+};

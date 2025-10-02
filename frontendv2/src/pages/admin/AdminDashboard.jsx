@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Box,
@@ -31,7 +32,8 @@ import {
   Add,
   Edit,
   Delete,
-  Visibility
+  Visibility,
+  Group
 } from '@mui/icons-material';
 import StatsCard from '../../components/dashboard/StatsCard';
 import RecentActivity from '../../components/dashboard/RecentActivity';
@@ -42,12 +44,13 @@ import { Snackbar, Alert } from '@mui/material';
 
 export default function AdminDashboard() {
   const { user, authLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeProjects: 0,
     systemHealth: 100,
-    securityAlerts: 0,
   });
   const [activities, setActivities] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
@@ -96,14 +99,16 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
 
-      const [usersResponse, statsResponse, healthResponse, activitiesResponse] = await Promise.all([
+      const [usersResponse, projectsResponse, statsResponse, healthResponse, activitiesResponse] = await Promise.all([
         adminAPI.getAllUsers(),
+        adminAPI.getAllProjects(),
         adminAPI.getSystemStats(),
         adminAPI.getSystemHealth(),
         adminAPI.getActivityLogs(),
       ]);
 
       console.log('Users Response:', usersResponse);
+      console.log('Projects Response:', projectsResponse);
       console.log('Stats Response:', statsResponse);
       console.log('Health Response:', healthResponse);
       console.log('Activities Response:', activitiesResponse);
@@ -149,13 +154,23 @@ export default function AdminDashboard() {
         console.log('Sample activity:', realActivities[0]);
       }
 
+      // Normalize projects
+      let realProjects = [];
+      if (Array.isArray(projectsResponse)) {
+        realProjects = projectsResponse;
+      } else if (projectsResponse?.projects) {
+        realProjects = projectsResponse.projects;
+      } else if (projectsResponse?.data?.projects) {
+        realProjects = projectsResponse.data.projects;
+      }
+
       setUsers(normalizedUsers);
+      setProjects(realProjects);
       setActivities(realActivities);
       setStats({
         totalUsers: s.totalUsers ?? normalizedUsers.length,
-        activeProjects: s.activeProjects ?? 0,
+        activeProjects: s.activeProjects ?? realProjects.length,
         systemHealth: h.status === 'healthy' ? 100 : 75,
-        securityAlerts: s.securityAlerts ?? 0,
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -300,7 +315,7 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={6}>
           <StatsCard
             title="Total Users"
             value={stats.totalUsers}
@@ -310,41 +325,21 @@ export default function AdminDashboard() {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={6}>
           <StatsCard
             title="Active Projects"
             value={stats.activeProjects}
-            change={`${stats.activeProjects} in progress`}
+            change={`${stats.activeProjects} projects`}
             changeType="neutral"
             icon={Business}
             color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="System Health"
-            value={`${stats.systemHealth}%`}
-            change={stats.systemHealth === 100 ? "All systems operational" : "System degraded"}
-            changeType={stats.systemHealth === 100 ? "positive" : "negative"}
-            icon={Assessment}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Security Alerts"
-            value={stats.securityAlerts}
-            change={stats.securityAlerts > 0 ? "Requires attention" : "All clear"}
-            changeType={stats.securityAlerts > 0 ? "negative" : "positive"}
-            icon={Security}
-            color={stats.securityAlerts > 0 ? "error" : "success"}
           />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
         {/* User Management */}
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6" fontWeight="bold">
@@ -362,31 +357,30 @@ export default function AdminDashboard() {
               </Button>
             </Box>
             
-            <TableContainer>
+            <TableContainer sx={{ maxHeight: 400 }}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell>User</TableCell>
                     <TableCell>Role</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell>Last Login</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={4}>
                         <Typography variant="body2" color="text.secondary">Loading users...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={4}>
                         <Typography variant="body2" color="text.secondary">No users found.</Typography>
                       </TableCell>
                     </TableRow>
-                  ) : users.map((user) => (
+                  ) : users.slice(0, 5).map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <Box>
@@ -415,11 +409,6 @@ export default function AdminDashboard() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {formatDate(user.lastLogin)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
                         <Box display="flex" gap={0.5}>
                           <IconButton
                             size="small"
@@ -441,6 +430,106 @@ export default function AdminDashboard() {
                 </TableBody>
               </Table>
             </TableContainer>
+            {users.length > 5 && (
+              <Box mt={2} textAlign="center">
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => navigate('/admin/users')}
+                >
+                  View All Users ({users.length})
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Project Management */}
+        <Grid item xs={12} lg={6}>
+          <Paper sx={{ p: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h6" fontWeight="bold">
+                Project Management
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                color="success"
+                onClick={() => navigate('/manager/projects/new')}
+              >
+                Add Project
+              </Button>
+            </Box>
+            
+            <TableContainer sx={{ maxHeight: 400 }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Project</TableCell>
+                    <TableCell>Manager</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        <Typography variant="body2" color="text.secondary">Loading projects...</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : projects.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        <Typography variant="body2" color="text.secondary">No projects found.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : projects.slice(0, 5).map((project) => (
+                    <TableRow key={project._id}>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            {project.projectName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {project.description?.substring(0, 50)}...
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {project.projectManager?.firstName} {project.projectManager?.lastName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={project.status || 'active'}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small">
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            {projects.length > 5 && (
+              <Box mt={2} textAlign="center">
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => navigate('/projects')}
+                >
+                  View All Projects ({projects.length})
+                </Button>
+              </Box>
+            )}
           </Paper>
         </Grid>
 

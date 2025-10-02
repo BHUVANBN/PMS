@@ -494,3 +494,4 @@ export const getEmployeeById = async (req, res) => {
 		});
 	}
 };
+

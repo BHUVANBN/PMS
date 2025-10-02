@@ -125,7 +125,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       text: 'Tickets',
       icon: <ListIcon />,
       path: ticketsPath,
-      roles: ['admin', 'manager', 'developer', 'tester'],
+      roles: ['manager', 'developer', 'tester'],
     },
     {
       text: 'Team',
@@ -137,13 +137,13 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       text: 'Sprints',
       icon: <GroupWorkIcon />,
       path: '/sprints',
-      roles: ['admin', 'manager', 'developer', 'tester'],
+      roles: ['manager', 'developer', 'tester'],
     },
     {
       text: 'Bug Tracker',
       icon: <BugReportIcon />,
       path: '/bugs',
-      roles: ['admin', 'tester', 'developer', 'manager'],
+      roles: ['tester', 'developer', 'manager'],
     },
     {
       text: 'Reports',

@@ -12,7 +12,10 @@ import {
     resetUserPassword,
     getActivityLogs,
     getSystemHealth,
-    getOrganizationAnalytics
+    getOrganizationAnalytics,
+    getAllProjects,
+    createProject,
+    getAllTeams
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -82,6 +85,13 @@ router.get('/activity', getActivityLogs);
 
 // Get system health
 router.get('/health', getSystemHealth);
+
+// Project management routes
+router.get('/projects', getAllProjects);
+router.post('/projects', createProject);
+
+// Team management routes
+router.get('/teams', getAllTeams);
 
 // Legacy route for compatibility
 router.get('/all', (req, res) => {

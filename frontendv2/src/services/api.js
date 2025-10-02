@@ -182,6 +182,20 @@ export const adminAPI = {
     apiRequest(`/admin/users/${userId}`, {
       method: 'DELETE',
     }),
+
+  // Project management
+  getAllProjects: () =>
+    apiRequest('/admin/projects'),
+
+  createProject: (projectData) =>
+    apiRequest('/admin/projects', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    }),
+
+  // Team management
+  getAllTeams: () =>
+    apiRequest('/admin/teams'),
 };
 
 // HR API

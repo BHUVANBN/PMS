@@ -177,7 +177,6 @@ const HRDashboard = () => {
             value={stats?.employees?.total || 0}
             icon={<People />}
             color={theme.palette.primary.main}
-            trend="+5% this month"
             subtitle={`${stats?.employees?.active || 0} active`}
           />
         </Grid>
@@ -187,7 +186,6 @@ const HRDashboard = () => {
             value={stats?.employees?.recentHires || 0}
             icon={<PersonAdd />}
             color={theme.palette.success.main}
-            subtitle="Last 30 days"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -205,7 +203,6 @@ const HRDashboard = () => {
             value={stats?.overview?.departmentCount || 0}
             icon={<Work />}
             color={theme.palette.info.main}
-            subtitle="Active departments"
           />
         </Grid>
       </Grid>

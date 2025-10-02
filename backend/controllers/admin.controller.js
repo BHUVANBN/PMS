@@ -146,6 +146,14 @@ export const getAllUsers = async (req, res) => {
 			.select('-password') // Exclude password from response
 			.sort({ createdAt: -1 }); // Sort by newest first
 
+		// Debug: Log role distribution
+		const roleDistribution = {};
+		users.forEach(user => {
+			roleDistribution[user.role] = (roleDistribution[user.role] || 0) + 1;
+		});
+		console.log('Admin getAllUsers - Role distribution:', roleDistribution);
+		console.log(`Total users: ${users.length}`);
+
 		return res.status(200).json({
 			message: 'Users retrieved successfully',
 			users,
@@ -167,9 +175,11 @@ export const getAllUsers = async (req, res) => {
 export const getUsersByRole = async (req, res) => {
 	try {
 		const { role } = req.params;
+		console.log(`Admin getUsersByRole called with role: '${role}'`);
 
 		// Validate role
 		const allowedRoles = Object.values(USER_ROLES);
+		console.log('Allowed roles:', allowedRoles);
 		if (!allowedRoles.includes(role)) {
 			return res.status(400).json({
 				message: 'Invalid role specified',
@@ -180,6 +190,11 @@ export const getUsersByRole = async (req, res) => {
 		const users = await User.find({ role })
 			.select('-password')
 			.sort({ createdAt: -1 });
+
+		console.log(`Found ${users.length} users with role '${role}':`);
+		users.forEach(user => {
+			console.log(`- ${user.firstName} ${user.lastName} (${user.email}) - Role: ${user.role}`);
+		});
 
 		return res.status(200).json({
 			message: `Users with role '${role}' retrieved successfully`,

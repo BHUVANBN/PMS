@@ -55,13 +55,6 @@ const ManagerDashboard = () => {
 
   const quickActions = [
     {
-      title: 'Create Project',
-      subtitle: 'Start new project',
-      icon: <Add />,
-      color: 'primary',
-      path: '/manager/projects/new'
-    },
-    {
       title: 'Assign Tasks',
       subtitle: 'Delegate work',
       icon: <Assignment />,

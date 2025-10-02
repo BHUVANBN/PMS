@@ -16,6 +16,7 @@ import { Standup } from '../models/index.js';
 export const getMyProjects = async (req, res) => {
   try {
     const managerId = req.user._id;
+    console.log(`Manager getMyProjects called by user: ${req.user.email} (ID: ${managerId})`);
     
     const projects = await Project.find({
       projectManager: managerId
@@ -23,9 +24,22 @@ export const getMyProjects = async (req, res) => {
       .populate('modules.moduleLead', 'firstName lastName username')
       .select('-__v');
 
+    console.log(`Found ${projects.length} projects for manager ${req.user.email}`);
+    projects.forEach(project => {
+      console.log(`- Project: ${project.name} (ID: ${project._id})`);
+    });
+
+    // Also check if there are any projects in the database at all
+    const allProjects = await Project.find({}).select('name projectManager');
+    console.log(`Total projects in database: ${allProjects.length}`);
+    allProjects.forEach(project => {
+      console.log(`- ${project.name} managed by: ${project.projectManager}`);
+    });
+
     res.json({
       success: true,
       data: projects,
+      projects: projects, // Add alternative key for frontend parsing
       count: projects.length
     });
   } catch (error) {

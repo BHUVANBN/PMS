@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Add, Edit, Delete, Refresh } from '@mui/icons-material';
+import { Edit, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
 import { managerAPI, projectsAPI } from '../../services/api';
 
@@ -16,22 +16,45 @@ const Projects = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching manager projects...');
       const res = await managerAPI.getAllProjects();
+      console.log('Manager projects API response:', res);
+      
       const projList = res?.projects || res?.data?.projects || res?.data || res || [];
+      console.log('Extracted projects list:', projList);
+      console.log('Projects list type:', typeof projList, 'Is array:', Array.isArray(projList));
+      
       const projects = Array.isArray(projList) ? projList : [];
-      const normalized = projects.map((p) => ({
-        id: p._id || p.id,
-        name: p.name,
-        status: p.status || 'planning',
-        manager: p.projectManager?.firstName
-          ? `${p.projectManager.firstName} ${p.projectManager.lastName || ''}`.trim()
-          : (p.projectManager?.email || '-'),
-        modules: Array.isArray(p.modules) ? p.modules.length : 0,
-        startDate: p.startDate,
-        endDate: p.endDate,
-      }));
+      console.log('Final projects array:', projects);
+      console.log('Projects count:', projects.length);
+      
+      const normalized = projects.map((p) => {
+        console.log('Processing project:', p);
+        return {
+          id: p._id || p.id,
+          name: p.name,
+          status: p.status || 'planning',
+          manager: p.projectManager?.firstName
+            ? `${p.projectManager.firstName} ${p.projectManager.lastName || ''}`.trim()
+            : (p.projectManager?.email || '-'),
+          modules: Array.isArray(p.modules) ? p.modules.length : 0,
+          startDate: p.startDate,
+          endDate: p.endDate,
+        };
+      });
+      console.log('Normalized projects:', normalized);
+      
+      // If no projects found for this manager, show a helpful message
+      if (normalized.length === 0) {
+        console.warn('No projects found for this manager');
+        setError('No projects assigned to you yet. Create a new project or ask an admin to assign you as project manager.');
+      } else {
+        setError(null);
+      }
+      
       setRows(normalized);
     } catch (e) {
+      console.error('Error fetching projects:', e);
       setError(e.message || 'Failed to load projects');
     } finally {
       setLoading(false);
@@ -47,22 +70,6 @@ const Projects = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, location.pathname, navigate]);
-
-  const handleDelete = async (id) => {
-    if (!id) return;
-    const ok = window.confirm('Are you sure you want to permanently delete this project? This cannot be undone.');
-    if (!ok) return;
-    try {
-      if (managerAPI.deleteProjectHard) {
-        await managerAPI.deleteProjectHard(id);
-      } else {
-        await projectsAPI.deleteProject(id);
-      }
-      setRows((prev) => prev.filter((p) => p.id !== id));
-    } catch (e) {
-      alert(e.message || 'Failed to delete project');
-    }
-  };
 
   // Status filter options (map to backend values)
   const STATUS_OPTIONS = [
@@ -103,7 +110,6 @@ const Projects = () => {
         </div>
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" startIcon={<Refresh />} onClick={fetchProjects}>Refresh</Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/manager/projects/new')}>New Project</Button>
         </Stack>
       </Stack>
 
@@ -124,8 +130,21 @@ const Projects = () => {
       </Stack>
 
       {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
-          <Typography color="error">{error}</Typography>
+        <Paper sx={{ p: 3, mb: 2, border: '1px solid', borderColor: error.includes('No projects assigned') ? 'info.light' : 'error.light', bgcolor: error.includes('No projects assigned') ? 'info.50' : 'error.50' }}>
+          <Typography color={error.includes('No projects assigned') ? 'info.dark' : 'error'} sx={{ mb: error.includes('No projects assigned') ? 2 : 0 }}>
+            {error}
+          </Typography>
+          {error.includes('No projects assigned') && (
+            <Stack direction="row" spacing={2}>
+              <Button 
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={fetchProjects}
+              >
+                Refresh
+              </Button>
+            </Stack>
+          )}
         </Paper>
       )}
 
@@ -147,14 +166,6 @@ const Projects = () => {
                   onClick={() => navigate(`/manager/projects/${row.id}/edit`)}
                 >
                   Edit
-                </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<Delete />}
-                  onClick={() => handleDelete(row.id)}
-                >
-                  Delete
                 </Button>
               </Stack>
             );

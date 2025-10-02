@@ -211,12 +211,7 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
                       <FolderOpen fontSize="small" />
                     </Avatar>
                     <Box>
-                      <Typography 
-                        variant="h6" 
-                        fontWeight="bold"
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => openEdit(project)}
-                      >
+                      <Typography variant="h6" fontWeight="bold">
                         {project.name}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -224,19 +219,11 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
                       </Typography>
                     </Box>
                   </Box>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    onClick={() => openEdit(project)}
-                  >
-                    Edit
-                  </Button>
                 </Box>
 
                 <Box mb={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                     <Typography variant="body2" color="text.secondary">
-                      Progress
                     </Typography>
                     <Typography variant="body2" fontWeight="bold">
                       {project.progress}%
@@ -303,66 +290,9 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
             </Grid>
           ))}
         </Grid>
-
-      {/* Quick Edit Dialog */}
-      <Dialog open={editOpen} onClose={closeEdit} fullWidth maxWidth="sm">
-        <DialogTitle>Quick Edit Project</DialogTitle>
-        <DialogContent dividers>
-          {editError && (
-            <Typography variant="body2" color="error" sx={{ mb: 2 }}>{editError}</Typography>
-          )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Project Name"
-              value={editValues.name}
-              onChange={(e)=>handleEditChange('name', e.target.value)}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Description"
-              value={editValues.description}
-              onChange={(e)=>handleEditChange('description', e.target.value)}
-              multiline
-              rows={3}
-              fullWidth
-            />
-            <FormControl fullWidth>
-              <InputLabel id="status-label">Status</InputLabel>
-              <Select
-                labelId="status-label"
-                label="Status"
-                value={editValues.status}
-                onChange={(e)=>handleEditChange('status', e.target.value)}
-              >
-                <MenuItem value="planning">Planning</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="on_hold">On Hold</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="End Date"
-              type="date"
-              value={editValues.endDate}
-              onChange={(e)=>handleEditChange('endDate', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'space-between' }}>
-          <Button onClick={deleteFromDialog} color="error" disabled={editLoading}>Delete</Button>
-          <Box>
-            <Button onClick={closeEdit} sx={{ mr: 1 }} disabled={editLoading}>Cancel</Button>
-            <Button onClick={saveEdit} variant="contained" disabled={editLoading}>Save</Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
 };
 
 export default ProjectOverview;

@@ -786,3 +786,71 @@ export const getAllTeams = async (req, res) => {
 		});
 	}
 };
+
+/**
+ * Update a project (Admin only)
+ */
+export const updateProject = async (req, res) => {
+	try {
+		const { projectId } = req.params;
+		const updateData = req.body;
+
+		console.log('Update project request - ID:', projectId);
+		console.log('Update project request - Data:', updateData);
+
+		// Validate project ID
+		if (!mongoose.Types.ObjectId.isValid(projectId)) {
+			console.log('Invalid project ID format:', projectId);
+			return res.status(400).json({
+				message: 'Invalid project ID'
+			});
+		}
+
+		// Check if project exists
+		const existingProject = await Project.findById(projectId);
+		if (!existingProject) {
+			return res.status(404).json({
+				message: 'Project not found'
+			});
+		}
+
+		// If projectManager is being updated, verify the new manager exists
+		if (updateData.projectManager) {
+			const manager = await User.findById(updateData.projectManager);
+			if (!manager) {
+				return res.status(404).json({
+					message: 'Project manager not found'
+				});
+			}
+		}
+
+		// Convert date strings to Date objects if provided
+		if (updateData.startDate) {
+			updateData.startDate = new Date(updateData.startDate);
+		}
+		if (updateData.endDate) {
+			updateData.endDate = new Date(updateData.endDate);
+		}
+
+		// Update the project
+		const updatedProject = await Project.findByIdAndUpdate(
+			projectId,
+			{ ...updateData, updatedAt: new Date() },
+			{ new: true, runValidators: true }
+		)
+		.populate('projectManager', 'firstName lastName username email')
+		.populate('teamMembers', 'firstName lastName username email role');
+
+		return res.status(200).json({
+			message: 'Project updated successfully',
+			project: updatedProject
+		});
+
+	} catch (error) {
+		console.error('Error updating project:', error);
+		return res.status(500).json({
+			message: 'Server error while updating project',
+			error: error.message
+		});
+	}
+};

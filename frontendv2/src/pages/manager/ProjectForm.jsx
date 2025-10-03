@@ -252,6 +252,26 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
     }
   };
 
+  // Refresh team data from backend
+  const refreshTeamData = async () => {
+    try {
+      console.log('Refreshing team data from backend...');
+      const tRes = await managerAPI.getProjectTeam(projectId);
+      const t = tRes?.data || tRes?.team || tRes || [];
+      const currentTeam = Array.isArray(t) ? t : (t.data || []);
+      console.log('Refreshed team data:', currentTeam);
+      setTeam(currentTeam);
+      
+      // Update candidates by removing team members
+      const teamIds = new Set(currentTeam.map(u => u._id || u.id));
+      setCandidates(prev => prev.filter(u => !teamIds.has(u._id || u.id)));
+      
+      console.log('Team data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing team data:', error);
+    }
+  };
+
   // Team management helpers (outside of handleSubmit)
   const allTeamMembers = [...team, ...candidates];
   const filteredCandidates = allTeamMembers.filter(u => {
@@ -264,17 +284,149 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
 
   const handleRemoveFromTeam = async (userId) => {
     try {
+      console.log('=== REMOVE FROM TEAM START ===');
+      console.log('Removing user from team:', userId, 'for project:', projectId);
+      
+      // Find the user first to get their details
+      const user = team.find(u => (u._id || u.id) === userId);
+      if (!user) {
+        throw new Error('User not found in team');
+      }
+      
+      console.log('User details:', {
+        id: user._id || user.id,
+        name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || user.email),
+        email: user.email
+      });
+      
       // To properly revert the add operation, assign null role to remove from team
-      await managerAPI.assignTeamRole(projectId, userId, { role: null });
+      console.log('Making API call to remove user from team...');
+      const response = await managerAPI.assignTeamRole(projectId, userId, { role: null });
+      console.log('Remove from team API response:', response);
+      
+      // Verify the response indicates success
+      if (!response.success) {
+        throw new Error(response.error || 'API returned unsuccessful response');
+      }
+      
+      console.log('API call successful, updating local state...');
 
       // Update local state - move from team back to candidates
-      const user = team.find(u => (u._id || u.id) === userId);
-      if (user) {
-        setCandidates(prev => [...prev, user]);
-        setTeam(prev => prev.filter(u => (u._id || u.id) !== userId));
-      }
+      setCandidates(prev => {
+        // Check if user is already in candidates to avoid duplicates
+        const isAlreadyInCandidates = prev.some(candidate => (candidate._id || candidate.id) === userId);
+        if (isAlreadyInCandidates) {
+          console.log('User already in candidates, no state change needed');
+          return prev;
+        }
+        const newCandidates = [...prev, user];
+        console.log('Updated candidates state:', newCandidates.map(c => ({ id: c._id || c.id, name: c.firstName || c.username || c.email })));
+        return newCandidates;
+      });
+      
+      setTeam(prev => {
+        const newTeam = prev.filter(u => (u._id || u.id) !== userId);
+        console.log('Updated team state:', newTeam.map(m => ({ id: m._id || m.id, name: m.firstName || m.username || m.email })));
+        return newTeam;
+      });
+      
+      console.log('Local state updated successfully');
+      
+      // Refresh team data from backend to ensure consistency
+      await refreshTeamData();
+      
+      // Show success message
+      const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || user.email);
+      alert(`✅ Successfully removed ${userName} from the project team!`);
+      
+      console.log('=== REMOVE FROM TEAM SUCCESS ===');
+      
     } catch (e) {
-      alert(e.message || 'Failed to remove from team');
+      console.error('=== REMOVE FROM TEAM ERROR ===');
+      console.error('Error removing user from team:', e);
+      console.error('Error details:', {
+        message: e.message,
+        response: e.response?.data,
+        stack: e.stack
+      });
+      
+      const errorMessage = e.response?.data?.error || e.message || 'Failed to remove user from team';
+      alert(`❌ Error: ${errorMessage}`);
+    }
+  };
+
+  const handleAddToTeam = async (userId) => {
+    try {
+      console.log('=== ADD TO TEAM START ===');
+      console.log('Adding user to team:', userId, 'for project:', projectId);
+      
+      // Find the user first to get their details
+      const user = candidates.find(u => (u._id || u.id) === userId) || 
+                   allTeamMembers.find(u => (u._id || u.id) === userId);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      console.log('User details:', {
+        id: user._id || user.id,
+        name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || user.email),
+        email: user.email
+      });
+      
+      // Call the API to assign the user as a team member
+      console.log('Making API call to assignTeamRole...');
+      const response = await managerAPI.assignTeamRole(projectId, userId, { role: 'teamMember' });
+      console.log('Add to team API response:', response);
+      
+      // Verify the response indicates success
+      if (!response.success) {
+        throw new Error(response.error || 'API returned unsuccessful response');
+      }
+      
+      console.log('API call successful, updating local state...');
+
+      // Update local state - move from candidates to team
+      setTeam(prev => {
+        // Check if user is already in team to avoid duplicates
+        const isAlreadyInTeam = prev.some(member => (member._id || member.id) === userId);
+        if (isAlreadyInTeam) {
+          console.log('User already in team, no state change needed');
+          return prev;
+        }
+        const newTeam = [...prev, user];
+        console.log('Updated team state:', newTeam.map(m => ({ id: m._id || m.id, name: m.firstName || m.username || m.email })));
+        return newTeam;
+      });
+      
+      setCandidates(prev => {
+        const newCandidates = prev.filter(u => (u._id || u.id) !== userId);
+        console.log('Updated candidates state:', newCandidates.map(c => ({ id: c._id || c.id, name: c.firstName || c.username || c.email })));
+        return newCandidates;
+      });
+      
+      console.log('Local state updated successfully');
+      
+      // Refresh team data from backend to ensure consistency
+      await refreshTeamData();
+      
+      // Show success message
+      const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user.username || user.email);
+      alert(`✅ Successfully added ${userName} to the project team!`);
+      
+      console.log('=== ADD TO TEAM SUCCESS ===');
+      
+    } catch (e) {
+      console.error('=== ADD TO TEAM ERROR ===');
+      console.error('Error adding user to team:', e);
+      console.error('Error details:', {
+        message: e.message,
+        response: e.response?.data,
+        stack: e.stack
+      });
+      
+      const errorMessage = e.response?.data?.error || e.message || 'Failed to add user to team';
+      alert(`❌ Error: ${errorMessage}`);
     }
   };
 
@@ -448,8 +600,36 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           {mode === 'edit' && (
             <FormSection title="Team Management" subtitle="Manage project team members">
               <Grid container spacing={2}>
+                {/* Filter Controls */}
+                <Grid item xs={12} sm={6}>
+                  <FormInput
+                    label="Search Users"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name or email..."
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormSelect
+                    label="Filter by Role"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    options={[
+                      { label: 'All Roles', value: 'all' },
+                      { label: 'Developer', value: 'developer' },
+                      { label: 'Tester', value: 'tester' },
+                      { label: 'Marketing', value: 'marketing' },
+                      { label: 'Sales', value: 'sales' },
+                      { label: 'Intern', value: 'intern' }
+                    ]}
+                    size="small"
+                  />
+                </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="bold" mb={1}>Project Team Members</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold" mb={1}>
+                    Available Users ({filteredCandidates.length})
+                  </Typography>
                   <Paper variant="outlined" sx={{ p: 2, maxHeight: 400, overflow: 'auto' }}>
                     {filteredCandidates.length === 0 ? (
                       <Typography variant="body2" color="text.secondary">No team members found</Typography>

@@ -10,6 +10,7 @@ import { hrAPI } from '../../services/api';
 // Roles that HR can assign (matches backend hr.controller.js allowedRolesForHR)
 const ROLE_OPTIONS = [
   { label: 'Employee', value: 'employee' },
+  { label: 'Manager', value: 'manager' },
   { label: 'Developer', value: 'developer' },
   { label: 'Tester', value: 'tester' },
   { label: 'Marketing', value: 'marketing' },

@@ -913,26 +913,41 @@ export const assignTeamRole = async (req, res) => {
     const { role, moduleId } = req.body;
     const managerId = req.user._id;
 
+    console.log('assignTeamRole called with:', {
+      projectId,
+      userId,
+      role,
+      moduleId,
+      managerId: managerId.toString()
+    });
+
     const project = await Project.findOne({
       _id: projectId,
       projectManager: managerId
     });
 
     if (!project) {
+      console.log('Project not found or access denied');
       return res.status(404).json({
         success: false,
         error: 'Project not found or access denied'
       });
     }
 
+    console.log('Project found:', project.name);
+    console.log('Current team members:', project.teamMembers.map(id => id.toString()));
+
     // Verify user exists
     const user = await User.findById(userId);
     if (!user) {
+      console.log('User not found:', userId);
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
+
+    console.log('User found:', user.email);
 
     if (moduleId) {
       // Assign to specific module
@@ -953,19 +968,56 @@ export const assignTeamRole = async (req, res) => {
         if (!module.teamMembers.includes(userId)) {
           module.teamMembers.push(userId);
         }
+      } else if (role === null || req.body.remove) {
+        // Remove user from module
+        module.teamMembers = module.teamMembers.filter(id => id.toString() !== userId.toString());
+        if (module.moduleLead && module.moduleLead.toString() === userId.toString()) {
+          module.moduleLead = null;
+        }
       }
     } else {
-      // Assign to project team
-      if (!project.teamMembers.includes(userId)) {
-        project.teamMembers.push(userId);
+      // Handle project team assignment/removal
+      if (role === null || req.body.remove) {
+        console.log('Removing user from project team');
+        const beforeCount = project.teamMembers.length;
+        
+        // Remove user from project team
+        project.teamMembers = project.teamMembers.filter(id => id.toString() !== userId.toString());
+        
+        console.log(`Team members before removal: ${beforeCount}, after: ${project.teamMembers.length}`);
+        
+        // Also remove from all modules in the project
+        project.modules.forEach(module => {
+          const beforeModuleCount = module.teamMembers.length;
+          module.teamMembers = module.teamMembers.filter(id => id.toString() !== userId.toString());
+          console.log(`Module ${module.name}: members before: ${beforeModuleCount}, after: ${module.teamMembers.length}`);
+          
+          if (module.moduleLead && module.moduleLead.toString() === userId.toString()) {
+            console.log(`Removing user as module lead from ${module.name}`);
+            module.moduleLead = null;
+          }
+        });
+      } else if (role === 'teamMember') {
+        console.log('Adding user to project team');
+        const isAlreadyMember = project.teamMembers.some(id => id.toString() === userId.toString());
+        
+        if (!isAlreadyMember) {
+          project.teamMembers.push(userId);
+          console.log(`User added to team. New team size: ${project.teamMembers.length}`);
+        } else {
+          console.log('User is already a team member');
+        }
       }
     }
 
-    await project.save();
+    console.log('Saving project to MongoDB...');
+    const savedProject = await project.save();
+    console.log('Project saved successfully. Team members:', savedProject.teamMembers.map(id => id.toString()));
 
     res.json({
       success: true,
-      message: 'Team role assigned successfully'
+      message: role === null || req.body.remove ? 'User removed from team successfully' : 'Team role assigned successfully',
+      teamMembers: savedProject.teamMembers
     });
   } catch (error) {
     console.error('Error assigning team role:', error);

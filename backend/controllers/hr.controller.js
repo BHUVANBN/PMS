@@ -20,6 +20,7 @@ export const createEmployee = async (req, res) => {
     // Validate role - HR can only assign certain roles
     const allowedRolesForHR = [
       USER_ROLES.EMPLOYEE,
+      USER_ROLES.MANAGER,
       USER_ROLES.DEVELOPER,
       USER_ROLES.TESTER,
       USER_ROLES.MARKETING,
@@ -162,6 +163,7 @@ export const updateEmployee = async (req, res) => {
 		// HR can only update certain roles
 		const allowedRolesForHR = [
 			USER_ROLES.EMPLOYEE,
+			USER_ROLES.MANAGER,
 			USER_ROLES.DEVELOPER,
 			USER_ROLES.TESTER,
 			USER_ROLES.MARKETING,

@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { 
   Box, Button, Paper, Select, MenuItem, Stack, Typography, 
   Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, Chip, IconButton, Menu, TextField, Alert
+  FormControl, InputLabel, Chip, IconButton, Menu, TextField, Alert, Grid
 } from '@mui/material';
-import { Refresh, Add, PersonAdd, Close, MoreVert, Delete, Edit } from '@mui/icons-material';
+import { Refresh, Add, PersonAdd, Close, MoreVert, Delete, Edit, AddCircle } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/shared/DataTable';
 import { managerAPI, hrAPI } from '../../services/api';
 
@@ -12,11 +13,13 @@ import { managerAPI, hrAPI } from '../../services/api';
 // not changing the user's global role (developer/tester). Actions are adjusted accordingly.
 
 const TeamManagement = () => {
+  const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   
   // Team creation state
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
@@ -51,6 +54,14 @@ const TeamManagement = () => {
       
       setOverview(data);
       
+      // Show helpful message if no projects found
+      if (data.projects.length === 0) {
+        setError('No projects found. You need to create projects first or be assigned as project manager to existing projects.');
+      } else {
+        // Clear any previous errors when projects are found
+        setError(null);
+      }
+      
       // Default select first project if not chosen
       if (!selectedProjectId && data.projects.length > 0) {
         const first = data.projects[0];
@@ -59,7 +70,8 @@ const TeamManagement = () => {
         }
       }
     } catch (e) {
-      setError(e.message || 'Failed to load projects');
+      console.error('Error fetching projects:', e);
+      setError(`Failed to load projects: ${e.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -70,18 +82,34 @@ const TeamManagement = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log(`Fetching team for project: ${projectId}`);
+      
       const res = await managerAPI.getProjectTeam(projectId);
-      const list = res?.team || res?.data?.team || res?.data || res || [];
+      console.log('Project team response:', res);
+      
+      // Backend returns team members in res.data (Array.from(teamMembers.values()))
+      const list = res?.data || res?.team || res || [];
+      console.log('Extracted team list:', list);
+      
       const normalized = (Array.isArray(list) ? list : []).map((m) => ({
         id: m._id || m.id,
         name: m.name || `${m.firstName || ''} ${m.lastName || ''}`.trim(),
         email: m.email,
-        role: m.role,
+        role: m.role || 'Team Member', // Use the role from backend (Team Member, Module Lead, etc.)
+        projectRole: m.projectRole || 'Project Team', // Additional role info
         modules: (m.modules || []).length,
         isActive: m.isActive !== false,
       }));
+      
+      console.log('Normalized team members:', normalized);
       setMembers(normalized);
+      
+      // Show helpful message if no team members found
+      if (normalized.length === 0) {
+        setError('No team members found for this project. Click "Add Members" to assign team members.');
+      }
     } catch (e) {
+      console.error('Error fetching project team:', e);
       setError(e.message || 'Failed to load project team');
     } finally {
       setLoading(false);
@@ -166,14 +194,25 @@ const TeamManagement = () => {
   };
 
   const handleAddMembers = async () => {
-    if (!selectedProjectId || selectedUsers.length === 0) return;
+    if (!selectedProjectId || selectedUsers.length === 0) {
+      setError('Please select a project and at least one user to add');
+      return;
+    }
     
     try {
       setAssigning(true);
+      setError(null);
+      console.log('Adding members to project:', selectedProjectId);
+      console.log('Selected users:', selectedUsers);
+      
       // Assign each selected user to the project team
       for (const userId of selectedUsers) {
-        await managerAPI.assignTeamRole(selectedProjectId, userId, { role: 'teamMember' });
+        console.log(`Assigning user ${userId} to project ${selectedProjectId}`);
+        const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { role: 'teamMember' });
+        console.log('Assignment response:', response);
       }
+      
+      console.log('All members assigned successfully');
       
       // Refresh the team list
       await fetchProjectTeam(selectedProjectId);
@@ -181,8 +220,15 @@ const TeamManagement = () => {
       // Close dialog and reset
       setShowAddMemberDialog(false);
       setSelectedUsers([]);
+      
+      // Show success message
+      setError(null);
+      setSuccessMessage(`Successfully added ${selectedUsers.length} team member${selectedUsers.length !== 1 ? 's' : ''} to the project!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      
     } catch (e) {
-      setError(e.message || 'Failed to assign team members');
+      console.error('Error assigning team members:', e);
+      setError(`Failed to assign team members: ${e.message || 'Unknown error'}`);
     } finally {
       setAssigning(false);
     }
@@ -260,25 +306,40 @@ const TeamManagement = () => {
   };
 
   const handleAddUserByEmail = async () => {
-    if (!manualUserEmail.trim() || !selectedProjectId) return;
+    if (!manualUserEmail.trim() || !selectedProjectId) {
+      setError('Please enter an email address and select a project');
+      return;
+    }
     
     try {
       setAssigning(true);
+      setError(null);
+      console.log('Adding user by email:', manualUserEmail.trim());
       
       // Find user ID by email first
       const userId = await findUserByEmail(manualUserEmail.trim());
+      console.log('Found user ID:', userId);
       
       // Now assign using the user ID
-      await managerAPI.assignTeamRole(selectedProjectId, userId, { 
+      const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { 
         role: 'teamMember'
       });
+      console.log('Email assignment response:', response);
       
       // Clear input and refresh
       setManualUserEmail('');
       await fetchProjectTeam(selectedProjectId);
       setShowAddMemberDialog(false);
-      setError(''); // Clear any previous errors
+      setError(null); // Clear any previous errors
+      
+      // Show success message
+      setSuccessMessage(`Successfully added user ${manualUserEmail.trim()} to the project!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      
+      console.log('User added successfully by email');
+      
     } catch (e) {
+      console.error('Error adding user by email:', e);
       setError(e.message || 'Failed to add user by email. Please check the email address.');
     } finally {
       setAssigning(false);
@@ -294,8 +355,25 @@ const TeamManagement = () => {
   const columns = useMemo(() => [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
-    { key: 'role', label: 'Role', type: 'chip' },
-    { key: 'modules', label: 'Modules' },
+    { 
+      key: 'role', 
+      label: 'Project Role', 
+      type: 'chip',
+      render: (row) => (
+        <Stack direction="column" spacing={0.5}>
+          <Chip 
+            label={row.role} 
+            size="small" 
+            color={row.role === 'Module Lead' ? 'primary' : 'default'}
+          />
+          {row.projectRole && row.projectRole !== row.role && (
+            <Typography variant="caption" color="text.secondary">
+              {row.projectRole}
+            </Typography>
+          )}
+        </Stack>
+      )
+    },
     { key: 'isActive', label: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
     {
       key: 'actions',
@@ -356,9 +434,57 @@ const TeamManagement = () => {
         </Stack>
       </Stack>
 
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
       {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
-          <Typography color="error">{error}</Typography>
+        <Paper sx={{ 
+          p: 3, 
+          mb: 2, 
+          border: '1px solid', 
+          borderColor: error.includes('No team members found') ? 'info.light' : 'error.light',
+          backgroundColor: error.includes('No team members found') ? 'info.50' : 'error.50'
+        }}>
+          <Stack spacing={2}>
+            <Typography color={error.includes('No team members found') ? 'info.main' : 'error'}>
+              {error}
+            </Typography>
+            
+            {error.includes('No projects found') && (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  To manage teams, you need to have projects first. Create a new project or ask an admin to assign you as project manager to existing projects.
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddCircle />}
+                  onClick={() => navigate('/manager/projects/new')}
+                  size="small"
+                >
+                  Create New Project
+                </Button>
+              </Box>
+            )}
+            
+            {error.includes('No team members found') && selectedProjectId && (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  This project doesn't have any team members assigned yet. Add team members to start collaborating on this project.
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<PersonAdd />}
+                  onClick={handleOpenAddDialog}
+                  size="small"
+                >
+                  Add Team Members
+                </Button>
+              </Box>
+            )}
+          </Stack>
         </Paper>
       )}
 
@@ -369,8 +495,139 @@ const TeamManagement = () => {
         enableSearch
         searchableKeys={["name","email","role"]}
         initialPageSize={10}
-        emptyMessage={selectedProjectId ? 'No team members found' : 'Select a project to view team'}
+        emptyMessage={
+          selectedProjectId 
+            ? 'No team members assigned to this project yet. Click "Add Members" to get started.' 
+            : 'Select a project to view and manage team members'
+        }
       />
+      
+      {/* Project Info Card */}
+      {selectedProjectId && !loading && (
+        <Paper sx={{ p: 3, mt: 2, backgroundColor: 'background.default' }}>
+          <Stack spacing={3}>
+            {/* Project Header */}
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Box>
+                <Typography variant="h6" fontWeight="bold">
+                  {projectOptions.find(p => p.id === selectedProjectId)?.name || 'Unknown Project'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Team Members: {members.length} | Active: {members.filter(m => m.isActive).length}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1}>
+                <Button 
+                  size="small" 
+                  variant="outlined" 
+                  onClick={() => fetchProjectTeam(selectedProjectId)}
+                >
+                  Refresh Team
+                </Button>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  startIcon={<PersonAdd />}
+                  onClick={handleOpenAddDialog}
+                >
+                  Add Members
+                </Button>
+              </Stack>
+            </Stack>
+
+            {/* Team Members Details */}
+            {members.length > 0 && (
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                  Team Members Details
+                </Typography>
+                <Grid container spacing={2}>
+                  {members.map((member) => (
+                    <Grid item xs={12} sm={6} md={4} key={member.id}>
+                      <Paper 
+                        sx={{ 
+                          p: 2, 
+                          border: '1px solid', 
+                          borderColor: 'divider',
+                          backgroundColor: member.isActive ? 'background.paper' : 'action.hover',
+                          '&:hover': { 
+                            borderColor: 'primary.main',
+                            boxShadow: 1
+                          }
+                        }}
+                      >
+                        <Stack spacing={1.5}>
+                          {/* Member Header */}
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography variant="subtitle2" fontWeight="bold">
+                                {member.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {member.email}
+                              </Typography>
+                            </Box>
+                            <IconButton 
+                              size="small" 
+                              onClick={(e) => handleMemberMenuOpen(e, member)}
+                            >
+                              <MoreVert fontSize="small" />
+                            </IconButton>
+                          </Stack>
+
+                          {/* Role Information */}
+                          <Stack spacing={0.5}>
+                            <Chip 
+                              label={member.role} 
+                              size="small" 
+                              color={member.role === 'Module Lead' ? 'primary' : 'default'}
+                              sx={{ alignSelf: 'flex-start' }}
+                            />
+                            {member.projectRole && member.projectRole !== member.role && (
+                              <Typography variant="caption" color="text.secondary">
+                                {member.projectRole}
+                              </Typography>
+                            )}
+                          </Stack>
+
+                          {/* Status and Additional Info */}
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Chip 
+                              label={member.isActive ? 'Active' : 'Inactive'} 
+                              size="small" 
+                              color={member.isActive ? 'success' : 'default'}
+                              variant="outlined"
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                              ID: {member.id.slice(-6)}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+            {/* Empty State */}
+            {members.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                  No team members assigned to this project yet
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<PersonAdd />}
+                  onClick={handleOpenAddDialog}
+                >
+                  Add First Team Member
+                </Button>
+              </Box>
+            )}
+          </Stack>
+        </Paper>
+      )}
 
       {/* Add Members Dialog */}
       <Dialog 
@@ -438,6 +695,12 @@ const TeamManagement = () => {
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
+            </Alert>
+          )}
+          
+          {assigning && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Adding team members to project... Please wait.
             </Alert>
           )}
           

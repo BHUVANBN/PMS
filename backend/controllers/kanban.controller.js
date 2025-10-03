@@ -35,10 +35,12 @@ export const getDeveloperKanbanBoard = async (req, res) => {
       });
     }
 
-    // Find projects where user is a team member
     const projects = await Project.find({
-      teamMembers: userId,
-      status: { $in: ['active', 'planning'] }
+      status: { $in: ['active', 'planning'] },
+      $or: [
+        { teamMembers: userId },
+        { 'modules.tickets.assignedDeveloper': userId }
+      ]
     }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
 
     // Extract tickets assigned to this developer

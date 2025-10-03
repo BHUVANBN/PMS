@@ -244,52 +244,6 @@ const LoginPage = () => {
             </Box>
           </Box>
         </Paper>
-
-        {/* Demo Credentials */}
-        <Card sx={{ mt: 3, bgcolor: 'rgba(255, 255, 255, 0.9)' }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Demo Credentials:
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  Admin:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  admin@pms.com
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  Manager:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  manager@pms.com
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  Developer:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  dev@pms.com
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  HR:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  hr@pms.com
-                </Typography>
-              </Grid>
-            </Grid>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
-              Password: password123
-            </Typography>
-          </CardContent>
-        </Card>
       </Container>
     </Box>
   );

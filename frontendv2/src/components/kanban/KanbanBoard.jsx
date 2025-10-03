@@ -65,6 +65,20 @@ const KanbanBoard = ({
             keyMap[key] = c.tickets || [];
           });
           cols = keyMap;
+        } else if (cols && typeof cols === 'object') {
+          // If object with { key: { tickets: [...] } } shape, flatten to arrays
+          const flattened = {};
+          Object.keys(cols).forEach((k) => {
+            const v = cols[k];
+            if (v && Array.isArray(v.tickets)) {
+              flattened[k] = v.tickets;
+            } else if (Array.isArray(v)) {
+              flattened[k] = v;
+            } else {
+              flattened[k] = [];
+            }
+          });
+          cols = flattened;
         }
       }
       setBoard({ ...data, columns: cols });

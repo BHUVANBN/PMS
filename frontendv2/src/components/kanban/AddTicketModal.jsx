@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, MenuItem, Select, InputLabel, FormControl, Stack, Alert, Typography, Avatar, Divider } from '@mui/material';
-import { projectsAPI, usersAPI, managerAPI } from '../../services/api';
+import { projectsAPI, managerAPI } from '../../services/api';
 
 const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
   const [modules, setModules] = useState([]);
@@ -34,15 +34,17 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
           setError('No modules found. Please create a module first before adding tickets.');
         }
         
-        // Load developers and testers
-        const usersRes = await usersAPI.getAllUsers();
-        const allUsers = usersRes?.data || usersRes?.users || [];
-        
-        const devs = allUsers.filter(u => u.role === 'developer' && u.isActive !== false);
-        const tests = allUsers.filter(u => u.role === 'tester' && u.isActive !== false);
-        
-        setDevelopers(devs);
-        setTesters(tests);
+        // Load developers and testers via manager endpoint (role-scoped)
+        const [devRes, testRes] = await Promise.all([
+          managerAPI.getEmployees({ role: 'developer' }),
+          managerAPI.getEmployees({ role: 'tester' })
+        ]);
+
+        const devs = devRes?.data || devRes?.employees || [];
+        const tests = testRes?.data || testRes?.employees || [];
+
+        setDevelopers(Array.isArray(devs) ? devs : []);
+        setTesters(Array.isArray(tests) ? tests : []);
         
       } catch (err) {
         setError(err.message || 'Failed to load data');

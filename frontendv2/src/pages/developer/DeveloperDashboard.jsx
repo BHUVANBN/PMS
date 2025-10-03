@@ -30,9 +30,9 @@ import { developerAPI } from '../../services/api';
 const DeveloperDashboard = () => {
   const [stats, setStats] = useState([]);
   const [myTickets, setMyTickets] = useState([]);
-  const [recentCommits, setRecentCommits] = useState([]);
-  const [todayTasks, setTodayTasks] = useState([]);
+  const [standups, setStandups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -40,103 +40,71 @@ const DeveloperDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Mock data for demonstration
-      setStats([
+      setError(null);
+      setLoading(true);
+
+      const [statsRes, ticketsRes, dashboardRes] = await Promise.all([
+        developerAPI.getStats().catch(() => null),
+        developerAPI.getMyTickets().catch(() => null),
+        developerAPI.getDashboard().catch(() => null),
+      ]);
+
+      // Stats cards mapping
+      const s = statsRes?.stats;
+      const ticketStats = s?.tickets || {};
+      const statsCards = [
         {
-          title: 'Active Tickets',
-          value: '8',
-          subtitle: 'Assigned to me',
+          title: 'Assigned Tickets',
+          value: String(s?.overview?.assignedTickets ?? ticketStats.total ?? 0),
+          subtitle: 'Total tickets assigned',
           icon: <TicketIcon className="h-6 w-6" />,
-          trend: 'neutral',
-          trendValue: 'Same',
           color: 'primary'
         },
         {
-          title: 'Completed Today',
-          value: '3',
-          subtitle: 'Tasks finished',
-          icon: <CheckCircleIcon className="h-6 w-6" />,
-          trend: 'up',
-          trendValue: '+2',
-          color: 'success'
-        },
-        {
-          title: 'Code Reviews',
-          value: '2',
-          subtitle: 'Pending review',
-          icon: <CodeBracketIcon className="h-6 w-6" />,
-          trend: 'down',
-          trendValue: '-1',
+          title: 'In Progress',
+          value: String(ticketStats.inProgress ?? 0),
+          subtitle: 'Currently being worked on',
+          icon: <PlayIcon className="h-6 w-6" />,
           color: 'info'
         },
         {
-          title: 'Bugs Found',
-          value: '1',
-          subtitle: 'This week',
-          icon: <BugAntIcon className="h-6 w-6" />,
-          trend: 'down',
-          trendValue: '-2',
+          title: 'Code Review',
+          value: String(ticketStats.codeReview ?? 0),
+          subtitle: 'Pending review',
+          icon: <CodeBracketIcon className="h-6 w-6" />,
           color: 'warning'
+        },
+        {
+          title: 'Done',
+          value: String(ticketStats.done ?? 0),
+          subtitle: 'Completed tickets',
+          icon: <CheckCircleIcon className="h-6 w-6" />,
+          color: 'success'
         }
-      ]);
+      ];
+      setStats(statsCards);
 
-      setMyTickets([
-        { 
-          id: 'TASK-123',
-          title: 'Implement user authentication',
-          priority: 'High',
-          status: 'In Progress',
-          project: 'E-commerce Platform',
-          estimatedHours: 8,
-          spentHours: 5
-        },
-        { 
-          id: 'TASK-124',
-          title: 'Fix responsive design issues',
-          priority: 'Medium',
-          status: 'To Do',
-          project: 'Mobile App Redesign',
-          estimatedHours: 4,
-          spentHours: 0
-        },
-        { 
-          id: 'TASK-125',
-          title: 'Optimize database queries',
-          priority: 'High',
-          status: 'Code Review',
-          project: 'API Integration',
-          estimatedHours: 6,
-          spentHours: 6
-        },
-        { 
-          id: 'TASK-126',
-          title: 'Add unit tests for payment module',
-          priority: 'Medium',
-          status: 'To Do',
-          project: 'E-commerce Platform',
-          estimatedHours: 3,
-          spentHours: 0
-        }
-      ]);
+      // Tickets mapping
+      const tickets = ticketsRes?.tickets || [];
+      const normalizedTickets = tickets.map((t) => ({
+        id: t.ticketId || t._id || t.id,
+        title: t.title,
+        priority: t.priority,
+        status: t.status,
+        project: t.projectName,
+        estimatedHours: t.estimatedHours ?? 0,
+        spentHours: t.actualHours ?? 0,
+      }));
+      setMyTickets(normalizedTickets);
 
-      setRecentCommits([
-        { message: 'Fix: Resolve authentication bug in login flow', time: '2 hours ago', branch: 'feature/auth' },
-        { message: 'Add: Implement password reset functionality', time: '4 hours ago', branch: 'feature/auth' },
-        { message: 'Update: Improve error handling in API calls', time: '1 day ago', branch: 'develop' },
-        { message: 'Refactor: Clean up user service methods', time: '2 days ago', branch: 'develop' }
-      ]);
+      // Standups from dashboard summary (replaces dummy Today tasks/commits)
+      const standupsArr = dashboardRes?.standups || [];
+      setStandups(standupsArr);
 
-      setTodayTasks([
-        { task: 'Complete authentication module', completed: true },
-        { task: 'Review pull request #45', completed: true },
-        { task: 'Fix responsive design bug', completed: false },
-        { task: 'Write unit tests for payment', completed: false },
-        { task: 'Update documentation', completed: false }
-      ]);
-
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError(error.message || 'Failed to load dashboard');
+    } finally {
       setLoading(false);
     }
   };
@@ -174,6 +142,13 @@ const DeveloperDashboard = () => {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
         Developer Dashboard
       </Typography>
+      {error && (
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography color="error">{error}</Typography>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Stats Overview */}
       <Box sx={{ mb: 4 }}>
@@ -181,7 +156,8 @@ const DeveloperDashboard = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* My Tickets */}
+        {/* My Tickets */
+        }
         <Grid item xs={12} lg={8}>
           <DashboardCard title="My Active Tickets" className="h-full">
             <Box sx={{ mt: 2 }}>
@@ -232,52 +208,23 @@ const DeveloperDashboard = () => {
           </DashboardCard>
         </Grid>
 
-        {/* Today's Tasks */}
+        {/* Standups (real-time from backend) */}
         <Grid item xs={12} lg={4}>
-          <DashboardCard title="Today's Tasks" className="h-full">
+          <DashboardCard title="Recent Standups" className="h-full">
             <List dense>
-              {todayTasks.map((task, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <Box sx={{ mr: 2 }}>
-                    {task.completed ? (
-                      <CheckCircleIcon className="h-5 w-5 text-success-600" />
-                    ) : (
-                      <Box sx={{ 
-                        width: 20, 
-                        height: 20, 
-                        border: '2px solid', 
-                        borderColor: 'neutral.300',
-                        borderRadius: '50%' 
-                      }} />
-                    )}
-                  </Box>
-                  <ListItemText
-                    primary={task.task}
-                    sx={{
-                      '& .MuiListItemText-primary': {
-                        textDecoration: task.completed ? 'line-through' : 'none',
-                        color: task.completed ? 'text.secondary' : 'text.primary'
-                      }
-                    }}
-                  />
+              {standups.length === 0 && (
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText primary="No recent standups" />
                 </ListItem>
-              ))}
-            </List>
-          </DashboardCard>
-        </Grid>
-
-        {/* Recent Commits */}
-        <Grid item xs={12}>
-          <DashboardCard title="Recent Commits">
-            <List dense>
-              {recentCommits.map((commit, index) => (
+              )}
+              {standups.map((s, index) => (
                 <ListItem key={index} sx={{ px: 0 }}>
                   <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
-                    <CodeBracketIcon className="h-4 w-4" />
+                    <PlayIcon className="h-4 w-4" />
                   </Avatar>
                   <ListItemText
-                    primary={commit.message}
-                    secondary={`${commit.branch} • ${commit.time}`}
+                    primary={s.projectId?.name || 'Standup'}
+                    secondary={new Date(s.date).toLocaleString()}
                   />
                 </ListItem>
               ))}

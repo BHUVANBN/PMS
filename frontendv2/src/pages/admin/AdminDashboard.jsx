@@ -294,6 +294,10 @@ export default function AdminDashboard() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const handleShowMoreActivity = () => {
+    navigate('/admin/activity-logs');
+  };
+
   const handleEditProject = (project) => {
     console.log('Editing project:', project);
     setSelectedProject(project);
@@ -571,7 +575,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <Grid item xs={12} lg={4}>
-          <RecentActivity activities={activities} />
+          <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
         </Grid>
       </Grid>
 

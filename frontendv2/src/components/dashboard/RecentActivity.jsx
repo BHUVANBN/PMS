@@ -11,7 +11,8 @@ import {
   Typography,
   Chip,
   Box,
-  Divider
+  Divider,
+  Button
 } from '@mui/material';
 import {
   Assignment,
@@ -22,7 +23,7 @@ import {
   Comment
 } from '@mui/icons-material';
 
-const RecentActivity = ({ activities = [] }) => {
+const RecentActivity = ({ activities = [], onShowMore }) => {
   const getActivityIcon = (type) => {
     switch (type) {
       case 'ticket_created':
@@ -165,6 +166,20 @@ const RecentActivity = ({ activities = [] }) => {
               </React.Fragment>
             ))}
           </List>
+        )}
+        
+        {/* Show More button if there are activities */}
+        {activities.length > 0 && (
+          <Box mt={2} textAlign="center">
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={onShowMore}
+              fullWidth
+            >
+              Show More Activity Logs
+            </Button>
+          </Box>
         )}
       </CardContent>
     </Card>

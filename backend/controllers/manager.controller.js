@@ -548,6 +548,14 @@ export const createTicket = async (req, res) => {
     };
 
     module.tickets.push(newTicket);
+    // If a developer is assigned at creation, ensure they are part of the project team
+    if (assignedDeveloper) {
+      const assignedDevId = assignedDeveloper.toString();
+      const isMember = project.teamMembers.some(id => id.toString() === assignedDevId);
+      if (!isMember) {
+        project.teamMembers.push(assignedDeveloper);
+      }
+    }
     await project.save();
 
     const createdTicket = module.tickets[module.tickets.length - 1];
@@ -650,6 +658,12 @@ export const reassignTicket = async (req, res) => {
     // Update assignments
     if (assignedDeveloper) {
       ticket.assignedDeveloper = assignedDeveloper;
+      // Ensure developer is added to the project team so personal kanban includes this project
+      const assignedDevId = assignedDeveloper.toString();
+      const isMember = project.teamMembers.some(id => id.toString() === assignedDevId);
+      if (!isMember) {
+        project.teamMembers.push(assignedDeveloper);
+      }
     }
     if (tester) {
       ticket.tester = tester;

@@ -468,6 +468,62 @@ const TeamManagement = () => {
         </Paper>
       )}
 
+      {/* Project Switcher */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 260 }}>
+            <InputLabel id="project-select-label">Select Project</InputLabel>
+            <Select
+              labelId="project-select-label"
+              label="Select Project"
+              value={selectedProjectId || ''}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              displayEmpty
+            >
+              {projectOptions.map((p) => (
+                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+            {projectOptions
+              .filter(p => p.id !== selectedProjectId)
+              .slice(0, 6)
+              .map((p) => (
+                <Chip
+                  key={p.id}
+                  label={p.name}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setSelectedProjectId(p.id)}
+                />
+              ))}
+          </Stack>
+
+          <Box sx={{ flexGrow: 1 }} />
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={fetchOverview}
+            >
+              Refresh Projects
+            </Button>
+            {selectedProjectId && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => fetchProjectTeam(selectedProjectId)}
+              >
+                Refresh Team
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+      </Paper>
+
       <DataTable
         columns={columns}
         data={members}

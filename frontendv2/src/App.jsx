@@ -13,6 +13,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 
 // Dashboard pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import ActivityLogs from './pages/admin/ActivityLogs';
 import UserList from './pages/admin/UserList';
 import SystemStats from './pages/admin/SystemStats';
 import SystemSettings from './pages/admin/SystemSettings';
@@ -82,6 +83,7 @@ function App() {
 
               {/* Dashboards per role (strict role-based guards) */}
               <Route path="admin/dashboard" element={<ProtectedRoute requiredRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="admin/activity-logs" element={<ProtectedRoute requiredRoles={["admin"]}><ActivityLogs /></ProtectedRoute>} />
               <Route path="admin/users" element={<ProtectedRoute requiredRoles={["admin"]}><UserList /></ProtectedRoute>} />
               <Route path="admin/users/new" element={<ProtectedRoute requiredRoles={["admin"]}><UserCreate /></ProtectedRoute>} />
               <Route path="admin/users/:id/edit" element={<ProtectedRoute requiredRoles={["admin"]}><UserEdit /></ProtectedRoute>} />

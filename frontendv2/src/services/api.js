@@ -193,6 +193,12 @@ export const adminAPI = {
       body: JSON.stringify(projectData),
     }),
 
+  updateProject: (projectId, projectData) =>
+    apiRequest(`/admin/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(projectData),
+    }),
+
   // Team management
   getAllTeams: () =>
     apiRequest('/admin/teams'),

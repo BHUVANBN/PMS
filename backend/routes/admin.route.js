@@ -15,6 +15,7 @@ import {
     getOrganizationAnalytics,
     getAllProjects,
     createProject,
+    updateProject,
     getAllTeams
 } from '../controllers/admin.controller.js';
 
@@ -89,6 +90,7 @@ router.get('/health', getSystemHealth);
 // Project management routes
 router.get('/projects', getAllProjects);
 router.post('/projects', createProject);
+router.put('/projects/:projectId', updateProject);
 
 // Team management routes
 router.get('/teams', getAllTeams);

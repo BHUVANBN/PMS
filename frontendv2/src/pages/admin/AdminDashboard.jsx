@@ -38,6 +38,7 @@ import {
 import StatsCard from '../../components/dashboard/StatsCard';
 import RecentActivity from '../../components/dashboard/RecentActivity';
 import UserDialog from '../../components/admin/UserDialog';
+import ProjectDialog from '../../components/admin/ProjectDialog';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Snackbar, Alert } from '@mui/material';
@@ -55,6 +56,8 @@ export default function AdminDashboard() {
   const [activities, setActivities] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [openProjectDialog, setOpenProjectDialog] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -163,6 +166,7 @@ export default function AdminDashboard() {
       } else if (projectsResponse?.data?.projects) {
         realProjects = projectsResponse.data.projects;
       }
+
 
       setUsers(normalizedUsers);
       setProjects(realProjects);
@@ -288,6 +292,44 @@ export default function AdminDashboard() {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const handleShowMoreActivity = () => {
+    navigate('/admin/activity-logs');
+  };
+
+  const handleEditProject = (project) => {
+    console.log('Editing project:', project);
+    setSelectedProject(project);
+    setOpenProjectDialog(true);
+  };
+
+  const handleUpdateProject = async (projectData) => {
+    try {
+      console.log('Sending project data for update:', projectData);
+      const response = await adminAPI.updateProject(projectData.id, projectData);
+      console.log('Update project response:', response);
+      
+      // Refresh the project list from the database
+      await fetchDashboardData();
+      
+      setOpenProjectDialog(false);
+      setSelectedProject(null);
+      
+      setSnackbar({
+        open: true,
+        message: 'Project updated successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating project:', error);
+      console.error('Error details:', error.response?.data);
+      setSnackbar({
+        open: true,
+        message: `Failed to update project: ${error.message}`,
+        severity: 'error'
+      });
+    }
   };
 
   if (authLoading) {
@@ -487,14 +529,9 @@ export default function AdminDashboard() {
                   ) : projects.slice(0, 5).map((project) => (
                     <TableRow key={project._id}>
                       <TableCell>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {project.projectName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {project.description?.substring(0, 50)}...
-                          </Typography>
-                        </Box>
+                        <Typography variant="body2" fontWeight="medium">
+                          {project.projectName || project.name || project.title || 'Unnamed Project'}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
@@ -510,8 +547,11 @@ export default function AdminDashboard() {
                         />
                       </TableCell>
                       <TableCell>
-                        <IconButton size="small">
-                          <Visibility fontSize="small" />
+                        <IconButton 
+                          size="small"
+                          onClick={() => handleEditProject(project)}
+                        >
+                          <Edit fontSize="small" />
                         </IconButton>
                       </TableCell>
                     </TableRow>
@@ -535,7 +575,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activity */}
         <Grid item xs={12} lg={4}>
-          <RecentActivity activities={activities} />
+          <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
         </Grid>
       </Grid>
 
@@ -548,6 +588,17 @@ export default function AdminDashboard() {
           setSelectedUser(null);
         }}
         onSave={selectedUser ? handleUpdateUser : handleCreateUser}
+      />
+
+      {/* Project Dialog */}
+      <ProjectDialog
+        open={openProjectDialog}
+        project={selectedProject}
+        onClose={() => {
+          setOpenProjectDialog(false);
+          setSelectedProject(null);
+        }}
+        onSave={handleUpdateProject}
       />
 
       {/* Snackbar for notifications */}

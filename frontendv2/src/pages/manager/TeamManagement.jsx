@@ -7,7 +7,7 @@ import {
 import { Refresh, Add, PersonAdd, Close, MoreVert, Delete, Edit, AddCircle } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/shared/DataTable';
-import { managerAPI, hrAPI } from '../../services/api';
+import { managerAPI, hrAPI, usersAPI } from '../../services/api';
 
 // Note: Team role assignment on backend is project/module-scoped (teamMember/moduleLead),
 // not changing the user's global role (developer/tester). Actions are adjusted accordingly.
@@ -24,9 +24,11 @@ const TeamManagement = () => {
   // Team creation state
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
-  const [selectedUsers, setSelectedUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  // Filters for available users list
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [search, setSearch] = useState('');
   
   // Team member actions
   const [memberMenuAnchor, setMemberMenuAnchor] = useState(null);
@@ -35,34 +37,31 @@ const TeamManagement = () => {
   // Manual user input (workaround)
   const [manualUserEmail, setManualUserEmail] = useState('');
 
+  // Load projects list and set default selection
   const fetchOverview = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Fetch manager's projects directly
+
       const res = await managerAPI.getAllProjects();
       console.log('Manager projects response:', res);
       const projects = res?.projects || res?.data?.projects || res?.data || res || [];
       console.log('Extracted projects:', projects);
-      
+
       const data = {
         projects: Array.isArray(projects) ? projects : [],
         members: [],
         statistics: {}
       };
-      
+
       setOverview(data);
-      
-      // Show helpful message if no projects found
+
       if (data.projects.length === 0) {
         setError('No projects found. You need to create projects first or be assigned as project manager to existing projects.');
       } else {
-        // Clear any previous errors when projects are found
         setError(null);
       }
-      
-      // Default select first project if not chosen
+
       if (!selectedProjectId && data.projects.length > 0) {
         const first = data.projects[0];
         if (first && (first._id || first.id)) {
@@ -77,34 +76,33 @@ const TeamManagement = () => {
     }
   }, [selectedProjectId]);
 
+  // Load team for a selected project
   const fetchProjectTeam = useCallback(async (projectId) => {
     if (!projectId) return;
     try {
       setLoading(true);
       setError(null);
       console.log(`Fetching team for project: ${projectId}`);
-      
+
       const res = await managerAPI.getProjectTeam(projectId);
       console.log('Project team response:', res);
-      
-      // Backend returns team members in res.data (Array.from(teamMembers.values()))
+
       const list = res?.data || res?.team || res || [];
       console.log('Extracted team list:', list);
-      
+
       const normalized = (Array.isArray(list) ? list : []).map((m) => ({
         id: m._id || m.id,
         name: m.name || `${m.firstName || ''} ${m.lastName || ''}`.trim(),
         email: m.email,
-        role: m.role || 'Team Member', // Use the role from backend (Team Member, Module Lead, etc.)
-        projectRole: m.projectRole || 'Project Team', // Additional role info
+        role: m.role || 'Team Member',
+        projectRole: m.projectRole || 'Project Team',
         modules: (m.modules || []).length,
         isActive: m.isActive !== false,
       }));
-      
+
       console.log('Normalized team members:', normalized);
       setMembers(normalized);
-      
-      // Show helpful message if no team members found
+
       if (normalized.length === 0) {
         setError('No team members found for this project. Click "Add Members" to assign team members.');
       }
@@ -120,132 +118,82 @@ const TeamManagement = () => {
     try {
       setLoadingUsers(true);
       let users = [];
-      
-      // Strategy 1: Try HR API first (most likely to have all employees)
+
+      // Strategy 1: Use Manager API (manager-accessible, returns active employees)
       try {
-        console.log('Trying HR employees API...');
-        const hrRes = await hrAPI.getAllEmployees();
-        console.log('HR employees response:', hrRes);
-        users = hrRes?.employees || hrRes?.data?.employees || hrRes?.data || hrRes || [];
-        
-        if (users.length > 0) {
-          console.log('Successfully fetched users from HR API:', users);
-        } else {
-          throw new Error('No employees found in HR API');
-        }
-        
-      } catch (hrError) {
-        console.warn('HR API failed, trying project teams approach:', hrError);
-        
-        // Strategy 2: Aggregate users from existing project teams
+        console.log('Trying Manager API (employees)...');
+        const mgrRes = await managerAPI.getEmployees();
+        console.log('Manager API employees response:', mgrRes);
+        users = mgrRes?.data || mgrRes?.employees || mgrRes || [];
+        if (!Array.isArray(users) || users.length === 0) throw new Error('No users from Manager API');
+      } catch (mgrErr) {
+        console.warn('Manager API failed, trying Users API:', mgrErr);
+        // Strategy 2: Use Users API (full user directory - may be restricted)
         try {
-          console.log('Fetching users from all project teams...');
-          const projectsRes = await managerAPI.getAllProjects();
-          const projects = projectsRes?.projects || projectsRes?.data?.projects || projectsRes?.data || [];
-          
-          // Get team members from all projects to build user pool
-          const allTeamMembers = new Map(); // Use Map to avoid duplicates
-          
-          for (const project of projects) {
+          console.log('Trying Users API (all users)...');
+          const userRes = await usersAPI.getAllUsers();
+          console.log('Users API response:', userRes);
+          users = userRes?.data || userRes?.users || userRes || [];
+          if (!Array.isArray(users) || users.length === 0) throw new Error('No users from Users API');
+        } catch (usersErr) {
+          console.warn('Users API failed, trying HR employees API:', usersErr);
+          // Strategy 3: Try HR API (usually HR/Admin only)
+          try {
+            const hrRes = await hrAPI.getAllEmployees();
+            users = hrRes?.employees || hrRes?.data?.employees || hrRes?.data || hrRes || [];
+            if (!Array.isArray(users) || users.length === 0) throw new Error('No employees from HR API');
+          } catch (hrErr) {
+            console.warn('HR API failed, trying project teams aggregation:', hrErr);
+            // Strategy 4: Aggregate users from existing project teams across projects
             try {
-              const teamRes = await managerAPI.getProjectTeam(project._id || project.id);
-              const teamMembers = teamRes?.team || teamRes?.data?.team || teamRes?.data || [];
-              
-              teamMembers.forEach(member => {
-                const userId = member._id || member.id;
-                if (userId && !allTeamMembers.has(userId)) {
-                  allTeamMembers.set(userId, member);
+              const projectsRes = await managerAPI.getAllProjects();
+              const projects = projectsRes?.projects || projectsRes?.data?.projects || projectsRes?.data || [];
+              const allTeamMembers = new Map();
+              for (const project of (projects || [])) {
+                try {
+                  const teamRes = await managerAPI.getProjectTeam(project._id || project.id);
+                  const teamMembers = teamRes?.team || teamRes?.data?.team || teamRes?.data || [];
+                  teamMembers.forEach(member => {
+                    const userId = member._id || member.id;
+                    if (userId && !allTeamMembers.has(userId)) {
+                      allTeamMembers.set(userId, member);
+                    }
+                  });
+                } catch (teamErr) {
+                  console.warn(`Failed to get team for project ${project.name}:`, teamErr);
                 }
-              });
-            } catch (teamErr) {
-              console.warn(`Failed to get team for project ${project.name}:`, teamErr);
+              }
+              users = Array.from(allTeamMembers.values());
+            } catch (projAggErr) {
+              console.warn('Project aggregation also failed:', projAggErr);
             }
           }
-          
-          users = Array.from(allTeamMembers.values());
-          console.log('Found users from project teams:', users);
-          
-          if (users.length === 0) {
-            throw new Error('No users found in existing project teams');
-          }
-          
-        } catch (projectError) {
-          console.warn('Project-based user fetching also failed:', projectError);
-          // Don't throw error here, just log it - we'll show manual input option
-          console.log('Will rely on manual email input for adding team members');
         }
       }
-      
-      console.log('Final extracted users:', users);
-      
-      // Show all active users
-      const allActiveUsers = users.filter(user => user.isActive !== false);
-      console.log('Active users to display:', allActiveUsers);
-      
+
+      // Deduplicate by id and keep only active
+      const dedup = new Map();
+      (Array.isArray(users) ? users : []).forEach(u => {
+        const id = u?._id || u?.id;
+        if (id && !dedup.has(id)) dedup.set(id, u);
+      });
+      const allActiveUsers = Array.from(dedup.values()).filter(u => u?.isActive !== false);
+      console.log('Active users to display:', allActiveUsers.length);
+
       setAllUsers(allActiveUsers);
-      
     } catch (e) {
       console.error('Failed to fetch users:', e);
-      // Don't set error here - we have manual input as fallback
-      console.log('Using manual email input as primary method');
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  const handleAddMembers = async () => {
-    if (!selectedProjectId || selectedUsers.length === 0) {
-      setError('Please select a project and at least one user to add');
-      return;
-    }
-    
-    try {
-      setAssigning(true);
-      setError(null);
-      console.log('Adding members to project:', selectedProjectId);
-      console.log('Selected users:', selectedUsers);
-      
-      // Assign each selected user to the project team
-      for (const userId of selectedUsers) {
-        console.log(`Assigning user ${userId} to project ${selectedProjectId}`);
-        const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { role: 'teamMember' });
-        console.log('Assignment response:', response);
-      }
-      
-      console.log('All members assigned successfully');
-      
-      // Refresh the team list
-      await fetchProjectTeam(selectedProjectId);
-      
-      // Close dialog and reset
-      setShowAddMemberDialog(false);
-      setSelectedUsers([]);
-      
-      // Show success message
-      setError(null);
-      setSuccessMessage(`Successfully added ${selectedUsers.length} team member${selectedUsers.length !== 1 ? 's' : ''} to the project!`);
-      setTimeout(() => setSuccessMessage(null), 5000);
-      
-    } catch (e) {
-      console.error('Error assigning team members:', e);
-      setError(`Failed to assign team members: ${e.message || 'Unknown error'}`);
-    } finally {
-      setAssigning(false);
-    }
-  };
 
   const handleOpenAddDialog = () => {
     setShowAddMemberDialog(true);
     fetchAllUsers();
   };
 
-  const handleUserToggle = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
-  };
 
   const handleMemberMenuOpen = (event, member) => {
     setMemberMenuAnchor(event.currentTarget);
@@ -276,6 +224,43 @@ const TeamManagement = () => {
       handleMemberMenuClose();
     }
   };
+
+  // Inline Add/Remove actions for Available Users and Member cards
+  const handleAddToTeam = useCallback(async (userId) => {
+    if (!selectedProjectId) return;
+    try {
+      setAssigning(true);
+      const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { role: 'teamMember' });
+      if (response && response.success === false) {
+        throw new Error(response.error || 'Assignment failed');
+      }
+      await fetchProjectTeam(selectedProjectId);
+      setSuccessMessage('Member added to team successfully');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (e) {
+      setError(e.message || 'Failed to add member');
+    } finally {
+      setAssigning(false);
+    }
+  }, [selectedProjectId, fetchProjectTeam]);
+
+  const handleRemoveFromTeam = useCallback(async (userId) => {
+    if (!selectedProjectId) return;
+    try {
+      setAssigning(true);
+      const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { role: null, remove: true });
+      if (response && response.success === false) {
+        throw new Error(response.error || 'Remove failed');
+      }
+      await fetchProjectTeam(selectedProjectId);
+      setSuccessMessage('Member removed from team');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (e) {
+      setError(e.message || 'Failed to remove member');
+    } finally {
+      setAssigning(false);
+    }
+  }, [selectedProjectId, fetchProjectTeam]);
 
   const findUserByEmail = async (email) => {
     // First try to find user in the current user list
@@ -348,22 +333,25 @@ const TeamManagement = () => {
 
   useEffect(() => { fetchOverview(); }, [fetchOverview]);
   useEffect(() => { if (selectedProjectId) fetchProjectTeam(selectedProjectId); }, [selectedProjectId, fetchProjectTeam]);
-
-  // Assignment actions are project/module-scoped in backend and require module context.
-  // This page currently focuses on viewing team per project; actions are deferred to a dedicated UI.
+  // Ensure available users are loaded for inline Add list when a project is selected
+  useEffect(() => {
+    if (selectedProjectId && allUsers.length === 0) {
+      fetchAllUsers();
+    }
+  }, [selectedProjectId, allUsers.length]);
 
   const columns = useMemo(() => [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
-    { 
-      key: 'role', 
-      label: 'Project Role', 
+    {
+      key: 'role',
+      label: 'Project Role',
       type: 'chip',
       render: (row) => (
         <Stack direction="column" spacing={0.5}>
-          <Chip 
-            label={row.role} 
-            size="small" 
+          <Chip
+            label={row.role}
+            size="small"
             color={row.role === 'Module Lead' ? 'primary' : 'default'}
           />
           {row.projectRole && row.projectRole !== row.role && (
@@ -372,68 +360,60 @@ const TeamManagement = () => {
             </Typography>
           )}
         </Stack>
-      )
+      ),
     },
     { key: 'isActive', label: 'Status', type: 'status', valueMap: { true: 'Active', false: 'Inactive' } },
     {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
-        <IconButton 
-          size="small" 
-          onClick={(e) => handleMemberMenuOpen(e, row)}
-          disabled={!selectedProjectId}
-        >
-          <MoreVert fontSize="small" />
-        </IconButton>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleRemoveFromTeam(row.id)}
+            disabled={!selectedProjectId || assigning}
+          >
+            Remove
+          </Button>
+          <IconButton
+            size="small"
+            onClick={(e) => handleMemberMenuOpen(e, row)}
+            disabled={!selectedProjectId}
+          >
+            <MoreVert fontSize="small" />
+          </IconButton>
+        </Stack>
       ),
     },
-  ], [selectedProjectId]);
+  ], [selectedProjectId, assigning, handleRemoveFromTeam]);
 
+  // Build project options from overview
   const projectOptions = (overview?.projects || []).map((p) => ({
     id: p._id || p.id,
     name: p.name,
   }));
 
+  // Helper: get number of projects (managed by current manager) this user is in
+  const getUserProjectCount = useCallback((userId) => {
+    const projects = Array.isArray(overview?.projects) ? overview.projects : [];
+    let count = 0;
+    projects.forEach((proj) => {
+      const members = Array.isArray(proj.teamMembers) ? proj.teamMembers : [];
+      // teamMembers may be populated docs or ids
+      if (members.some((m) => {
+        const id = m?._id || m?.id || m; // handle ObjectId/string
+        return id?.toString?.() === userId?.toString?.();
+      })) {
+        count += 1;
+      }
+    });
+    return count;
+  }, [overview?.projects]);
+
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <div>
-          <Typography variant="h4" fontWeight="bold">Team Management</Typography>
-          <Typography variant="body2" color="text.secondary">Assign roles and manage team members per project</Typography>
-        </div>
-        <Stack direction="row" spacing={1}>
-          <Select
-            size="small"
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            displayEmpty
-            sx={{ minWidth: 200 }}
-          >
-            <MenuItem value="" disabled>Select Project</MenuItem>
-            {projectOptions.map((p) => (
-              <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-            ))}
-          </Select>
-          <Button 
-            variant="contained" 
-            startIcon={<PersonAdd />} 
-            onClick={handleOpenAddDialog}
-            disabled={!selectedProjectId}
-          >
-            Add Members
-          </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<Refresh />} 
-            onClick={() => fetchProjectTeam(selectedProjectId)} 
-            disabled={!selectedProjectId}
-          >
-            Refresh
-          </Button>
-        </Stack>
-      </Stack>
-
       {successMessage && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
           {successMessage}
@@ -567,12 +547,23 @@ const TeamManagement = () => {
                                 {member.email}
                               </Typography>
                             </Box>
-                            <IconButton 
-                              size="small" 
-                              onClick={(e) => handleMemberMenuOpen(e, member)}
-                            >
-                              <MoreVert fontSize="small" />
-                            </IconButton>
+                            <Stack direction="row" spacing={1}>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => handleRemoveFromTeam(member.id)}
+                                disabled={assigning}
+                              >
+                                Remove
+                              </Button>
+                              <IconButton 
+                                size="small" 
+                                onClick={(e) => handleMemberMenuOpen(e, member)}
+                              >
+                                <MoreVert fontSize="small" />
+                              </IconButton>
+                            </Stack>
                           </Stack>
 
                           {/* Role Information */}
@@ -625,6 +616,109 @@ const TeamManagement = () => {
                 </Button>
               </Box>
             )}
+
+            {/* Available Users with Add/Remove buttons (like Project Edit) */}
+            <Box>
+              {(() => {
+                // Pre-compute filtered pool for header count
+                const poolForCount = (allUsers || []).filter(u => {
+                  if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+                  const q = search.trim().toLowerCase();
+                  if (!q) return true;
+                  const name = (u.firstName ? `${u.firstName} ${u.lastName || ''}` : (u.username || u.email || '')).toLowerCase();
+                  return name.includes(q);
+                });
+                return (
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                    Available Users ({poolForCount.length})
+                  </Typography>
+                );
+              })()}
+              {/* Filters */}
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                <TextField
+                  size="small"
+                  placeholder="Search by name or email"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  sx={{ maxWidth: 360 }}
+                />
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel id="role-filter-label">Filter by Role</InputLabel>
+                  <Select
+                    labelId="role-filter-label"
+                    label="Filter by Role"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">All Roles</MenuItem>
+                    <MenuItem value="developer">Developer</MenuItem>
+                    <MenuItem value="tester">Tester</MenuItem>
+                    <MenuItem value="marketing">Marketing</MenuItem>
+                    <MenuItem value="sales">Sales</MenuItem>
+                    <MenuItem value="intern">Intern</MenuItem>
+                    <MenuItem value="employee">Employee</MenuItem>
+                    <MenuItem value="manager">Manager</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+
+              {(() => {
+                const teamIds = new Set(members.map(m => m.id));
+                const pool = (allUsers || []).filter(u => {
+                  const id = u._id || u.id;
+                  if (!id) return false;
+                  if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+                  const q = search.trim().toLowerCase();
+                  if (!q) return true;
+                  const name = (u.firstName ? `${u.firstName} ${u.lastName || ''}` : (u.username || u.email || '')).toLowerCase();
+                  return name.includes(q);
+                });
+
+                return (
+                  <Paper variant="outlined" sx={{ p: 2, maxHeight: 360, overflow: 'auto' }}>
+                    {pool.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">No users found</Typography>
+                    ) : (
+                      pool.map(u => {
+                        const id = u._id || u.id;
+                        const label = u.firstName ? `${u.firstName} ${u.lastName || ''}` : (u.username || u.email || id);
+                        const isInTeam = teamIds.has(id);
+                        const roleLabel = (u.role || 'Team Member');
+                        return (
+                          <Box key={id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #eee' }}>
+                            <Box>
+                              <Typography variant="body2" fontWeight="medium">{label}</Typography>
+                              <Typography variant="caption" color="text.secondary">{roleLabel} • {getUserProjectCount(id)} projects</Typography>
+                            </Box>
+                            {isInTeam ? (
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => handleRemoveFromTeam(id)}
+                                disabled={assigning}
+                              >
+                                Remove
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => handleAddToTeam(id)}
+                                disabled={assigning}
+                              >
+                                Add
+                              </Button>
+                            )}
+                          </Box>
+                        );
+                      })
+                    )}
+                  </Paper>
+                );
+              })()}
+            </Box>
           </Stack>
         </Paper>
       )}
@@ -697,7 +791,7 @@ const TeamManagement = () => {
               {error}
             </Alert>
           )}
-          
+
           {assigning && (
             <Alert severity="info" sx={{ mb: 2 }}>
               Adding team members to project... Please wait.
@@ -710,43 +804,42 @@ const TeamManagement = () => {
             <Stack spacing={1} sx={{ maxHeight: 400, overflow: 'auto' }}>
               {allUsers.map((user) => {
                 const userId = user._id || user.id;
-                const isSelected = selectedUsers.includes(userId);
                 const isCurrentMember = members.some(m => m.id === userId);
-                
+                const displayName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || (user.username || user.email || userId);
+                const roleLabel = user.role || 'Team Member';
                 return (
-                  <Paper 
-                    key={userId}
-                    sx={{ 
-                      p: 2, 
-                      cursor: 'pointer',
-                      border: isSelected ? '2px solid' : '1px solid',
-                      borderColor: isSelected ? 'primary.main' : 'divider',
-                      backgroundColor: isCurrentMember ? 'action.hover' : 'background.paper',
-                      '&:hover': { borderColor: 'primary.main' }
-                    }}
-                    onClick={() => handleUserToggle(userId)}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Typography variant="subtitle1">
-                            {user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}
-                          </Typography>
-                          {isCurrentMember && (
-                            <Chip label="Already in team" size="small" color="info" variant="outlined" />
-                          )}
-                        </Stack>
-                        <Typography variant="body2" color="text.secondary">
-                          {user.email}
-                        </Typography>
-                      </Box>
-                      <Chip 
-                        label={user.role} 
-                        size="small" 
-                        color={isSelected ? 'primary' : 'default'}
-                      />
-                    </Stack>
-                  </Paper>
+                  <Box key={userId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, px: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: isCurrentMember ? 'action.hover' : 'background.paper' }}>
+                    <Box>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography variant="subtitle1">{displayName}</Typography>
+                        {isCurrentMember && (
+                          <Chip label="Already in team" size="small" color="info" variant="outlined" />
+                        )}
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">{user.email}</Typography>
+                      <Typography variant="caption" color="text.secondary">{roleLabel}</Typography>
+                    </Box>
+                    {isCurrentMember ? (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemoveFromTeam(userId)}
+                        disabled={assigning}
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => handleAddToTeam(userId)}
+                        disabled={assigning}
+                      >
+                        Add
+                      </Button>
+                    )}
+                  </Box>
                 );
               })}
               {allUsers.length === 0 && (
@@ -759,29 +852,15 @@ const TeamManagement = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddMemberDialog(false)}>
-            Cancel
+            Close
           </Button>
-          {selectedUsers.length > 0 && (
-            <Button 
-              variant="contained" 
-              onClick={handleAddMembers}
-              disabled={assigning}
-            >
-              {assigning ? 'Adding...' : `Add ${selectedUsers.length} Selected Member${selectedUsers.length !== 1 ? 's' : ''}`}
-            </Button>
-          )}
         </DialogActions>
       </Dialog>
 
       {/* Member Actions Menu */}
-      <Menu
-        anchorEl={memberMenuAnchor}
-        open={Boolean(memberMenuAnchor)}
-        onClose={handleMemberMenuClose}
-      >
+      <Menu anchorEl={memberMenuAnchor} open={Boolean(memberMenuAnchor)} onClose={handleMemberMenuClose}>
         <MenuItem onClick={handleRemoveMember} sx={{ color: 'error.main' }}>
-          <Delete fontSize="small" sx={{ mr: 1 }} />
-          Remove from Team
+          <Delete fontSize="small" sx={{ mr: 1 }} /> Remove from Team
         </MenuItem>
       </Menu>
     </Box>

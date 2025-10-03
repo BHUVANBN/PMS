@@ -235,12 +235,13 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           await managerAPI.createProject(payload);
         }
       } else {
+        // Do NOT send teamMembers here to avoid overwriting changes made via Add/Remove buttons.
+        // Team mutations are persisted immediately via managerAPI.assignTeamRole.
         const payload = {
           name: values.name,
           description: values.description,
           endDate: values.endDate || undefined,
           status: values.status,
-          teamMembers: values.teamMembers,
         };
         await projectsAPI.updateProject(projectId, payload);
       }

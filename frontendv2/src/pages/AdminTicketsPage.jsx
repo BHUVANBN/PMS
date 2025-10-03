@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -70,12 +70,12 @@ const AdminTicketsPage = () => {
       setTickets([]);
       setFilteredTickets([]);
     }
-  }, [selectedProject, selectedModule]);
+  }, [selectedProject, selectedModule, fetchTickets]);
 
   // Filter tickets based on search and status
   useEffect(() => {
     filterTickets();
-  }, [tickets, searchTerm, statusFilter]);
+  }, [tickets, searchTerm, statusFilter, filterTickets]);
 
   const fetchProjects = async () => {
     try {
@@ -90,7 +90,7 @@ const AdminTicketsPage = () => {
     }
   };
 
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -100,7 +100,6 @@ const AdminTicketsPage = () => {
         return;
       }
 
-      const res = await ticketsAPI.getProjectTickets(selectedProject);
       const project = projects.find(p => (p._id || p.id) === selectedProject);
       
       let allTickets = [];
@@ -129,9 +128,9 @@ const AdminTicketsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProject, selectedModule, projects]);
 
-  const filterTickets = () => {
+  const filterTickets = useCallback(() => {
     let filtered = [...tickets];
 
     if (searchTerm) {
@@ -148,7 +147,7 @@ const AdminTicketsPage = () => {
     }
 
     setFilteredTickets(filtered);
-  };
+  }, [tickets, searchTerm, statusFilter]);
 
   const handleProjectChange = (e) => {
     setSelectedProject(e.target.value);

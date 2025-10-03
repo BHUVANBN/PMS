@@ -275,10 +275,12 @@ export const updateModule = async (req, res) => {
     const { projectId, moduleId } = req.params;
     const managerId = req.user._id;
 
-    const project = await Project.findOne({
-      _id: projectId,
-      projectManager: managerId
-    });
+    // Allow admins to manage any project team, managers only their own
+    const ownerFilter = req.user.role === 'admin'
+      ? { _id: projectId }
+      : { _id: projectId, projectManager: managerId };
+
+    const project = await Project.findOne(ownerFilter);
 
     if (!project) {
       return res.status(404).json({
@@ -843,10 +845,13 @@ export const getProjectTeam = async (req, res) => {
     const { projectId } = req.params;
     const managerId = req.user._id;
 
-    const project = await Project.findOne({
-      _id: projectId,
-      projectManager: managerId
-    }).populate('teamMembers', 'firstName lastName username email role isActive')
+    // Allow admins to access any project, managers only their own
+    const ownerFilter = req.user.role === 'admin'
+      ? { _id: projectId }
+      : { _id: projectId, projectManager: managerId };
+
+    const project = await Project.findOne(ownerFilter)
+      .populate('teamMembers', 'firstName lastName username email role isActive')
       .populate('modules.moduleLead', 'firstName lastName username')
       .populate('modules.teamMembers', 'firstName lastName username');
 

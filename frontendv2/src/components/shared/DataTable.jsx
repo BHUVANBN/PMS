@@ -86,8 +86,13 @@ const DataTable = ({
   // Event handlers
   onSort,
   onSearch,
-  onFilter,
-  onRefresh
+  onRefresh,
+
+  // Extended compatibility props (aliases / enhancements)
+  enableSearch,            // alias of `searchable`
+  searchableKeys,          // restrict search to these keys
+  initialPageSize,         // default rows per page if `rowsPerPage` not provided
+  emptyMessage             // custom empty message
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
@@ -96,37 +101,54 @@ const DataTable = ({
   const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null);
   const [actionMenuRow, setActionMenuRow] = useState(null);
 
+  // Resolve effective props with backward compatibility
+  const isSearchable = enableSearch !== undefined ? enableSearch : searchable;
+  const effectiveRowsPerPage = rowsPerPage || initialPageSize || 10;
+
+  // Normalize columns to support both { field, headerName } and { key, label }
+  const normalizedColumns = useMemo(() => {
+    return (columns || []).map((col) => ({
+      ...col,
+      field: col.field || col.key,
+      headerName: col.headerName || col.label || col.field || col.key,
+    })).filter((c) => !!c.field);
+  }, [columns]);
+
   // Filter and search data
   const filteredData = useMemo(() => {
-    if (!searchable || !searchTerm) return data;
-    
-    return data.filter(row =>
-      columns.some(column => {
-        const value = row[column.field];
+    if (!isSearchable || !searchTerm) return data;
+
+    const fieldsToSearch = Array.isArray(searchableKeys) && searchableKeys.length > 0
+      ? searchableKeys
+      : normalizedColumns.map((c) => c.field);
+
+    return data.filter((row) =>
+      fieldsToSearch.some((field) => {
+        const value = row?.[field];
         if (value == null || value === '') return false;
         return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
       })
     );
-  }, [data, searchTerm, columns, searchable]);
+  }, [data, searchTerm, normalizedColumns, isSearchable, searchableKeys]);
 
   // Sort data
   const sortedData = useMemo(() => {
     if (!sortable || !sortBy) return filteredData;
-    
+
     return [...filteredData].sort((a, b) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
-      
+      const aValue = a?.[sortBy];
+      const bValue = b?.[sortBy];
+
       if (aValue == null && bValue == null) return 0;
       if (aValue == null) return sortOrder === 'asc' ? -1 : 1;
       if (bValue == null) return sortOrder === 'asc' ? 1 : -1;
-      
+
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
       } else {
@@ -209,7 +231,13 @@ const DataTable = ({
       if (customContent !== undefined) return customContent;
     }
 
-    const value = row[column.field];
+    // Column-level custom renderer support
+    if (typeof column.render === 'function') {
+      return column.render(row);
+    }
+
+    const raw = row?.[column.field];
+    const value = column.valueMap ? (column.valueMap[raw] ?? raw) : raw;
     
     if (value == null || value === '') return '';
     
@@ -232,23 +260,32 @@ const DataTable = ({
           />
         );
       
-      case 'status':
+      case 'status': {
         const statusColors = {
           active: 'success',
           inactive: 'error',
           pending: 'warning',
-          completed: 'info'
+          completed: 'info',
+          'in progress': 'info',
+          'in-progress': 'info',
+          open: 'warning',
+          resolved: 'success',
+          closed: 'default',
+          done: 'success',
+          testing: 'warning'
         };
+        const lower = (value || '').toString().toLowerCase();
         return (
           <Chip
             label={value}
             size="small"
-            color={statusColors[value?.toLowerCase()] || 'default'}
-            icon={value?.toLowerCase() === 'active' ? <CheckCircle /> : 
-                  value?.toLowerCase() === 'inactive' ? <Cancel /> :
-                  value?.toLowerCase() === 'pending' ? <Warning /> : <Info />}
+            color={statusColors[lower] || 'default'}
+            icon={lower === 'active' ? <CheckCircle /> : 
+                  lower === 'inactive' ? <Cancel /> :
+                  lower === 'pending' ? <Warning /> : <Info />}
           />
         );
+      }
       
       case 'date':
         return new Date(value).toLocaleDateString();
@@ -286,7 +323,7 @@ const DataTable = ({
         <TableCell colSpan={columns.length + (selectable ? 1 : 0) + (actions.length > 0 ? 1 : 0)}>
           <Box display="flex" flexDirection="column" alignItems="center" py={4}>
             <Typography variant="h6" color="textSecondary" gutterBottom>
-              No data available
+              {emptyMessage || 'No data available'}
             </Typography>
             <Typography variant="body2" color="textSecondary">
               {searchTerm ? 'No results match your search criteria' : 'There are no items to display'}
@@ -314,7 +351,7 @@ const DataTable = ({
   return (
     <Paper elevation={1}>
       {/* Toolbar */}
-      {(title || searchable || filterable || bulkActions.length > 0 || onRefresh) && (
+      {(title || isSearchable || filterable || bulkActions.length > 0 || onRefresh) && (
         <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 } }}>
           <Box sx={{ flex: '1 1 100%' }}>
             {title && (
@@ -331,7 +368,7 @@ const DataTable = ({
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {/* Search */}
-            {searchable && (
+            {isSearchable && (
               <TextField
                 size="small"
                 placeholder="Search..."
@@ -395,7 +432,7 @@ const DataTable = ({
               )}
               
               {/* Data columns */}
-              {columns.map((column) => (
+              {normalizedColumns.map((column) => (
                 <TableCell
                   key={column.field}
                   align={column.align || 'left'}
@@ -462,7 +499,7 @@ const DataTable = ({
                     )}
                     
                     {/* Data cells */}
-                    {columns.map((column) => (
+                    {normalizedColumns.map((column) => (
                       <TableCell
                         key={column.field}
                         align={column.align || 'left'}
@@ -510,10 +547,10 @@ const DataTable = ({
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
           count={totalCount || sortedData.length}
-          rowsPerPage={rowsPerPage}
+          rowsPerPage={effectiveRowsPerPage}
           page={page}
-          onPageChange={onPageChange}
-          onRowsPerPageChange={onRowsPerPageChange}
+          onPageChange={onPageChange || (() => {})}
+          onRowsPerPageChange={onRowsPerPageChange || (() => {})}
         />
       )}
 

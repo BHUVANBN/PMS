@@ -1,20 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Stack, Select, MenuItem, Typography, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { Stack, Button } from '@mui/material';
 import KanbanBoard from '../../components/kanban/KanbanBoard';
 import { managerAPI, kanbanAPI } from '../../services/api';
-import CreateBoardModal from '../../components/kanban/CreateBoardModal';
 import AddTicketModal from '../../components/kanban/AddTicketModal';
 import AddModuleModal from '../../components/kanban/AddModuleModal';
-import ColumnSettingsModal from '../../components/kanban/ColumnSettingsModal';
 
 const Kanban = () => {
   const [projectId, setProjectId] = useState('');
-  const [boards, setBoards] = useState([]);
-  const [boardId, setBoardId] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
   const [showAddTicket, setShowAddTicket] = useState(false);
   const [showAddModule, setShowAddModule] = useState(false);
-  const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
@@ -53,33 +47,8 @@ const Kanban = () => {
     }
   };
 
-  const loadBoards = useCallback(async (pid) => {
-    if (!pid) { setBoards([]); setBoardId(''); return; }
-    const res = await kanbanAPI.getProjectBoards(pid);
-    const list = res?.data || res?.boards || res || [];
-    setBoards(list);
-    if (list.length && !boardId) setBoardId(list[0]._id || list[0].id);
-  }, [boardId]);
-
-  useEffect(() => { loadBoards(projectId); }, [projectId, loadBoards, refreshKey]);
-
   return (
     <>
-      {/* Board selector appears when a project is picked */}
-      {projectId && (
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">Board:</Typography>
-          <Select size="small" value={boardId} onChange={(e) => setBoardId(e.target.value)} displayEmpty sx={{ minWidth: 220 }}>
-            {boards.length === 0 && <MenuItem value="" disabled>No boards</MenuItem>}
-            {boards.map((b) => (
-              <MenuItem key={b._id || b.id} value={b._id || b.id}>{b.boardName || b.name}</MenuItem>
-            ))}
-          </Select>
-          <Button size="small" variant="outlined" onClick={() => setShowAddModule(true)}>Add Module</Button>
-          <Button size="small" onClick={() => setShowColumnSettings(true)} disabled={!boardId}>Column Settings</Button>
-        </Stack>
-      )}
-
       <KanbanBoard
         title="Project Kanban"
         description="Select a project and manage its tickets."
@@ -90,33 +59,19 @@ const Kanban = () => {
         onProjectChange={(pid) => setProjectId(pid)}
         refreshKey={refreshKey}
         sseParams={projectId ? { projectId } : undefined}
-        onCreateBoard={(pid) => {
+        onAddModule={(pid) => {
           if (!pid) return;
           setProjectId(pid);
-          setShowCreate(true);
+          setShowAddModule(true);
         }}
         onAddTicket={(pid) => {
           if (!pid) return;
           setProjectId(pid);
           setShowAddTicket(true);
         }}
-        onColumnSettings={() => {
-          if (!boardId) return;
-          setShowColumnSettings(true);
-        }}
       />
 
       {/* Modals */}
-      <CreateBoardModal
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        projectId={projectId}
-        onCreate={async (payload) => {
-          await kanbanAPI.createBoard(payload);
-          setShowCreate(false);
-          bumpRefresh();
-        }}
-      />
 
       <AddTicketModal
         open={showAddTicket}
@@ -130,13 +85,6 @@ const Kanban = () => {
         onClose={() => setShowAddModule(false)}
         projectId={projectId}
         onCreated={() => bumpRefresh()}
-      />
-
-      <ColumnSettingsModal
-        open={showColumnSettings}
-        onClose={() => setShowColumnSettings(false)}
-        boardId={boardId}
-        onUpdated={() => bumpRefresh()}
       />
     </>
   );

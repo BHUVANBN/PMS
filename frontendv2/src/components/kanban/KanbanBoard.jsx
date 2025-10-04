@@ -27,6 +27,7 @@ const KanbanBoard = ({
   showProjectSelector = false,
   // Actions
   onCreateBoard,
+  onAddModule,
   onAddTicket,
   onColumnSettings,
   onProjectChange,
@@ -177,6 +178,9 @@ const KanbanBoard = ({
             )}
             {onCreateBoard && (
               <Button color="primary" variant="contained" onClick={() => onCreateBoard(projectId)} disabled={loading}>Create Board</Button>
+            )}
+            {onAddModule && (
+              <Button variant="outlined" onClick={() => onAddModule(projectId)} disabled={loading}>Add Module</Button>
             )}
             {onAddTicket && (
               <Button color="secondary" variant="contained" onClick={() => onAddTicket(projectId)} disabled={loading}>Add Ticket</Button>

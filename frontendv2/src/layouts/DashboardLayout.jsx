@@ -3,6 +3,7 @@ import { Bars3Icon, ChartBarIcon, ClipboardDocumentListIcon, HomeIcon, UsersIcon
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAuth } from '../store/auth.js'
+import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../config/featureFlags.js'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -18,8 +19,13 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    const role = (user?.role || '').toLowerCase()
+    if (ENABLE_STANDUP_BEFORE_LOGOUT && role && role !== 'admin') {
+      navigate('/standup-logout')
+    } else {
+      logout()
+      navigate('/login')
+    }
   }
 
   return (

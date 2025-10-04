@@ -18,8 +18,6 @@ import {
   CodeBracketIcon,
   ClockIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
-  BugAntIcon,
   PlayIcon
 } from '@heroicons/react/24/outline';
 import StatsGrid from '../../components/dashboard/StatsGrid';
@@ -232,40 +230,6 @@ const DeveloperDashboard = () => {
           </DashboardCard>
         </Grid>
 
-        {/* Quick Actions */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card sx={{ p: 2, textAlign: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TicketIcon className="h-8 w-8 mx-auto mb-2 text-primary-600" />
-                    <Typography variant="body2">View All Tickets</Typography>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card sx={{ p: 2, textAlign: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-                    <PlayIcon className="h-8 w-8 mx-auto mb-2 text-primary-600" />
-                    <Typography variant="body2">Kanban Board</Typography>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card sx={{ p: 2, textAlign: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-                    <CodeBracketIcon className="h-8 w-8 mx-auto mb-2 text-primary-600" />
-                    <Typography variant="body2">Code Reviews</Typography>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card sx={{ p: 2, textAlign: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-                    <BugAntIcon className="h-8 w-8 mx-auto mb-2 text-primary-600" />
-                    <Typography variant="body2">Report Bug</Typography>
-                  </Card>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
     </Box>
   );

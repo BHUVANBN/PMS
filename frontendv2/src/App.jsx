@@ -33,6 +33,7 @@ import ProjectEdit from './pages/manager/ProjectEdit';
 import DeveloperDashboard from './pages/developer/DeveloperDashboard';
 import Tasks from './pages/developer/Tasks';
 import DevKanban from './pages/developer/Kanban';
+import DeveloperKanbanById from './pages/developer/DeveloperKanbanById';
 import TesterDashboard from './pages/tester/TesterDashboard';
 import Bugs from './pages/tester/Bugs';
 import TesterKanban from './pages/tester/Kanban';
@@ -53,6 +54,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import HelpPage from './pages/HelpPage';
+import StandupLogout from './pages/StandupLogout.jsx';
+import AllStandups from './pages/standup/AllStandups.jsx';
 
 // Shared pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -68,6 +71,9 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Full-screen Standup Logout page (protected, no main layout) */}
+            <Route path="/standup-logout" element={<ProtectedRoute><StandupLogout /></ProtectedRoute>} />
 
             {/* Protected app with layout and nested routes */}
             <Route
@@ -88,12 +94,14 @@ function App() {
               <Route path="admin/users/new" element={<ProtectedRoute requiredRoles={["admin"]}><UserCreate /></ProtectedRoute>} />
               <Route path="admin/users/:id/edit" element={<ProtectedRoute requiredRoles={["admin"]}><UserEdit /></ProtectedRoute>} />
               <Route path="admin/stats" element={<ProtectedRoute requiredRoles={["admin"]}><SystemStats /></ProtectedRoute>} />
+              <Route path="admin/standups" element={<ProtectedRoute requiredRoles={["admin","hr"]}><AllStandups /></ProtectedRoute>} />
               <Route path="admin/settings" element={<ProtectedRoute requiredRoles={["admin"]}><SystemSettings /></ProtectedRoute>} />
 
               <Route path="hr/dashboard" element={<ProtectedRoute requiredRoles={["hr"]}><HRDashboard /></ProtectedRoute>} />
               <Route path="hr/employees" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeList /></ProtectedRoute>} />
               <Route path="hr/employees/new" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeCreate /></ProtectedRoute>} />
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
+              <Route path="hr/standups" element={<ProtectedRoute requiredRoles={["hr","admin"]}><AllStandups /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
               <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Projects /></ProtectedRoute>} />
@@ -106,6 +114,7 @@ function App() {
               <Route path="developer/dashboard" element={<ProtectedRoute requiredRoles={["developer"]}><DeveloperDashboard /></ProtectedRoute>} />
               <Route path="developer/tasks" element={<ProtectedRoute requiredRoles={["developer"]}><Tasks /></ProtectedRoute>} />
               <Route path="developer/kanban" element={<ProtectedRoute requiredRoles={["developer"]}><DevKanban /></ProtectedRoute>} />
+              <Route path="developer/:developerId/kanban" element={<ProtectedRoute requiredRoles={["manager","admin"]}><DeveloperKanbanById /></ProtectedRoute>} />
 
               <Route path="tester/dashboard" element={<ProtectedRoute requiredRoles={["tester"]}><TesterDashboard /></ProtectedRoute>} />
               <Route path="tester/bugs" element={<ProtectedRoute requiredRoles={["tester"]}><Bugs /></ProtectedRoute>} />

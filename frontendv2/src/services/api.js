@@ -6,6 +6,29 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
+// Standup API (per-user daily standup)
+export const standupAPI = {
+  // Check if current user submitted today
+  getTodayStatus: () => apiRequest('/standup/today'),
+
+  // Submit today's standup
+  submit: (payload) =>
+    apiRequest('/standup', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  // My past standups
+  myStandups: () => apiRequest('/standup/me'),
+
+  // Admin/HR list
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/standup/list${suffix}`);
+  },
+};
+
 // Helper function to create headers with authentication
 const createHeaders = (includeAuth = true) => {
   const headers = {
@@ -404,6 +427,10 @@ export const developerAPI = {
   // Kanban boards
   getKanbanBoard: () => 
     apiRequest('/kanbanboard/developer/personal'),
+
+  // Get a specific developer's kanban board by ID (manager/admin usage)
+  getKanbanBoardById: (developerId) =>
+    apiRequest(`/kanbanboard/developer/${developerId}`),
 
   moveTicketOnBoard: (boardId, payload) => 
     apiRequest(`/kanbanboard/${boardId}/move`, {
@@ -845,6 +872,7 @@ export default {
   kanban: kanbanAPI,
   analytics: analyticsAPI,
   users: usersAPI,
+  standup: standupAPI,
   utils: apiUtils,
   subscribeToEvents,
 };

@@ -11,8 +11,7 @@ import {
   MenuItem, 
   ListItemIcon, 
   ListItemText,
-  useTheme,
-  useMediaQuery
+  useTheme
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -22,14 +21,16 @@ import {
   Dashboard as DashboardIcon 
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
+import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 
 const AppBar = ({ onMenuClick }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -40,13 +41,21 @@ const AppBar = ({ onMenuClick }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
+    const role = user?.role?.toLowerCase?.();
+    if (ENABLE_STANDUP_BEFORE_LOGOUT && role && role !== 'admin') {
+      // Navigate to full-screen standup page
+      navigate('/standup-logout');
+    } else {
+      // Admins logout directly
+      try {
+        await logout();
+        navigate('/login');
+      } catch (error) {
+        console.error('Logout failed:', error);
+      } finally {
+        handleClose();
+      }
     }
-    handleClose();
   };
 
   const handleProfile = () => {
@@ -158,6 +167,20 @@ const AppBar = ({ onMenuClick }) => {
           </ListItemIcon>
           <ListItemText>Dashboard</ListItemText>
         </MenuItem>
+        {(user?.role?.toLowerCase?.() === 'admin' || user?.role?.toLowerCase?.() === 'hr') && (
+          <MenuItem onClick={() => navigate(user?.role?.toLowerCase?.() === 'admin' ? '/admin/standups' : '/hr/standups')}>
+            <ListItemIcon>
+              <DashboardIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>All Standups</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem onClick={() => setHistoryOpen(true)}>
+          <ListItemIcon>
+            <Person fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>My Standups</ListItemText>
+        </MenuItem>
         <MenuItem onClick={handleProfile}>
           <ListItemIcon>
             <Person fontSize="small" />
@@ -177,6 +200,7 @@ const AppBar = ({ onMenuClick }) => {
           <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
+      <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </MuiAppBar>
   );
 };

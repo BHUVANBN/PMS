@@ -35,6 +35,8 @@ import {
   Fullscreen
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
+import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const Header = ({ 
@@ -48,6 +50,7 @@ const Header = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
@@ -71,13 +74,19 @@ const Header = ({
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
+    const role = user?.role?.toLowerCase?.();
+    if (ENABLE_STANDUP_BEFORE_LOGOUT && role && role !== 'admin') {
+      navigate('/standup-logout');
+    } else {
+      try {
+        await logout();
+        navigate('/login');
+      } catch (error) {
+        console.error('Logout failed:', error);
+      } finally {
+        handleProfileMenuClose();
+      }
     }
-    handleProfileMenuClose();
   };
 
   const handleProfileClick = () => {
@@ -331,12 +340,26 @@ const Header = ({
             </ListItemIcon>
             <ListItemText>Dashboard</ListItemText>
           </MenuItem>
+          {(user?.role?.toLowerCase?.() === 'admin' || user?.role?.toLowerCase?.() === 'hr') && (
+            <MenuItem onClick={() => navigate(user?.role?.toLowerCase?.() === 'admin' ? '/admin/standups' : '/hr/standups')}>
+              <ListItemIcon>
+                <Dashboard fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>All Standups</ListItemText>
+            </MenuItem>
+          )}
           
           <MenuItem onClick={handleProfileClick}>
             <ListItemIcon>
               <Person fontSize="small" />
             </ListItemIcon>
             <ListItemText>My Profile</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => setHistoryOpen(true)}>
+            <ListItemIcon>
+              <Person fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>My Standups</ListItemText>
           </MenuItem>
           
           <MenuItem onClick={handleSettingsClick}>
@@ -362,6 +385,10 @@ const Header = ({
             <ListItemText>Logout</ListItemText>
           </MenuItem>
         </Menu>
+
+        {/* Standup History Dialog */}
+        <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
+
 
         {/* Notifications Menu */}
         <Menu

@@ -107,6 +107,86 @@ export const getDeveloperKanbanBoard = async (req, res) => {
   }
 };
 
+// Get a specific developer's Kanban board by developerId (for managers/admin to view)
+export const getDeveloperKanbanBoardById = async (req, res) => {
+  try {
+    const { developerId } = req.params;
+    const viewerRole = req.effectiveRole || req.userRole;
+
+    if (!['admin', 'manager'].includes(viewerRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only managers or admins can view another developer\'s board'
+      });
+    }
+
+    const projects = await Project.find({
+      status: { $in: ['active', 'planning'] },
+      $or: [
+        { teamMembers: developerId },
+        { 'modules.tickets.assignedDeveloper': developerId }
+      ]
+    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+
+    const personalTickets = [];
+    projects.forEach(project => {
+      project.modules.forEach(module => {
+        module.tickets.forEach(ticket => {
+          if (ticket.assignedDeveloper && ticket.assignedDeveloper.toString() === developerId.toString()) {
+            personalTickets.push({
+              ...ticket.toObject(),
+              projectId: project._id,
+              projectName: project.name,
+              moduleId: module._id,
+              moduleName: module.name
+            });
+          }
+        });
+      });
+    });
+
+    const kanbanData = {
+      columns: {
+        todo: {
+          id: 'todo',
+          title: 'To Do',
+          tickets: personalTickets.filter(t => t.status === 'open')
+        },
+        inProgress: {
+          id: 'inProgress',
+          title: 'In Progress',
+          tickets: personalTickets.filter(t => t.status === 'in_progress')
+        },
+        review: {
+          id: 'review',
+          title: 'Code Review',
+          tickets: personalTickets.filter(t => t.status === 'code_review')
+        },
+        testing: {
+          id: 'testing',
+          title: 'Testing',
+          tickets: personalTickets.filter(t => t.status === 'testing')
+        },
+        done: {
+          id: 'done',
+          title: 'Done',
+          tickets: personalTickets.filter(t => t.status === 'done')
+        }
+      },
+      totalTickets: personalTickets.length,
+      activeTickets: personalTickets.filter(t => ['open', 'in_progress', 'code_review'].includes(t.status)).length
+    };
+
+    res.json({ success: true, data: kanbanData });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching developer kanban board by ID',
+      error: error.message
+    });
+  }
+};
+
 // Tester personal Kanban board: shows tickets ready for testing or under testing
 export const getTesterKanbanBoard = async (req, res) => {
   try {

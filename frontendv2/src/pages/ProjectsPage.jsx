@@ -34,9 +34,12 @@ import {
 import DashboardCard from '../components/dashboard/DashboardCard';
 import Badge from '../components/ui/Badge';
 import { projectsAPI, adminAPI, managerAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProjectsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isDeveloper = user?.role === 'developer';
   const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
@@ -47,7 +50,6 @@ const ProjectsPage = () => {
   const [limit, setLimit] = useState(9);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalProjects: 0, hasNext: false, hasPrev: false });
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [managers, setManagers] = useState([]);
@@ -72,8 +74,9 @@ const ProjectsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, page, limit, projectManager]);
 
-  // Load managers for filter
+  // Load managers for filter (skip for developers since filters are hidden)
   useEffect(() => {
+    if (isDeveloper) return;
     const loadManagers = async () => {
       try {
         const res = await adminAPI.getUsersByRole('manager');
@@ -84,7 +87,7 @@ const ProjectsPage = () => {
       }
     };
     loadManagers();
-  }, []);
+  }, [isDeveloper]);
 
   // Removed client-side filter; server handles filtering/searching
 
@@ -150,14 +153,12 @@ const ProjectsPage = () => {
     }
   };
 
-  const handleMenuClick = (event, project) => {
+  const handleMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
-    setSelectedProject(project);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedProject(null);
   };
 
   const computeProjectProgress = (project) => {
@@ -181,161 +182,169 @@ const ProjectsPage = () => {
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Projects
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<PlusIcon className="h-4 w-4" />}
-          sx={{ borderRadius: 2 }}
-          onClick={() => navigate('/manager/projects/new')}
-        >
-          New Project
-        </Button>
+        {!isDeveloper && (
+          <Button
+            variant="contained"
+            startIcon={<PlusIcon className="h-4 w-4" />}
+            sx={{ borderRadius: 2 }}
+            onClick={() => navigate('/manager/projects/new')}
+          >
+            New Project
+          </Button>
+        )}
       </Box>
 
-      {/* Search, Filters, Sort */}
-      <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              placeholder="Search projects..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MagnifyingGlassIcon className="h-5 w-5" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ borderRadius: 2 }}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Grid container spacing={2} justifyContent="flex-end">
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="medium">
-                  <InputLabel id="status-filter-label">Status</InputLabel>
-                  <Select
-                    labelId="status-filter-label"
-                    label="Status"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="planning">Planning</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="on_hold">On Hold</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="medium">
-                  <InputLabel id="pm-filter-label">Project Manager</InputLabel>
-                  <Select
-                    labelId="pm-filter-label"
-                    label="Project Manager"
-                    value={projectManager}
-                    onChange={(e) => setProjectManager(e.target.value)}
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {managers.map((m) => (
-                      <MenuItem key={m._id} value={m._id}>
-                        {m.firstName} {m.lastName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="medium">
-                  <InputLabel id="sort-by-label">Sort By</InputLabel>
-                  <Select
-                    labelId="sort-by-label"
-                    label="Sort By"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <MenuItem value="createdAt">Created</MenuItem>
-                    <MenuItem value="name">Name</MenuItem>
-                    <MenuItem value="startDate">Start Date</MenuItem>
-                    <MenuItem value="endDate">End Date</MenuItem>
-                    <MenuItem value="status">Status</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth size="medium">
-                  <InputLabel id="sort-order-label">Order</InputLabel>
-                  <Select
-                    labelId="sort-order-label"
-                    label="Order"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                  >
-                    <MenuItem value="desc">Desc</MenuItem>
-                    <MenuItem value="asc">Asc</MenuItem>
-                  </Select>
-                </FormControl>
+      {/* Search, Filters, Sort (hidden for developers) */}
+      {!isDeveloper && (
+        <Box sx={{ mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MagnifyingGlassIcon className="h-5 w-5" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ borderRadius: 2 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Grid container spacing={2} justifyContent="flex-end">
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="status-filter-label">Status</InputLabel>
+                    <Select
+                      labelId="status-filter-label"
+                      label="Status"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="planning">Planning</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                      <MenuItem value="on_hold">On Hold</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="pm-filter-label">Project Manager</InputLabel>
+                    <Select
+                      labelId="pm-filter-label"
+                      label="Project Manager"
+                      value={projectManager}
+                      onChange={(e) => setProjectManager(e.target.value)}
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      {managers.map((m) => (
+                        <MenuItem key={m._id} value={m._id}>
+                          {m.firstName} {m.lastName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="sort-by-label">Sort By</InputLabel>
+                    <Select
+                      labelId="sort-by-label"
+                      label="Sort By"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                    >
+                      <MenuItem value="createdAt">Created</MenuItem>
+                      <MenuItem value="name">Name</MenuItem>
+                      <MenuItem value="startDate">Start Date</MenuItem>
+                      <MenuItem value="endDate">End Date</MenuItem>
+                      <MenuItem value="status">Status</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth size="medium">
+                    <InputLabel id="sort-order-label">Order</InputLabel>
+                    <Select
+                      labelId="sort-order-label"
+                      label="Order"
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                    >
+                      <MenuItem value="desc">Desc</MenuItem>
+                      <MenuItem value="asc">Asc</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
             </Grid>
           </Grid>
-        </Grid>
-      </Box>
+        </Box>
+      )}
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)}>
-          {tabs.map((tab, index) => (
-            <Tab key={index} label={tab} />
-          ))}
-        </Tabs>
-      </Box>
+      {/* Tabs (hidden for developers) */}
+      {!isDeveloper && (
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)}>
+            {tabs.map((tab, index) => (
+              <Tab key={index} label={tab} />
+            ))}
+          </Tabs>
+        </Box>
+      )}
 
-      {/* Project Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
-              {projects.length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Total Projects
-            </Typography>
-          </Card>
+      {/* Project Stats (hidden for developers) */}
+      {!isDeveloper && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
+                {projects.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Projects
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h4" color="success.main" sx={{ fontWeight: 600 }}>
+                {projects.filter(p => p.status === 'active').length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Active Projects
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
+                {projects.filter(p => p.status === 'completed').length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Completed
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h4" color="warning.main" sx={{ fontWeight: 600 }}>
+                {projects.filter(p => p.status === 'planning').length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                In Planning
+              </Typography>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="success.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'active').length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Active Projects
-            </Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'completed').length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Completed
-            </Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="warning.main" sx={{ fontWeight: 600 }}>
-              {projects.filter(p => p.status === 'planning').length}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              In Planning
-            </Typography>
-          </Card>
-        </Grid>
-      </Grid>
+      )}
 
       {/* Projects Grid */}
       <Grid container spacing={3}>

@@ -21,6 +21,7 @@ import marketingRoutes from './routes/marketing.route.js';
 import projectRoutes from './routes/project.route.js';
 import sprintRoutes from './routes/sprint.route.js';
 import bugRoutes from './routes/bugTracker.route.js';
+import standupRoutes from './routes/standup.route.js';
 import { initRealtime } from './utils/realtime.js';
 
 dotenv.config();
@@ -107,6 +108,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/project', projectRoutes);
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/bugs', bugRoutes);
+app.use('/api/standup', standupRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Stack, Typography, Paper, Button, Select, MenuItem, LinearProgress } from '@mui/material';
 import Column from './Column';
 import { subscribeToEvents } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const defaultStatusMap = {
   todo: 'open',
@@ -33,6 +34,9 @@ const KanbanBoard = ({
   onProjectChange,
   refreshKey,
 }) => {
+  const { user } = useAuth();
+  const isManager = user?.role === 'manager';
+
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState(initialProjectId || '');
   const [board, setBoard] = useState({ columns: {} });
@@ -126,8 +130,19 @@ const KanbanBoard = ({
       }));
   }, [board, columnsOrder]);
 
-  const onDragStart = (e, ctx) => setDragCtx(ctx);
+  const onDragStart = (e, ctx) => {
+    if (isManager) {
+      // Disable drag and drop for managers
+      return;
+    }
+    setDragCtx(ctx);
+  };
+
   const onDrop = async (e, to) => {
+    if (isManager) {
+      // Disable drag and drop for managers
+      return;
+    }
     e.preventDefault();
     if (!dragCtx) return;
     const toKey = to.key || to;

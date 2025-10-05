@@ -4,6 +4,34 @@ import { BugTracker } from '../models/index.js';
 import { Project } from '../models/index.js';
 import { User } from '../models/index.js';
 
+/**
+ * Get projects where the tester is a team member
+ */
+export const getMyTestingProjects = async (req, res) => {
+  try {
+    const testerId = req.user._id;
+
+    const projects = await Project.find({
+      teamMembers: testerId,
+      status: { $in: ['active', 'planning'] }
+    })
+      .select('name status description startDate endDate projectManager createdAt updatedAt')
+      .sort({ updatedAt: -1 });
+
+    res.json({
+      success: true,
+      projects,
+      count: projects.length
+    });
+  } catch (error) {
+    console.error('Error fetching tester projects:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch tester projects'
+    });
+  }
+};
+
 // ========================================
 // 1. BUG TRACKING & MANAGEMENT
 // ========================================

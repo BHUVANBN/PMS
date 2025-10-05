@@ -17,35 +17,33 @@ const Kanban = () => {
     const res = await managerAPI.getAllProjects();
     return res?.projects || res?.data?.projects || res?.data || [];
   };
-
-  const fetchBoard = async (projectId) => {
-    if (!projectId) return {};
-    const res = await managerAPI.getProjectKanban(projectId);
+  const fetchBoard = async (selectedProjectId) => {
+    if (!selectedProjectId) return {};
+    const res = await managerAPI.getProjectKanban(selectedProjectId);
     const raw = res?.data || res?.kanban || res || {};
     const normalize = (columns = {}) => {
-      const get = (keys) => {
-        for (const k of keys) {
-          if (Array.isArray(columns[k])) return columns[k];
-          if (columns[k]?.tickets) return columns[k].tickets;
+      const getTickets = (keys) => {
+        for (const key of keys) {
+          const value = columns[key];
+          if (Array.isArray(value)) return value;
+          if (value?.tickets) return value.tickets;
         }
         return [];
       };
+
       return {
-        todo: get(['todo', 'To Do', 'toDo', 'open']),
-        inProgress: get(['inProgress', 'In Progress', 'in_progress']),
-        review: get(['review', 'Code Review', 'Testing', 'testing', 'code_review']),
-        done: get(['done', 'Done', 'closed'])
+        todo: getTickets(['todo', 'To Do', 'toDo', 'open']),
+        inProgress: getTickets(['inProgress', 'In Progress', 'in_progress']),
+        review: getTickets(['review', 'Review', 'code_review', 'ready_for_review', 'Ready for Review']),
+        testing: getTickets(['testing', 'Testing', 'ready_for_test', 'Ready for Test']),
+        done: getTickets(['done', 'Done', 'closed'])
       };
     };
     return { columns: normalize(raw.columns || raw) };
   };
 
-  const moveTicket = async ({ ticket, toKey, projectId, statusMap }) => {
-    const newStatus = statusMap[toKey];
-    if (newStatus && projectId) {
-      await kanbanAPI.updateTicketStatus(projectId, ticket._id || ticket.id, { status: newStatus });
-    }
-  };
+  // Manager board is read-only; keep handler to satisfy KanbanBoard props but do nothing
+  const moveTicket = async () => undefined;
 
   return (
     <>

@@ -396,6 +396,9 @@ export const developerAPI = {
   getDashboard: () => 
     apiRequest('/developer/dashboard'),
 
+  getProjects: () =>
+    apiRequest('/developer/projects'),
+
   // Get developer stats
   getStats: () =>
     apiRequest('/developer/stats'),
@@ -425,8 +428,10 @@ export const developerAPI = {
     }),
 
   // Kanban boards
-  getKanbanBoard: () => 
-    apiRequest('/kanbanboard/developer/personal'),
+  getKanbanBoard: (projectId) => {
+    const query = projectId ? `?projectId=${projectId}` : '';
+    return apiRequest(`/kanbanboard/developer/personal${query}`);
+  },
 
   // Get a specific developer's kanban board by ID (manager/admin usage)
   getKanbanBoardById: (developerId) =>
@@ -448,6 +453,9 @@ export const testerAPI = {
   // Get tester stats
   getTesterStats: () =>
     apiRequest('/tester/stats'),
+
+  getProjects: () =>
+    apiRequest('/tester/projects'),
 
   // Get all bugs accessible to tester
   getAllBugs: () =>
@@ -694,12 +702,16 @@ export const kanbanAPI = {
     apiRequest(`/kanbanboard/project/${projectId}`),
 
   // Get developer's personal board
-  getDeveloperPersonalBoard: () =>
-    apiRequest('/kanbanboard/developer/personal'),
+  getDeveloperPersonalBoard: (projectId) => {
+    const query = projectId ? `?projectId=${projectId}` : '';
+    return apiRequest(`/kanbanboard/developer/personal${query}`);
+  },
 
   // Get tester's personal board
-  getTesterPersonalBoard: () =>
-    apiRequest('/kanbanboard/tester/personal'),
+  getTesterPersonalBoard: (projectId) => {
+    const query = projectId ? `?projectId=${projectId}` : '';
+    return apiRequest(`/kanbanboard/tester/personal${query}`);
+  },
 
   // Get a specific board by ID
   getBoard: (boardId) => 

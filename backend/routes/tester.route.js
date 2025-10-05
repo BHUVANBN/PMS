@@ -11,6 +11,7 @@ import {
   addBugComment,
   reopenBug,
   closeBug,
+  getMyTestingProjects,
   
   // Ticket Testing & Verification
   getMyTestTickets,
@@ -44,6 +45,9 @@ router.use(allowTesterOnly);
 
 // Get all bugs reported by the current tester
 router.get('/bugs/reported', getMyReportedBugs);
+
+// Get projects assigned to the tester
+router.get('/projects', getMyTestingProjects);
 
 // Get all bugs assigned to the current tester for testing
 router.get('/bugs/assigned', getMyAssignedBugs);

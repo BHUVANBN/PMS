@@ -35,13 +35,34 @@ export const getDeveloperKanbanBoard = async (req, res) => {
       });
     }
 
-    const projects = await Project.find({
+    const { projectId: filterProjectId } = req.query || {};
+    if (filterProjectId && !mongoose.Types.ObjectId.isValid(filterProjectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid projectId'
+      });
+    }
+
+    const projectQuery = {
       status: { $in: ['active', 'planning'] },
       $or: [
         { teamMembers: userId },
         { 'modules.tickets.assignedDeveloper': userId }
       ]
-    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+    };
+    if (filterProjectId) {
+      projectQuery._id = new mongoose.Types.ObjectId(filterProjectId);
+    }
+
+    const projects = await Project.find(projectQuery)
+      .populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+
+    if (filterProjectId && !projects.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or you are not a member'
+      });
+    }
 
     // Extract tickets assigned to this developer
     const personalTickets = [];
@@ -91,7 +112,13 @@ export const getDeveloperKanbanBoard = async (req, res) => {
         }
       },
       totalTickets: personalTickets.length,
-      activeTickets: personalTickets.filter(t => ['open', 'in_progress', 'code_review'].includes(t.status)).length
+      activeTickets: personalTickets.filter(t => ['open', 'in_progress', 'code_review'].includes(t.status)).length,
+      projectId: filterProjectId ? filterProjectId.toString() : '',
+      availableProjects: projects.map(project => ({
+        _id: project._id,
+        id: project._id,
+        name: project.name
+      }))
     };
 
     res.json({
@@ -208,23 +235,55 @@ export const getTesterKanbanBoard = async (req, res) => {
     }
 
     // Find projects where tester is a team member
-    const projects = await Project.find({
+    const { projectId: testerProjectId } = req.query || {};
+    if (testerProjectId && !mongoose.Types.ObjectId.isValid(testerProjectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid projectId'
+      });
+    }
+
+    const testerProjectQuery = {
       teamMembers: userId,
       status: { $in: ['active', 'planning'] }
-    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+    };
+    if (testerProjectId) {
+      testerProjectQuery._id = new mongoose.Types.ObjectId(testerProjectId);
+    }
 
-    // Extract tickets assigned to this tester
+    const projects = await Project.find(testerProjectQuery)
+      .populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+
+    if (testerProjectId && !projects.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or you are not assigned as tester'
+      });
+    }
+
+    // Extract tickets assigned to this tester or awaiting assignment (testing status without tester)
     const testerTickets = [];
+    const needsAssignment = [];
     projects.forEach(project => {
       project.modules.forEach(module => {
         module.tickets.forEach(ticket => {
+          const ticketPayload = {
+            ...ticket.toObject(),
+            projectId: project._id,
+            projectName: project.name,
+            moduleId: module._id,
+            moduleName: module.name
+          };
+
           if (ticket.tester && ticket.tester.toString() === userId.toString()) {
             testerTickets.push({
-              ...ticket.toObject(),
-              projectId: project._id,
-              projectName: project.name,
-              moduleId: module._id,
-              moduleName: module.name
+              ...ticketPayload,
+              assignedTester: true
+            });
+          } else if (!ticket.tester && ticket.status === 'testing') {
+            needsAssignment.push({
+              ...ticketPayload,
+              assignedTester: false
             });
           }
         });
@@ -233,15 +292,13 @@ export const getTesterKanbanBoard = async (req, res) => {
 
     const kanbanData = {
       columns: {
-        review: {
-          id: 'review',
-          title: 'Ready for Test',
-          tickets: testerTickets.filter(t => t.status === 'code_review')
-        },
         testing: {
           id: 'testing',
-          title: 'Testing',
-          tickets: testerTickets.filter(t => t.status === 'testing')
+          title: 'Testing Queue',
+          tickets: [
+            ...needsAssignment,
+            ...testerTickets.filter(t => ['code_review', 'testing'].includes(t.status))
+          ]
         },
         done: {
           id: 'done',
@@ -249,8 +306,17 @@ export const getTesterKanbanBoard = async (req, res) => {
           tickets: testerTickets.filter(t => t.status === 'done')
         }
       },
-      totalTickets: testerTickets.length,
-      activeTickets: testerTickets.filter(t => ['code_review', 'testing'].includes(t.status)).length
+      totalTickets: testerTickets.length + needsAssignment.length,
+      activeTickets: [
+        ...testerTickets.filter(t => ['code_review', 'testing'].includes(t.status)),
+        ...needsAssignment
+      ].length,
+      projectId: testerProjectId ? testerProjectId.toString() : '',
+      availableProjects: projects.map(project => ({
+        _id: project._id,
+        id: project._id,
+        name: project.name
+      }))
     };
 
     res.json({ success: true, data: kanbanData });
@@ -607,7 +673,6 @@ export const updateTicketStatus = async (req, res) => {
       });
     }
 
-    // Find the project and ticket
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({
@@ -618,8 +683,6 @@ export const updateTicketStatus = async (req, res) => {
 
     let ticket = null;
     let module = null;
-
-    // Find ticket in project modules
     for (const mod of project.modules) {
       ticket = mod.tickets.id(ticketId);
       if (ticket) {
@@ -635,9 +698,8 @@ export const updateTicketStatus = async (req, res) => {
       });
     }
 
-    // Check if user has permission to update this ticket
     const userRole = req.effectiveRole || req.userRole;
-    const canUpdate = 
+    const canUpdate =
       ['admin', 'manager'].includes(userRole) ||
       ticket.assignedDeveloper?.toString() === req.user._id.toString() ||
       ticket.tester?.toString() === req.user._id.toString();
@@ -650,33 +712,142 @@ export const updateTicketStatus = async (req, res) => {
     }
 
     const oldStatus = ticket.status;
+    const statusChanged = status !== oldStatus;
+
+    const isAssignedDeveloper = ticket.assignedDeveloper?.toString() === req.user._id.toString();
+    const isAssignedTester = ticket.tester?.toString() === req.user._id.toString();
+    const isDeveloper = userRole === 'developer';
+    const isTester = userRole === 'tester';
+    const isManager = userRole === 'manager';
+    const isAdmin = userRole === 'admin';
+
+    if (statusChanged) {
+      const canChangeStatus =
+        isAdmin ||
+        (isDeveloper && isAssignedDeveloper && status !== 'done') ||
+        (isTester && isAssignedTester);
+
+      if (!canChangeStatus) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not permitted to change this ticket status'
+        });
+      }
+
+      if (isManager) {
+        return res.status(403).json({
+          success: false,
+          message: 'Managers cannot move tickets between workflow columns'
+        });
+      }
+    }
+
     ticket.status = status;
     ticket.lastModified = new Date();
 
-    // Add comment if provided
+    let newlyAssignedTester = null;
+    if (status === 'testing' && (!ticket.tester || ticket.tester === null)) {
+      const moduleTeamMemberIds = Array.isArray(module?.teamMembers)
+        ? module.teamMembers.map(memberId => memberId.toString())
+        : [];
+      const projectTeamMemberIds = Array.isArray(project.teamMembers)
+        ? project.teamMembers.map(memberId => memberId.toString())
+        : [];
+
+      const candidateIds = Array.from(new Set([...moduleTeamMemberIds, ...projectTeamMemberIds]));
+
+      if (!candidateIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot move ticket to testing because no team members are associated with this project'
+        });
+      }
+
+      const testers = await User.find({
+        _id: { $in: candidateIds },
+        role: 'tester'
+      }).select('_id firstName lastName username email');
+
+      if (!testers.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot move ticket to testing because no testers are assigned to this project'
+        });
+      }
+
+      const moduleTesterIds = new Set(moduleTeamMemberIds);
+
+      const testerLoad = testers.map(tester => {
+        const testerIdStr = tester._id.toString();
+        let activeTestingCount = 0;
+
+        project.modules.forEach(projectModule => {
+          projectModule.tickets.forEach(projectTicket => {
+            if (
+              projectTicket.tester &&
+              projectTicket.tester.toString() === testerIdStr &&
+              projectTicket.status === 'testing'
+            ) {
+              activeTestingCount += 1;
+            }
+          });
+        });
+
+        return {
+          tester,
+          activeTestingCount,
+          inModule: moduleTesterIds.has(testerIdStr)
+        };
+      });
+
+      testerLoad.sort((a, b) => {
+        if (a.inModule !== b.inModule) {
+          return a.inModule ? -1 : 1;
+        }
+
+        if (a.activeTestingCount !== b.activeTestingCount) {
+          return a.activeTestingCount - b.activeTestingCount;
+        }
+
+        const nameA = `${a.tester.firstName || ''} ${a.tester.lastName || ''}`.trim().toLowerCase();
+        const nameB = `${b.tester.firstName || ''} ${b.tester.lastName || ''}`.trim().toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+      newlyAssignedTester = testerLoad[0].tester;
+      ticket.tester = newlyAssignedTester._id;
+
+      const testerDisplayName = (newlyAssignedTester.firstName || newlyAssignedTester.lastName)
+        ? `${newlyAssignedTester.firstName || ''} ${newlyAssignedTester.lastName || ''}`.trim()
+        : newlyAssignedTester.username || newlyAssignedTester.email || 'tester';
+
+      ticket.comments.push({
+        userId: req.user._id,
+        comment: `[System] Auto-assigned tester ${testerDisplayName} when ticket entered testing`,
+        createdAt: new Date()
+      });
+    }
+
     if (comment) {
       ticket.comments.push({
         userId: req.user._id,
         comment: comment,
-        timestamp: new Date()
+        createdAt: new Date()
       });
     }
 
-    // Update kanban boards that contain this ticket
     const kanbanBoards = await KanbanBoard.find({
       projectId: projectId,
       'columns.tickets.ticketId': ticketId
     });
 
     for (const board of kanbanBoards) {
-      // Find and update ticket in kanban board
       for (const column of board.columns) {
         const boardTicket = column.tickets.find(t => t.ticketId.toString() === ticketId);
         if (boardTicket) {
           boardTicket.status = status;
           boardTicket.lastModified = new Date();
-          
-          // Add activity log
+
           board.recentActivity.unshift({
             action: 'ticket_status_updated',
             ticketId,
@@ -705,8 +876,7 @@ export const updateTicketStatus = async (req, res) => {
       }
     });
 
-    // Auto-assign tester if entering testing/done and no tester yet
-    if ((status === 'testing' || status === 'done') && !ticket.tester) {
+    if (status === 'done' && !ticket.tester) {
       const testerUser = await User.findOne({ _id: { $in: project.teamMembers }, role: 'tester' });
       if (testerUser) {
         ticket.tester = testerUser._id;
@@ -714,10 +884,11 @@ export const updateTicketStatus = async (req, res) => {
       }
     }
 
-    // Emit realtime events
     emitTicketEvent({
       projectId: projectId.toString(),
-      userIds: [ticket.assignedDeveloper, ticket.tester, project.projectManager].filter(Boolean).map(id => id.toString()),
+      userIds: [ticket.assignedDeveloper, ticket.tester, project.projectManager]
+        .filter(Boolean)
+        .map(id => id.toString()),
       type: 'ticket.status_updated',
       data: { ticketId, oldStatus, newStatus: status }
     });

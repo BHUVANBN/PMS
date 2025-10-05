@@ -47,8 +47,13 @@ const KanbanBoard = ({
   const doLoadProjects = useCallback(async () => {
     if (!loadProjects) return;
     const list = await loadProjects();
-    setProjects(list);
-    if (!projectId && list[0]) setProjectId(list[0]._id || list[0].id);
+    if (Array.isArray(list)) {
+      setProjects(list);
+      if (!projectId && list[0]) {
+        const nextId = list[0]._id || list[0].id;
+        if (nextId) setProjectId(nextId.toString());
+      }
+    }
   }, [loadProjects, projectId]);
 
   const doFetchBoard = useCallback(async (pid) => {
@@ -87,15 +92,40 @@ const KanbanBoard = ({
         }
       }
       setBoard({ ...data, columns: cols });
+
+      if (Array.isArray(data.availableProjects) && data.availableProjects.length) {
+        setProjects(prev => {
+          const map = new Map();
+          prev.forEach(p => {
+            const id = (p._id || p.id || '').toString();
+            if (id) map.set(id, p);
+          });
+          data.availableProjects.forEach(p => {
+            const id = (p._id || p.id || '').toString();
+            if (!id) return;
+            map.set(id, {
+              _id: p._id || p.id,
+              id: p._id || p.id,
+              name: p.name,
+            });
+          });
+          return Array.from(map.values());
+        });
+      }
+
+      const incomingProjectId = data.projectId || pid || '';
+      if (!projectId && incomingProjectId) {
+        setProjectId(prev => prev || incomingProjectId.toString());
+      }
     } catch (e) {
       setError(e.message || 'Failed to load board');
     } finally {
       setLoading(false);
     }
-  }, [fetchBoard, normalizeColumns]);
+  }, [fetchBoard, normalizeColumns, projectId]);
 
   useEffect(() => { doLoadProjects(); }, [doLoadProjects]);
-  useEffect(() => { doFetchBoard(projectId); }, [projectId, doFetchBoard]);
+  useEffect(() => { doFetchBoard(projectId || undefined); }, [projectId, doFetchBoard]);
   useEffect(() => { if (refreshKey !== undefined) doFetchBoard(projectId); }, [refreshKey, doFetchBoard, projectId]);
 
   // notify parent of project change
@@ -103,17 +133,24 @@ const KanbanBoard = ({
     if (onProjectChange) onProjectChange(projectId);
   }, [projectId, onProjectChange]);
 
+  const resolvedSseParams = useMemo(() => {
+    if (typeof sseParams === 'function') {
+      return sseParams(projectId) || undefined;
+    }
+    return sseParams;
+  }, [sseParams, projectId]);
+
   // SSE
-  const sseKey = JSON.stringify(sseParams || {});
+  const sseKey = JSON.stringify(resolvedSseParams || {});
   useEffect(() => {
-    if (!sseParams) return;
-    const unsub = subscribeToEvents(sseParams, (evt) => {
+    if (!resolvedSseParams) return;
+    const unsub = subscribeToEvents(resolvedSseParams, (evt) => {
       if (evt?.type && (evt.type.startsWith('ticket.') || evt.type.startsWith('kanban.') || evt.type.startsWith('bug.'))) {
         doFetchBoard(projectId);
       }
     });
     return () => unsub && unsub();
-  }, [sseKey, sseParams, projectId, doFetchBoard]);
+  }, [sseKey, resolvedSseParams, projectId, doFetchBoard]);
 
   const columns = useMemo(() => {
     const cols = board?.columns || {};
@@ -184,7 +221,12 @@ const KanbanBoard = ({
           </div>
           <Stack direction="row" spacing={1}>
             {showProjectSelector && (
-              <Select size="small" value={projectId} onChange={(e) => setProjectId(e.target.value)} displayEmpty>
+              <Select
+                size="small"
+                value={projectId || ''}
+                onChange={(e) => setProjectId(e.target.value)}
+                displayEmpty
+              >
                 <MenuItem value="" disabled>Select Project</MenuItem>
                 {projects.map((p) => (
                   <MenuItem key={p._id || p.id} value={p._id || p.id}>{p.name}</MenuItem>

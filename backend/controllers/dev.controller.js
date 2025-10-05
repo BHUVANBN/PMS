@@ -1,5 +1,15 @@
 import mongoose from 'mongoose';
-import { User, Project, KanbanBoard, Standup, TICKET_STATUS, DEFAULT_KANBAN_COLUMNS } from '../models/index.js';
+import {
+  User,
+  Project,
+  KanbanBoard,
+  Standup,
+  BugTracker,
+  TICKET_STATUS,
+  DEFAULT_KANBAN_COLUMNS,
+  BUG_STATUS
+} from '../models/index.js';
+import { emitTicketEvent } from '../utils/realtime.js';
 
 // Helper: map Kanban column name → ticket status
 const kanbanColumnToTicketStatus = (columnName) => {
@@ -387,84 +397,149 @@ export const getDeveloperStats = async (req, res) => {
  * Mark ticket as completed - automatically moves to tester
  */
 export const completeTicket = async (req, res) => {
-	try {
-		const developerId = new mongoose.Types.ObjectId(req.user.id);
-		const { projectId, moduleId, ticketId } = req.params;
-		const { actualHours, completionNotes } = req.body;
+  try {
+    const developerId = new mongoose.Types.ObjectId(req.user.id);
+    const { projectId, moduleId, ticketId } = req.params;
+    const { actualHours, completionNotes } = req.body || {};
 
-		// Find the project
-		const project = await Project.findById(projectId);
-		if (!project) {
-			return res.status(404).json({
-				success: false,
-				message: 'Project not found'
-			});
-		}
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
 
-		// Find the module
-		const module = project.modules.id(moduleId);
-		if (!module) {
-			return res.status(404).json({
-				success: false,
-				message: 'Module not found'
-			});
-		}
+    const moduleDoc = project.modules.id(moduleId);
+    if (!moduleDoc) {
+      return res.status(404).json({
+        success: false,
+        message: 'Module not found'
+      });
+    }
 
-		// Find the ticket
-		const ticket = module.tickets.id(ticketId);
-		if (!ticket) {
-			return res.status(404).json({
-				success: false,
-				message: 'Ticket not found'
-			});
-		}
+    const ticket = moduleDoc.tickets.id(ticketId);
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
 
-		// Verify developer is assigned to this ticket
-		if (ticket.assignedDeveloper.toString() !== developerId.toString()) {
-			return res.status(403).json({
-				success: false,
-				message: 'You are not assigned to this ticket'
-			});
-		}
+    // Verify developer is assigned to this ticket
+    if (ticket.assignedDeveloper.toString() !== developerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not assigned to this ticket'
+      });
+    }
 
-		// Update ticket status
-		if (ticket.tester) {
-			// If tester is assigned, move to testing
-			ticket.status = TICKET_STATUS.TESTING;
-		} else {
-			// If no tester, mark as done
-			ticket.status = TICKET_STATUS.DONE;
-		}
+    // Update ticket status
+    const previousStatus = ticket.status;
+    if (ticket.tester) {
+      // If tester is assigned, move to testing
+      ticket.status = TICKET_STATUS.TESTING;
+    } else {
+      // If no tester, mark as done
+      ticket.status = TICKET_STATUS.DONE;
+    }
 
-		// Update completion details
-		ticket.completedAt = new Date();
-		if (actualHours) {
-			ticket.actualHours = actualHours;
-		}
+    // Update completion details
+    ticket.completedAt = new Date();
+    if (actualHours) {
+      ticket.actualHours = actualHours;
+    }
 
-		// Add completion comment
-		ticket.comments.push({
-			userId: developerId,
-			comment: `[Developer] Marked as completed. ${completionNotes || ''}`,
-			createdAt: new Date()
-		});
+    const resolvedBugRefs = Array.isArray(ticket.bugTrackerIds) ? ticket.bugTrackerIds.filter(Boolean) : [];
+    const resolvedBugNumbers = [];
+    if (resolvedBugRefs.length) {
+      const bugs = await BugTracker.find({ _id: { $in: resolvedBugRefs } });
+      const bugUpdateTime = new Date();
+      await Promise.all(
+        bugs.map((bug) => {
+          if (bug.status !== BUG_STATUS.CLOSED) {
+            bug.status = BUG_STATUS.RESOLVED;
+          }
+          bug.resolvedBy = developerId;
+          bug.resolvedAt = bugUpdateTime;
+          bug.resolution = completionNotes || bug.resolution || 'Resolved by developer during ticket completion.';
+          bug.comments.push({
+            userId: developerId,
+            comment: `[Developer] Bug marked as resolved while completing ticket ${ticket.ticketNumber || ticket._id.toString()}.`,
+            createdAt: bugUpdateTime
+          });
+          resolvedBugNumbers.push(bug.bugNumber || bug._id.toString());
+          return bug.save();
+        })
+      );
+    }
 
-		await project.save();
+    const resolvedBugNote = resolvedBugNumbers.length
+      ? `Bugs resolved: ${resolvedBugNumbers.join(', ')}`
+      : 'No linked bugs.';
 
-		return res.status(200).json({
-			success: true,
-			message: ticket.tester ? 'Ticket completed and moved to testing' : 'Ticket completed',
-			data: ticket
-		});
+    ticket.comments.push({
+      userId: developerId,
+      comment: `[Developer] Marked as completed after bug fix. ${completionNotes || ''} ${resolvedBugNote}`.trim(),
+      createdAt: new Date()
+    });
 
-	} catch (error) {
-		console.error('Error completing ticket:', error);
-		return res.status(500).json({
-			success: false,
-			message: 'Server error while completing ticket',
-			error: error.message
-		});
-	}
+    await project.save();
+
+    const notifyUsers = [
+      ticket.tester?.toString(),
+      project.projectManager?.toString(),
+      ticket.assignedDeveloper?.toString()
+    ].filter(Boolean);
+
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: notifyUsers,
+      type: 'ticket.status_updated',
+      data: {
+        ticketId: ticket._id.toString(),
+        oldStatus: previousStatus,
+        newStatus: ticket.status,
+        bugsResolved: resolvedBugNumbers
+      }
+    });
+
+    if (ticket.status === TICKET_STATUS.TESTING) {
+      emitTicketEvent({
+        projectId: projectId.toString(),
+        userIds: notifyUsers,
+        type: 'ticket.ready_for_testing',
+        data: {
+          ticketId: ticket._id.toString(),
+          moduleId: moduleDoc._id.toString(),
+          bugsResolved: resolvedBugNumbers
+        }
+      });
+    }
+
+    if (resolvedBugNumbers.length) {
+      emitTicketEvent({
+        projectId: projectId.toString(),
+        userIds: notifyUsers,
+        type: 'ticket.bug_resolved',
+        data: {
+          ticketId: ticket._id.toString(),
+          bugNumbers: resolvedBugNumbers
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: ticket.tester ? 'Ticket completed and moved to testing' : 'Ticket completed',
+      data: ticket
+    });
+  } catch (error) {
+    console.error('Error completing ticket:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while completing ticket',
+      error: error.message
+    });
+  }
 };
-
-

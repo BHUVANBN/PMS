@@ -17,6 +17,7 @@ import {
   getMyTestTickets,
   updateTicketTestStatus,
   createBugFromTicket,
+  resolveTicketBugs,
   
   // Test Case Management
   getTestCases,
@@ -82,6 +83,9 @@ router.patch('/tickets/:projectId/:moduleId/:ticketId/status', updateTicketTestS
 
 // Create bug report from failed ticket testing
 router.post('/tickets/:projectId/:moduleId/:ticketId/bugs', createBugFromTicket);
+
+// Resolve all bugs linked to a ticket quickly
+router.post('/tickets/:projectId/:moduleId/:ticketId/resolve-bugs', resolveTicketBugs);
 
 // ========================================
 // 3. TEST CASE MANAGEMENT

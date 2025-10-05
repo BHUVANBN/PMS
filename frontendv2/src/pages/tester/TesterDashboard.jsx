@@ -18,6 +18,7 @@ import {
   TableRow,
   LinearProgress,
   Alert,
+  Stack,
   CircularProgress,
   useTheme
 } from '@mui/material';
@@ -43,20 +44,22 @@ const TesterDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const theme = useTheme();
-
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch tester statistics and recent bugs
       const [statsResponse, bugsResponse] = await Promise.all([
         testerAPI.getTesterStats(),
         testerAPI.getAllBugs()
       ]);
-      
-      setStats(statsResponse.stats);
-      setRecentBugs(bugsResponse.data.slice(0, 5)); // Show only recent 5 bugs
+
+      const statsPayload = statsResponse?.stats || statsResponse?.data || statsResponse;
+      const bugCollection = bugsResponse?.data || bugsResponse?.bugs || bugsResponse?.results || bugsResponse;
+
+      setStats(statsPayload || null);
+      setRecentBugs(Array.isArray(bugCollection) ? bugCollection.slice(0, 5) : []); // Show only recent 5 bugs
     } catch (err) {
       setError(err.message || 'Failed to fetch tester data');
       console.error('Tester Dashboard error:', err);
@@ -96,7 +99,10 @@ const TesterDashboard = () => {
     );
   }
 
-  const StatCard = ({ title, value, icon, color, trend, subtitle }) => (
+  const StatCard = ({ title, value, icon, color, trend, subtitle }) => {
+    const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
+
+    return (
     <Card elevation={2} sx={{ height: '100%' }}>
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -105,7 +111,7 @@ const TesterDashboard = () => {
               {title}
             </Typography>
             <Typography variant="h4" component="div" sx={{ fontWeight: 600, color }}>
-              {value}
+              {displayValue}
             </Typography>
             {subtitle && (
               <Typography variant="body2" color="textSecondary">
@@ -128,6 +134,7 @@ const TesterDashboard = () => {
       </CardContent>
     </Card>
   );
+  };
 
   const getSeverityColor = (severity) => {
     const colors = {
@@ -140,15 +147,38 @@ const TesterDashboard = () => {
   };
 
   const getStatusColor = (status) => {
+    const normalized = (status || '').toLowerCase();
     const colors = {
-      open: theme.palette.error.main,
-      'in-progress': theme.palette.warning.main,
+      new: theme.palette.info.main,
+      assigned: theme.palette.warning.main,
+      in_progress: theme.palette.primary.main,
+      'in-progress': theme.palette.primary.main,
       resolved: theme.palette.success.main,
       closed: theme.palette.grey[600],
-      verified: theme.palette.info.main
+      reopened: theme.palette.error.main
     };
-    return colors[status] || theme.palette.grey[500];
+    return colors[normalized] || theme.palette.grey[500];
   };
+
+  const formatLabel = (value) =>
+    (value || '')
+      .toString()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase()) || 'N/A';
+
+  const summary = stats?.summary || {};
+  const severityDistribution = stats?.severityDistribution || {};
+  const statusDistribution = stats?.statusDistribution || {};
+  const testCases = stats?.testCases || {};
+  const productivity = stats?.productivity || {};
+
+  const totalBugs = summary.totalBugs || 0;
+  const productivityMetrics = [
+    { key: 'bugDetectionRate', label: 'Bug Detection Rate' },
+    { key: 'bugResolutionRate', label: 'Bug Resolution Rate' },
+    { key: 'testExecutionRate', label: 'Test Execution Rate' },
+    { key: 'testPassRate', label: 'Test Pass Rate' }
+  ];
 
   return (
     <Box>
@@ -172,39 +202,40 @@ const TesterDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Bugs"
-            value={stats?.bugs?.total || 0}
+            value={summary.totalBugs || 0}
             icon={<BugReport />}
             color={theme.palette.error.main}
-            trend="-12% this week"
-            subtitle={`${stats?.bugs?.open || 0} open`}
+            trend={`Reported: ${summary.reportedBugs || 0}`}
+            subtitle={`${summary.activeBugs || 0} active`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Assigned Bugs"
+            value={summary.assignedBugs || 0}
+            icon={<Assignment />}
+            color={theme.palette.primary.main}
+            trend={`Resolved: ${summary.resolvedBugs || 0}`}
+            subtitle={`${summary.closedBugs || 0} closed`}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Test Cases"
-            value={stats?.testCases?.total || 0}
-            icon={<Assignment />}
-            color={theme.palette.primary.main}
-            subtitle={`${stats?.testCases?.passed || 0} passed`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Test Coverage"
-            value={`${stats?.coverage?.percentage || 0}%`}
+            value={testCases.total || 0}
             icon={<Assessment />}
             color={theme.palette.info.main}
-            trend="+8% this sprint"
-            subtitle="Code coverage"
+            trend={`Executed: ${testCases.executed || 0}`}
+            subtitle={`${testCases.passed || 0} passed`}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Projects"
-            value={stats?.projects?.active || 0}
+            value={summary.totalProjects || 0}
             icon={<Timeline />}
             color={theme.palette.success.main}
-            subtitle={`${stats?.projects?.total || 0} total`}
+            subtitle={`${summary.activeProjects || 0} active`}
           />
         </Grid>
       </Grid>
@@ -217,11 +248,11 @@ const TesterDashboard = () => {
               Bug Distribution by Severity
             </Typography>
             <Box>
-              {stats?.severity && Object.entries(stats.severity).map(([severity, count]) => (
+              {Object.entries(severityDistribution).map(([severity, count]) => (
                 <Box key={severity} mb={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                     <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                      {severity}
+                      {formatLabel(severity)}
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
                       {count}
@@ -229,7 +260,7 @@ const TesterDashboard = () => {
                   </Box>
                   <LinearProgress
                     variant="determinate"
-                    value={(count / (stats?.bugs?.total || 1)) * 100}
+                    value={totalBugs ? (count / totalBugs) * 100 : 0}
                     sx={{
                       height: 8,
                       borderRadius: 4,
@@ -246,9 +277,56 @@ const TesterDashboard = () => {
           </Paper>
         </Grid>
 
-        {/* Recent Bugs */}
+        {/* Bug Status Distribution */}
         <Grid item xs={12} md={6}>
           <Paper elevation={2} sx={{ p: 3, height: '400px' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Bug Status Overview
+            </Typography>
+            <Box>
+              {Object.entries(statusDistribution).map(([status, count]) => (
+                <Box key={status} mb={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                    <Chip
+                      label={formatLabel(status)}
+                      size="small"
+                      sx={{
+                        bgcolor: `${getStatusColor(status)}20`,
+                        color: getStatusColor(status),
+                        fontWeight: 600
+                      }}
+                    />
+                    <Typography variant="body2" fontWeight={600}>
+                      {count}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={totalBugs ? (count / totalBugs) * 100 : 0}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      bgcolor: 'grey.200',
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: getStatusColor(status),
+                        borderRadius: 4,
+                      },
+                    }}
+                  />
+                </Box>
+              ))}
+              {!Object.keys(statusDistribution).length && (
+                <Typography variant="body2" color="text.secondary">
+                  No bug status data available yet.
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Recent Bugs */}
+        <Grid item xs={12}>
+          <Paper elevation={2} sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Recent Bugs
@@ -261,6 +339,7 @@ const TesterDashboard = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
+                    <TableCell>ID</TableCell>
                     <TableCell>Title</TableCell>
                     <TableCell>Severity</TableCell>
                     <TableCell>Status</TableCell>
@@ -269,20 +348,21 @@ const TesterDashboard = () => {
                 </TableHead>
                 <TableBody>
                   {recentBugs.map((bug) => (
-                    <TableRow key={bug._id} hover>
+                    <TableRow key={bug._id || bug.id} hover>
+                      <TableCell>{bug.bugNumber || bug.reference || (bug._id || bug.id)}</TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight={600} noWrap>
-                            {bug.title}
+                            {bug.title || 'Untitled Bug'}
                           </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {bug.project?.name || 'Unknown Project'}
+                          <Typography variant="caption" color="text.secondary">
+                            {bug.project?.name || bug.projectName || 'Unknown Project'}
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={bug.severity}
+                          label={formatLabel(bug.severity)}
                           size="small"
                           sx={{
                             bgcolor: `${getSeverityColor(bug.severity)}20`,
@@ -294,7 +374,7 @@ const TesterDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={bug.status}
+                          label={formatLabel(bug.status)}
                           size="small"
                           sx={{
                             bgcolor: `${getStatusColor(bug.status)}20`,
@@ -311,6 +391,15 @@ const TesterDashboard = () => {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {!recentBugs.length && (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Typography variant="body2" color="text.secondary" align="center">
+                          No bugs reported yet.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -330,7 +419,7 @@ const TesterDashboard = () => {
                     <CheckCircle />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>
-                    {stats?.testCases?.passed || 0}
+                    {testCases.passed || 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
                     Passed
@@ -343,7 +432,7 @@ const TesterDashboard = () => {
                     <Error />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>
-                    {stats?.testCases?.failed || 0}
+                    {testCases.failed || 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
                     Failed
@@ -351,6 +440,24 @@ const TesterDashboard = () => {
                 </Box>
               </Grid>
             </Grid>
+            <Stack spacing={2} sx={{ mt: 3 }}>
+              <Box display="flex" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Executed
+                </Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {testCases.executed || 0}
+                </Typography>
+              </Box>
+              <Box display="flex" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Blocked
+                </Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {testCases.blocked || 0}
+                </Typography>
+              </Box>
+            </Stack>
           </Paper>
         </Grid>
 
@@ -358,41 +465,46 @@ const TesterDashboard = () => {
         <Grid item xs={12} md={6}>
           <Paper elevation={2} sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Performance Metrics
+              Productivity Metrics
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'info.light', color: 'info.dark', mx: 'auto', mb: 1 }}>
-                    <Speed />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight={600}>
-                    {stats?.productivity?.bugsPerDay || 0}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Bugs/Day
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'warning.light', color: 'warning.dark', mx: 'auto', mb: 1 }}>
-                    <Assignment />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight={600}>
-                    {stats?.productivity?.testsPerDay || 0}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Tests/Day
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+            <Stack spacing={2}>
+              {productivityMetrics.map(({ key, label }) => {
+                const rawValue = productivity[key] ?? 0;
+                const value = Math.max(0, Math.min(Number.isFinite(rawValue) ? rawValue : 0, 100));
+
+                return (
+                  <Box key={key}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        {label}
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {value}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={value}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        bgcolor: 'grey.200',
+                        '& .MuiLinearProgress-bar': {
+                          bgcolor: theme.palette.primary.main,
+                          borderRadius: 4,
+                        },
+                      }}
+                    />
+                  </Box>
+                );
+              })}
+            </Stack>
           </Paper>
         </Grid>
       </Grid>
     </Box>
   );
-};
+}
+;
 
 export default TesterDashboard;

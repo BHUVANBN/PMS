@@ -1,6 +1,6 @@
 // bugTracker.route.js - Bug Tracker Routes
 import express from 'express';
-import { verifyToken } from '../middleware/verifyToken.js';
+import { verifyToken, allowDevelopmentTeam } from '../middleware/verifyToken.js';
 import {
   createBugReport,
   getProjectBugs,
@@ -17,6 +17,7 @@ import {
 const router = express.Router();
 
 router.use(verifyToken);
+router.use(allowDevelopmentTeam);
 
 router.post('/', createBugReport);
 router.get('/project/:projectId', getProjectBugs);

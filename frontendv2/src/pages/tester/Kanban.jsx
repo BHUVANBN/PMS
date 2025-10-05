@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Box, Stack, Button, Chip, Typography, Alert } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import KanbanBoard from '../../components/kanban/KanbanBoard';
@@ -13,8 +13,20 @@ const TesterKanban = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resolvingTicketId, setResolvingTicketId] = useState(null);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [clearedTickets, setClearedTickets] = useState(() => new Set());
+
+  useEffect(() => {
+    setClearedTickets(new Set());
+  }, [refreshKey]);
+
+  const normalizeTicketId = useCallback((ticket) => {
+    if (!ticket) return '';
+    const raw = ticket._id ?? ticket.id ?? '';
+    return typeof raw === 'string' ? raw : raw?.toString?.() ?? String(raw ?? '');
+  }, []);
 
   const loadProjects = async () => {
     const res = await testerAPI.getProjects();
@@ -70,6 +82,37 @@ const TesterKanban = () => {
     }
   }, [selectedTicket]);
 
+  const handleResolveBugs = useCallback(async (ticket) => {
+    if (!ticket) return;
+
+    const normalizedId = normalizeTicketId(ticket);
+    const projectId = ticket.projectId;
+    const moduleId = ticket.moduleId;
+    const ticketId = ticket._id || ticket.id;
+
+    setResolvingTicketId(normalizedId);
+    setError(null);
+
+    try {
+      await testerAPI.resolveTicketBugs(projectId, moduleId, ticketId);
+
+      setClearedTickets((prev) => {
+        const next = new Set(prev);
+        if (normalizedId) {
+          next.add(normalizedId);
+        }
+        return next;
+      });
+
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      console.error('Error resolving ticket bugs:', err);
+      setError(err.message || 'Failed to resolve linked bugs');
+    } finally {
+      setResolvingTicketId(null);
+    }
+  }, [normalizeTicketId]);
+
   const severityColor = useCallback((severity) => {
     switch ((severity || '').toLowerCase()) {
       case 'critical':
@@ -85,8 +128,11 @@ const TesterKanban = () => {
   }, []);
 
   const renderTicket = useCallback(({ key, ticket, columnKey, onDragStart }) => {
+    const ticketId = normalizeTicketId(ticket);
     const bugs = ticket?.bugs || [];
-    const bugCount = bugs.length;
+    const isCleared = ticketId && clearedTickets.has(ticketId);
+    const visibleBugs = isCleared ? [] : bugs;
+    const bugCount = visibleBugs.length;
 
     return (
       <Box key={key} sx={{ p: 1, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 0.5 }}>
@@ -108,7 +154,7 @@ const TesterKanban = () => {
               />
               {bugCount > 0 && (
                 <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  {bugs.slice(0, 3).map((bug) => (
+                  {visibleBugs.slice(0, 3).map((bug) => (
                     <Chip
                       key={bug._id}
                       size="small"
@@ -124,13 +170,23 @@ const TesterKanban = () => {
               )}
             </Stack>
 
-            <Button
-              size="small"
-              variant="contained"
-              onClick={() => openDialog(ticket)}
-            >
-              Log Bug
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!bugs.length || resolvingTicketId === ticketId}
+                onClick={() => handleResolveBugs(ticket)}
+              >
+                {isCleared ? 'Cleared' : resolvingTicketId === ticketId ? 'Resolving…' : 'Resolve Bugs'}
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => openDialog(ticket)}
+              >
+                Log Bug
+              </Button>
+            </Stack>
           </Stack>
 
           <Typography variant="caption" color="text.secondary">
@@ -139,7 +195,7 @@ const TesterKanban = () => {
         </Stack>
       </Box>
     );
-  }, [openDialog, severityColor]);
+  }, [openDialog, severityColor, clearedTickets, resolvingTicketId, handleResolveBugs, normalizeTicketId]);
 
   return (
     <Box>

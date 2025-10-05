@@ -338,23 +338,33 @@ export const getTesterKanbanBoard = async (req, res) => {
     ];
 
     let bugMap = new Map();
+    let unresolvedCounts = new Map();
     if (allTicketIds.length) {
       const bugDocs = await BugTracker.find({ ticketId: { $in: allTicketIds } })
         .select('ticketId bugNumber title severity status createdAt');
-      bugMap = bugDocs.reduce((map, bugDoc) => {
+      bugDocs.forEach((bugDoc) => {
         const key = bugDoc.ticketId?.toString();
-        if (!key) return map;
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push({
-          _id: bugDoc._id,
-          bugNumber: bugDoc.bugNumber,
-          title: bugDoc.title,
-          severity: bugDoc.severity,
-          status: bugDoc.status,
-          createdAt: bugDoc.createdAt
-        });
-        return map;
-      }, new Map());
+        if (!key) return;
+
+        const status = (bugDoc.status || '').toLowerCase();
+        const isResolved = status === 'resolved' || status === 'closed';
+
+        if (!bugMap.has(key)) bugMap.set(key, []);
+        if (!isResolved) {
+          bugMap.get(key).push({
+            _id: bugDoc._id,
+            bugNumber: bugDoc.bugNumber,
+            title: bugDoc.title,
+            severity: bugDoc.severity,
+            status: bugDoc.status,
+            createdAt: bugDoc.createdAt
+          });
+        }
+
+        if (!isResolved) {
+          unresolvedCounts.set(key, (unresolvedCounts.get(key) || 0) + 1);
+        }
+      });
     }
 
     const attachBugs = ticket => {
@@ -365,8 +375,25 @@ export const getTesterKanbanBoard = async (req, res) => {
       };
     };
 
-    const testerTicketsWithBugs = testerTickets.map(attachBugs);
-    const needsAssignmentWithBugs = needsAssignment.map(attachBugs);
+    const testerTicketsWithBugs = testerTickets.map((ticket) => {
+      const enriched = attachBugs(ticket);
+      const key = enriched?._id?.toString();
+      return {
+        ...enriched,
+        openBugCount: unresolvedCounts.get(key) || 0,
+        hasOpenBugs: (unresolvedCounts.get(key) || 0) > 0
+      };
+    });
+
+    const needsAssignmentWithBugs = needsAssignment.map((ticket) => {
+      const enriched = attachBugs(ticket);
+      const key = enriched?._id?.toString();
+      return {
+        ...enriched,
+        openBugCount: unresolvedCounts.get(key) || 0,
+        hasOpenBugs: (unresolvedCounts.get(key) || 0) > 0
+      };
+    });
 
     const kanbanData = {
       columns: {
@@ -823,8 +850,10 @@ export const updateTicketStatus = async (req, res) => {
     ticket.status = status;
     ticket.lastModified = new Date();
 
+    let availableTesters = [];
     let newlyAssignedTester = null;
-    if (status === 'testing' && (!ticket.tester || ticket.tester === null)) {
+
+    if (status === 'testing') {
       const moduleTeamMemberIds = Array.isArray(module?.teamMembers)
         ? module.teamMembers.map(memberId => memberId.toString())
         : [];
@@ -841,76 +870,70 @@ export const updateTicketStatus = async (req, res) => {
         });
       }
 
-      const testers = await User.find({
+      availableTesters = await User.find({
         _id: { $in: candidateIds },
         role: 'tester'
       }).select('_id firstName lastName username email');
 
-      if (!testers.length) {
+      if (!availableTesters.length) {
         return res.status(400).json({
           success: false,
           message: 'Cannot move ticket to testing because no testers are assigned to this project'
         });
       }
 
-      const moduleTesterIds = new Set(moduleTeamMemberIds);
+      if (!ticket.tester) {
+        const moduleTesterIds = new Set(moduleTeamMemberIds);
 
-      const testerLoad = testers.map(tester => {
-        const testerIdStr = tester._id.toString();
-        let activeTestingCount = 0;
+        const testerLoad = availableTesters.map(tester => {
+          const testerIdStr = tester._id.toString();
+          const moduleAssignments = module.tickets.filter(t => t.tester?.toString() === testerIdStr).length;
+          const projectAssignments = project.modules.reduce((acc, mod) => {
+            return acc + mod.tickets.filter(t => t.tester?.toString() === testerIdStr).length;
+          }, 0);
 
-        project.modules.forEach(projectModule => {
-          projectModule.tickets.forEach(projectTicket => {
-            if (
-              projectTicket.tester &&
-              projectTicket.tester.toString() === testerIdStr &&
-              projectTicket.status === 'testing'
-            ) {
-              activeTestingCount += 1;
-            }
-          });
+          return {
+            tester,
+            moduleAssignments,
+            projectAssignments,
+            isModuleMember: moduleTesterIds.has(testerIdStr)
+          };
         });
 
-        return {
-          tester,
-          activeTestingCount,
-          inModule: moduleTesterIds.has(testerIdStr)
-        };
-      });
+        testerLoad.sort((a, b) => {
+          if (a.isModuleMember !== b.isModuleMember) return a.isModuleMember ? -1 : 1;
+          if (a.moduleAssignments !== b.moduleAssignments) return a.moduleAssignments - b.moduleAssignments;
+          return a.projectAssignments - b.projectAssignments;
+        });
 
-      testerLoad.sort((a, b) => {
-        if (a.inModule !== b.inModule) {
-          return a.inModule ? -1 : 1;
+        const selectedTester = testerLoad[0].tester;
+        newlyAssignedTester = selectedTester;
+        ticket.tester = selectedTester._id;
+
+        const testerDisplayName = selectedTester.firstName
+          ? `${selectedTester.firstName} ${selectedTester.lastName || ''}`.trim()
+          : selectedTester.username || selectedTester.email || 'tester';
+
+        ticket.comments.push({
+          userId: req.user._id,
+          comment: `[System] Auto-assigned tester ${testerDisplayName} when ticket entered testing`,
+          createdAt: new Date()
+        });
+
+      }
+
+      const testerUserIds = availableTesters.map(tester => tester._id.toString());
+
+      emitTicketEvent({
+        projectId: projectId.toString(),
+        userIds: testerUserIds,
+        type: 'ticket.ready_for_testing',
+        data: {
+          ticketId,
+          moduleId: module._id.toString(),
+          projectId: projectId.toString(),
+          assignedTester: ticket.tester?.toString() || null
         }
-
-        if (a.activeTestingCount !== b.activeTestingCount) {
-          return a.activeTestingCount - b.activeTestingCount;
-        }
-
-        const nameA = `${a.tester.firstName || ''} ${a.tester.lastName || ''}`.trim().toLowerCase();
-        const nameB = `${b.tester.firstName || ''} ${b.tester.lastName || ''}`.trim().toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-
-      newlyAssignedTester = testerLoad[0].tester;
-      ticket.tester = newlyAssignedTester._id;
-
-      const testerDisplayName = (newlyAssignedTester.firstName || newlyAssignedTester.lastName)
-        ? `${newlyAssignedTester.firstName || ''} ${newlyAssignedTester.lastName || ''}`.trim()
-        : newlyAssignedTester.username || newlyAssignedTester.email || 'tester';
-
-      ticket.comments.push({
-        userId: req.user._id,
-        comment: `[System] Auto-assigned tester ${testerDisplayName} when ticket entered testing`,
-        createdAt: new Date()
-      });
-    }
-
-    if (comment) {
-      ticket.comments.push({
-        userId: req.user._id,
-        comment: comment,
-        createdAt: new Date()
       });
     }
 

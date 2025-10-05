@@ -1,6 +1,6 @@
 // tester.controller.js - Tester Controller
 import mongoose from 'mongoose';
-import { BugTracker } from '../models/index.js';
+import { BugTracker, BUG_STATUS } from '../models/index.js';
 import { Project } from '../models/index.js';
 import { User } from '../models/index.js';
 import { emitTicketEvent } from '../utils/realtime.js';
@@ -1300,6 +1300,120 @@ export const completeTicketTesting = async (req, res) => {
 };
 
 /**
+ * Quickly resolve/clear all bugs linked to a ticket
+ */
+export const resolveTicketBugs = async (req, res) => {
+  try {
+    const { projectId, moduleId, ticketId } = req.params;
+    const testerId = req.user._id;
+
+    const project = await Project.findOne({ _id: projectId });
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found'
+      });
+    }
+
+    const module = project.modules.find(
+      module => module._id.toString() === moduleId
+    );
+
+    if (!module) {
+      return res.status(404).json({
+        success: false,
+        error: 'Module not found'
+      });
+    }
+
+    const ticket = module.tickets.find(
+      ticket => ticket._id.toString() === ticketId
+    );
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: 'Ticket not found'
+      });
+    }
+
+    if (ticket.tester && ticket.tester.toString() !== testerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this ticket'
+      });
+    }
+
+    const bugTrackerIds = Array.isArray(ticket.bugTrackerIds) ? ticket.bugTrackerIds.filter(Boolean) : [];
+
+    if (!bugTrackerIds.length) {
+      return res.json({
+        success: true,
+        data: ticket,
+        message: 'No linked bugs to resolve for this ticket'
+      });
+    }
+
+    const testerObjectId = new mongoose.Types.ObjectId(testerId);
+    const resolveTime = new Date();
+
+    const bugs = await BugTracker.find({ _id: { $in: bugTrackerIds } });
+
+    await Promise.all(
+      bugs.map(async (bug) => {
+        bug.status = BUG_STATUS.CLOSED;
+        bug.testedBy = testerObjectId;
+        bug.resolvedAt = bug.resolvedAt || resolveTime;
+        bug.testingNotes = bug.testingNotes || 'Resolved via tester quick action';
+        bug.comments.push({
+          userId: testerObjectId,
+          comment: `[Tester] Resolved bug while clearing ticket ${ticket.ticketNumber || ticket._id.toString()}.`,
+          createdAt: resolveTime
+        });
+        await bug.save();
+      })
+    );
+
+    ticket.bugTrackerIds = [];
+    ticket.bugTrackerId = null;
+    ticket.comments.push({
+      userId: testerObjectId,
+      comment: '[Tester] Cleared all linked bugs via Resolve Bugs action.',
+      createdAt: resolveTime
+    });
+
+    await project.save();
+
+    const managerId = project.projectManager?.toString();
+    const developerId = ticket.assignedDeveloper?.toString();
+    const notifyUsers = [managerId, developerId, ticket.tester?.toString()].filter(Boolean);
+
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: notifyUsers,
+      type: 'ticket.bugs_cleared',
+      data: {
+        ticketId: ticket._id.toString(),
+        moduleId: module._id.toString(),
+        clearedBy: testerId.toString()
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: ticket,
+      message: 'All linked bugs resolved and ticket cleared'
+    });
+  } catch (error) {
+    console.error('Error resolving ticket bugs:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
  * Approve/Validate a ticket after testing
  */
 export const approveTicket = async (req, res) => {
@@ -1349,10 +1463,56 @@ export const approveTicket = async (req, res) => {
       });
     }
 
+    const testerObjectId = new mongoose.Types.ObjectId(testerId);
+
+    const bugTrackerIds = Array.isArray(ticket.bugTrackerIds) ? ticket.bugTrackerIds.filter(Boolean) : [];
+    if (bugTrackerIds.length) {
+      const unresolvedBugs = await BugTracker.find({
+        _id: { $in: bugTrackerIds },
+        status: { $nin: [BUG_STATUS.CLOSED, BUG_STATUS.RESOLVED] }
+      });
+
+      if (unresolvedBugs.length) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot approve ticket while linked bugs remain open or in progress',
+          bugs: unresolvedBugs.map(bug => ({
+            id: bug._id.toString(),
+            bugNumber: bug.bugNumber,
+            status: bug.status
+          }))
+        });
+      }
+
+      // Close resolved bugs and log tester verification
+      const closeTime = new Date();
+      await Promise.all(
+        bugTrackerIds.map(async (bugId) => {
+          const bug = await BugTracker.findById(bugId);
+          if (!bug) return;
+          if (bug.status === BUG_STATUS.RESOLVED) {
+            bug.status = BUG_STATUS.CLOSED;
+          }
+          bug.testedBy = testerObjectId;
+          bug.testingNotes = approvalNotes || bug.testingNotes;
+          bug.resolvedAt = bug.resolvedAt || closeTime;
+          bug.comments.push({
+            userId: testerObjectId,
+            comment: `[Tester] Verified fix while approving ticket ${ticket.ticketNumber || ticket._id.toString()}.`,
+            createdAt: closeTime
+          });
+          await bug.save();
+        })
+      );
+    }
+
     // Approve ticket - mark as done
+    const previousStatus = ticket.status;
     ticket.status = 'done';
     ticket.testingNotes = approvalNotes || 'Ticket approved by tester';
-    
+    ticket.testedBy = testerObjectId;
+    ticket.testedAt = new Date();
+
     // Add approval comment
     ticket.comments.push({
       userId: testerId,
@@ -1361,6 +1521,33 @@ export const approveTicket = async (req, res) => {
     });
 
     await project.save();
+
+    const managerId = project.projectManager?.toString();
+    const developerId = ticket.assignedDeveloper?.toString();
+    const notifyUsers = [managerId, developerId, ticket.tester?.toString()].filter(Boolean);
+
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: notifyUsers,
+      type: 'ticket.status_updated',
+      data: {
+        ticketId: ticket._id.toString(),
+        oldStatus: previousStatus,
+        newStatus: ticket.status
+      }
+    });
+
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: notifyUsers,
+      type: 'ticket.ready_for_manager',
+      data: {
+        ticketId: ticket._id.toString(),
+        moduleId: module._id.toString(),
+        approvedBy: testerId.toString(),
+        completionNotes: approvalNotes || ''
+      }
+    });
 
     res.json({
       success: true,
@@ -1381,96 +1568,93 @@ export const approveTicket = async (req, res) => {
  */
 export const getTesterStats = async (req, res) => {
   try {
-    const testerId = req.user._id;
+    const testerId = req.user._id.toString();
 
-    // Get bugs reported by this tester
-    const reportedBugs = await BugTracker.find({ reportedBy: testerId });
-    
-    // Get bugs assigned to this tester
-    const assignedBugs = await BugTracker.find({ assignedTo: testerId });
+    // Fetch all bugs reported by or assigned to the tester
+    const accessibleBugs = await BugTracker.find({
+      $or: [{ reportedBy: testerId }, { assignedTo: testerId }]
+    });
 
-    // Calculate bug statistics
-    const bugStats = {
-      reported: {
-        total: reportedBugs.length,
-        open: reportedBugs.filter(b => b.status === 'open').length,
-        inProgress: reportedBugs.filter(b => b.status === 'in-progress').length,
-        resolved: reportedBugs.filter(b => b.status === 'resolved').length,
-        closed: reportedBugs.filter(b => b.status === 'closed').length
-      },
-      assigned: {
-        total: assignedBugs.length,
-        pending: assignedBugs.filter(b => b.status === 'open').length,
-        testing: assignedBugs.filter(b => b.status === 'in-progress').length,
-        verified: assignedBugs.filter(b => b.status === 'resolved').length
+    const reportedBugs = accessibleBugs.filter(bug => bug.reportedBy?.toString() === testerId);
+    const assignedBugs = accessibleBugs.filter(bug => bug.assignedTo?.toString() === testerId);
+
+    const severityTemplate = ['critical', 'high', 'medium', 'low'];
+    const statusTemplate = ['new', 'assigned', 'in_progress', 'resolved', 'closed', 'reopened'];
+
+    const severityDistribution = severityTemplate.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
+    const statusDistribution = statusTemplate.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
+
+    accessibleBugs.forEach(bug => {
+      if (severityDistribution[bug.severity] !== undefined) {
+        severityDistribution[bug.severity] += 1;
       }
-    };
+      if (statusDistribution[bug.status] !== undefined) {
+        statusDistribution[bug.status] += 1;
+      }
+    });
 
-    // Get severity breakdown for reported bugs
-    const severityStats = {
-      critical: reportedBugs.filter(b => b.severity === 'critical').length,
-      high: reportedBugs.filter(b => b.severity === 'high').length,
-      medium: reportedBugs.filter(b => b.severity === 'medium').length,
-      low: reportedBugs.filter(b => b.severity === 'low').length
-    };
+    const totalBugs = accessibleBugs.length;
+    const activeBugStatuses = ['new', 'assigned', 'in_progress', 'reopened'];
+    const activeBugs = accessibleBugs.filter(bug => activeBugStatuses.includes(bug.status)).length;
 
-    // Get projects where tester is involved
+    // Retrieve projects the tester is involved with for ticket/testing analytics
     const projects = await Project.find({ teamMembers: testerId });
-    
-    // Get test case statistics from actual ticket data
+
     let totalTickets = 0;
-    let testedTickets = 0;
+    let executedTickets = 0;
     let passedTickets = 0;
     let failedTickets = 0;
-    
+
     projects.forEach(project => {
       project.modules.forEach(module => {
         module.tickets.forEach(ticket => {
-          if (ticket.tester && ticket.tester.toString() === testerId.toString()) {
-            totalTickets++;
+          if (ticket.tester && ticket.tester.toString() === testerId) {
+            totalTickets += 1;
+
             if (ticket.status === 'done') {
-              testedTickets++;
-              passedTickets++;
+              executedTickets += 1;
+              passedTickets += 1;
             } else if (ticket.status === 'testing' && ticket.testingNotes) {
-              testedTickets++;
-              failedTickets++;
+              executedTickets += 1;
+              failedTickets += 1;
             }
           }
         });
       });
     });
 
+    const blockedTickets = Math.max(totalTickets - executedTickets, 0);
+
     const testCaseStats = {
       total: totalTickets,
-      executed: testedTickets,
+      executed: executedTickets,
       passed: passedTickets,
       failed: failedTickets,
-      blocked: totalTickets - testedTickets
+      blocked: blockedTickets
     };
 
-    // Calculate productivity metrics
     const productivity = {
-      bugDetectionRate: Math.round((bugStats.reported.total / Math.max(testCaseStats.executed, 1)) * 100),
-      bugResolutionRate: Math.round((bugStats.reported.resolved / Math.max(bugStats.reported.total, 1)) * 100),
-      testExecutionRate: Math.round((testCaseStats.executed / Math.max(testCaseStats.total, 1)) * 100),
-      testPassRate: Math.round((testCaseStats.passed / Math.max(testCaseStats.executed, 1)) * 100)
+      bugDetectionRate: totalTickets ? Math.round((reportedBugs.length / Math.max(executedTickets, 1)) * 100) : 0,
+      bugResolutionRate: reportedBugs.length ? Math.round(((statusDistribution.resolved + statusDistribution.closed) / Math.max(reportedBugs.length, 1)) * 100) : 0,
+      testExecutionRate: totalTickets ? Math.round((executedTickets / Math.max(totalTickets, 1)) * 100) : 0,
+      testPassRate: executedTickets ? Math.round((passedTickets / Math.max(executedTickets, 1)) * 100) : 0
     };
 
     const stats = {
-      bugs: bugStats,
-      severity: severityStats,
-      testCases: testCaseStats,
-      projects: {
-        total: projects.length,
-        active: projects.filter(p => p.status === 'active').length
+      summary: {
+        totalBugs,
+        activeBugs,
+        reportedBugs: reportedBugs.length,
+        assignedBugs: assignedBugs.length,
+        resolvedBugs: statusDistribution.resolved,
+        closedBugs: statusDistribution.closed,
+        totalProjects: projects.length,
+        activeProjects: projects.filter(project => project.status === 'active').length
       },
-      productivity,
-      overview: {
-        totalBugsReported: bugStats.reported.total,
-        totalBugsAssigned: bugStats.assigned.total,
-        activeProjects: projects.filter(p => p.status === 'active').length,
-        testCasesExecuted: testCaseStats.executed
-      }
+      severityDistribution,
+      statusDistribution,
+      testCases: testCaseStats,
+      productivity
     };
 
     return res.status(200).json({

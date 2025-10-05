@@ -476,7 +476,18 @@ export const testerAPI = {
       body: payload,
     }),
 
+  resolveTicketBugs: (projectId, moduleId, ticketId) =>
+    apiRequest(`/tester/tickets/${projectId}/${moduleId}/${ticketId}/resolve-bugs`, {
+      method: 'POST',
+    }),
+
   getProjectBugs: (projectId, params = {}) =>
+    apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
+
+  getProjectBugsForDeveloper: (projectId, params = {}) =>
+    apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
+
+  getProjectBugsForManager: (projectId, params = {}) =>
     apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
 
   // Get tickets assigned to tester

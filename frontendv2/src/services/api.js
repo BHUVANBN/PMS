@@ -397,6 +397,9 @@ export const managerAPI = {
 
   getSprintSummary: (sprintId) =>
     apiRequest(`/manager/sprint/${sprintId}/summary`),
+
+  getProjectBugs: (projectId, params = {}) =>
+    apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
 };
 
 // Developer API
@@ -407,6 +410,9 @@ export const developerAPI = {
 
   getProjects: () =>
     apiRequest('/developer/projects'),
+
+  getBugs: (projectId, params = {}) =>
+    apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
 
   // Get developer stats
   getStats: () =>

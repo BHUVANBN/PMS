@@ -18,9 +18,11 @@ import {
   Typography,
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { testerAPI } from '../../services/api';
+import { testerAPI, developerAPI, managerAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Bugs = () => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [bugs, setBugs] = useState([]);
@@ -28,11 +30,27 @@ const Bugs = () => {
   const [loadingBugs, setLoadingBugs] = useState(false);
   const [error, setError] = useState(null);
 
+  const role = useMemo(() => (user?.role || '').toLowerCase(), [user?.role]);
+
+  const isSupportedRole = role === 'tester' || role === 'developer' || role === 'manager';
+
   const loadProjects = useCallback(async () => {
     try {
       setLoadingProjects(true);
       setError(null);
-      const res = await testerAPI.getProjects();
+      let res;
+      if (role === 'tester') {
+        res = await testerAPI.getProjects();
+      } else if (role === 'developer') {
+        res = await developerAPI.getProjects();
+      } else if (role === 'manager') {
+        res = await managerAPI.getAllProjects();
+      } else {
+        setProjects([]);
+        setSelectedProject('');
+        setError('Bug tracker is available for testers, developers, and managers');
+        return;
+      }
       const list = res?.projects || res?.data?.projects || res?.data || [];
       const normalized = list.map((p) => ({
         id: (p._id || p.id || '').toString(),
@@ -61,7 +79,19 @@ const Bugs = () => {
     try {
       setLoadingBugs(true);
       setError(null);
-      const res = await testerAPI.getProjectBugs(projectId, { sortBy: 'createdAt', sortOrder: 'desc', limit: 100 });
+      let res;
+      const params = { sortBy: 'createdAt', sortOrder: 'desc', limit: 100 };
+      if (role === 'tester') {
+        res = await testerAPI.getProjectBugs(projectId, params);
+      } else if (role === 'developer') {
+        res = await developerAPI.getBugs(projectId, params);
+      } else if (role === 'manager') {
+        res = await managerAPI.getProjectBugs(projectId, params);
+      } else {
+        setError('Bug tracker is available for testers, developers, and managers');
+        setBugs([]);
+        return;
+      }
       const bugPayload = res?.data?.bugs || res?.data || res?.bugs || [];
       setBugs(Array.isArray(bugPayload) ? bugPayload : []);
     } catch (err) {
@@ -70,11 +100,15 @@ const Bugs = () => {
     } finally {
       setLoadingBugs(false);
     }
-  }, []);
+  }, [role]);
 
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    if (isSupportedRole) {
+      loadProjects();
+    } else {
+      setLoadingProjects(false);
+    }
+  }, [loadProjects, isSupportedRole]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -176,7 +210,7 @@ const Bugs = () => {
         </Alert>
       )}
 
-      {loadingProjects && (
+      {loadingProjects && isSupportedRole && (
         <Stack alignItems="center" py={6}>
           <CircularProgress />
           <Typography variant="body2" color="text.secondary" mt={2}>
@@ -185,7 +219,7 @@ const Bugs = () => {
         </Stack>
       )}
 
-      {!loadingProjects && !projects.length && (
+      {!loadingProjects && isSupportedRole && !projects.length && !error && (
         <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1">No projects assigned.</Typography>
           <Typography variant="body2" color="text.secondary">
@@ -194,7 +228,7 @@ const Bugs = () => {
         </Paper>
       )}
 
-      {selectedProject && !loadingProjects && (
+      {selectedProject && !loadingProjects && isSupportedRole && (
         <Paper sx={{ p: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} mb={2}>
             <Box>

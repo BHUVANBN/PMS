@@ -11,7 +11,11 @@ import {
   Chip,
   LinearProgress,
   Avatar,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   TicketIcon,
@@ -31,6 +35,8 @@ const DeveloperDashboard = () => {
   const [standups, setStandups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -87,6 +93,7 @@ const DeveloperDashboard = () => {
       const normalizedTickets = tickets.map((t) => ({
         id: t.ticketId || t._id || t.id,
         title: t.title,
+        description: t.description || 'No description available',
         priority: t.priority,
         status: t.status,
         project: t.projectName,
@@ -126,6 +133,16 @@ const DeveloperDashboard = () => {
     }
   };
 
+  const handleViewTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedTicket(null);
+  };
+
   if (loading) {
     return (
       <Box sx={{ width: '100%' }}>
@@ -154,52 +171,51 @@ const DeveloperDashboard = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* My Tickets */
-        }
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12} lg={8} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <DashboardCard title="My Active Tickets" className="h-full">
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
               {myTickets.map((ticket, index) => (
-                <Card key={index} sx={{ mb: 2, p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                        {ticket.id}
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                        {ticket.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {ticket.project}
-                      </Typography>
+                <Card key={index} sx={{ minWidth: 280, maxWidth: 350, flex: 1 }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box sx={{ flex: 1, mr: 2 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                          {ticket.id}
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
+                          {ticket.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {ticket.project}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <Badge variant={getPriorityColor(ticket.priority)}>
+                          {ticket.priority}
+                        </Badge>
+                        <Chip
+                          label={ticket.status}
+                          color={getStatusColor(ticket.status)}
+                          size="small"
+                        />
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <Badge variant={getPriorityColor(ticket.priority)}>
-                        {ticket.priority}
-                      </Badge>
-                      <Chip
-                        label={ticket.status}
-                        color={getStatusColor(ticket.status)}
-                        size="small"
-                      />
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <Typography variant="body2" sx={{ mr: 2 }}>
+                        {ticket.spentHours}h / {ticket.estimatedHours}h
+                      </Typography>
+                      <Box sx={{ width: 80, mr: 2 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={(ticket.spentHours / ticket.estimatedHours) * 100} 
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                      </Box>
+                      <Button size="small" variant="outlined" onClick={() => handleViewTicket(ticket)}>
+                        View
+                      </Button>
                     </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                    <ClockIcon className="h-4 w-4 mr-1" />
-                    <Typography variant="body2" sx={{ mr: 2 }}>
-                      {ticket.spentHours}h / {ticket.estimatedHours}h
-                    </Typography>
-                    <Box sx={{ width: 100, mr: 2 }}>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={(ticket.spentHours / ticket.estimatedHours) * 100} 
-                        sx={{ height: 6, borderRadius: 3 }}
-                      />
-                    </Box>
-                    <Button size="small" variant="outlined">
-                      View Details
-                    </Button>
-                  </Box>
+                  </CardContent>
                 </Card>
               ))}
             </Box>
@@ -231,6 +247,55 @@ const DeveloperDashboard = () => {
         </Grid>
 
       </Grid>
+
+      {/* Ticket Details Modal */}
+      <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Ticket Details
+        </DialogTitle>
+        <DialogContent>
+          {selectedTicket && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {selectedTicket.title}
+              </Typography>
+              <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary', lineHeight: 1.6 }}>
+                {selectedTicket.description}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>Ticket ID:</strong> {selectedTicket.id}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>Project:</strong> {selectedTicket.project}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>Priority:</strong> {selectedTicket.priority}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>Status:</strong> {selectedTicket.status}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <strong>Time Spent:</strong> {selectedTicket.spentHours}h / {selectedTicket.estimatedHours}h
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ mr: 2 }}>
+                  Progress:
+                </Typography>
+                <Box sx={{ width: 200 }}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={(selectedTicket.spentHours / selectedTicket.estimatedHours) * 100} 
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -29,6 +29,15 @@ export const standupAPI = {
   },
 };
 
+// Helper to build query string from params
+const buildQuery = (params = {}) => {
+  if (!params || typeof params !== 'object') return '';
+  const parts = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+};
+
 // Helper function to create headers with authentication
 const createHeaders = (includeAuth = true) => {
   const headers = {
@@ -460,6 +469,15 @@ export const testerAPI = {
   // Get all bugs accessible to tester
   getAllBugs: () =>
     apiRequest('/tester/bugs'),
+
+  createBugFromTicket: (projectId, moduleId, ticketId, payload) =>
+    apiRequest(`/tester/tickets/${projectId}/${moduleId}/${ticketId}/bugs`, {
+      method: 'POST',
+      body: payload,
+    }),
+
+  getProjectBugs: (projectId, params = {}) =>
+    apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
 
   // Get tickets assigned to tester
   getMyTestTickets: () =>

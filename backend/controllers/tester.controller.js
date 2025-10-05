@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { BugTracker } from '../models/index.js';
 import { Project } from '../models/index.js';
 import { User } from '../models/index.js';
+import { emitTicketEvent } from '../utils/realtime.js';
 
 /**
  * Get projects where the tester is a team member
@@ -620,14 +621,35 @@ export const createBugFromTicket = async (req, res) => {
     }
 
     // Verify tester is assigned to this ticket
-    if (ticket.tester.toString() !== testerId) {
+    if (ticket.tester?.toString() !== testerId.toString()) {
       return res.status(403).json({
         success: false,
         error: 'Access denied to this ticket'
       });
     }
 
+    if (!title || !description || !severity || !bugType) {
+      return res.status(400).json({
+        success: false,
+        error: 'title, description, severity, and bugType are required'
+      });
+    }
+
+    const existingBug = await BugTracker.findOne({
+      projectId,
+      ticketId,
+      title: { $regex: new RegExp(`^${title}$`, 'i') }
+    });
+    if (existingBug) {
+      return res.status(409).json({
+        success: false,
+        error: 'A bug with this title already exists for this ticket'
+      });
+    }
+
     // Create bug report
+    const developerId = ticket.assignedDeveloper ? ticket.assignedDeveloper.toString() : null;
+
     const bugData = {
       projectId,
       ticketId,
@@ -640,18 +662,30 @@ export const createBugFromTicket = async (req, res) => {
       actualBehavior,
       foundInVersion: ticket.foundInVersion || 'Current',
       reportedBy: testerId,
-      status: 'new'
+      status: 'new',
+      assignedTo: ticket.assignedDeveloper || null,
+      watchers: [testerId, ticket.assignedDeveloper].filter(Boolean)
     };
 
     // Generate unique bug number
     const bugCount = await BugTracker.countDocuments({ projectId });
-    bugData.bugNumber = `BUG-${String(bugCount + 1).padStart(3, '0')}`;
+    const projectCodeSource = project?.projectCode || project?.code || project?.name || projectId.toString();
+    const projectPrefix = (projectCodeSource || 'PRJ')
+      .toString()
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase()
+      .slice(0, 4) || projectId.toString().slice(-4).toUpperCase();
+    bugData.bugNumber = `BUG-${projectPrefix}-${String(bugCount + 1).padStart(4, '0')}`;
 
     const bug = await BugTracker.create(bugData);
 
-    // Update ticket with bug reference
+    // Update ticket with bug references
     ticket.bugTrackerId = bug._id;
-    ticket.status = 'testing';
+    if (!Array.isArray(ticket.bugTrackerIds)) {
+      ticket.bugTrackerIds = [];
+    }
+    ticket.bugTrackerIds.push(bug._id);
+    ticket.status = 'open';
     ticket.comments.push({
       userId: testerId,
       comment: `Bug created from testing: ${bug.bugNumber}`,
@@ -660,13 +694,36 @@ export const createBugFromTicket = async (req, res) => {
 
     await project.save();
 
+    emitTicketEvent({
+      projectId: projectId.toString(),
+      userIds: [developerId, testerId.toString()].filter(Boolean),
+      type: 'ticket.bug_reported',
+      data: {
+        ticketId: ticket._id.toString(),
+        bugId: bug._id.toString(),
+        status: ticket.status
+      }
+    });
+
     const populatedBug = await BugTracker.findById(bug._id)
       .populate('projectId', 'name')
       .populate('reportedBy', 'firstName lastName username');
 
+    const ticketBugs = await BugTracker.find({ projectId, ticketId })
+      .sort({ createdAt: -1 })
+      .select('bugNumber title severity status createdAt');
+
     res.status(201).json({
       success: true,
-      data: populatedBug,
+      data: {
+        bug: populatedBug,
+        ticket: {
+          ...ticket.toObject(),
+          bugTrackerIds: ticket.bugTrackerIds,
+          bugTrackerId: ticket.bugTrackerId,
+          bugs: ticketBugs
+        }
+      },
       message: 'Bug created from ticket testing successfully'
     });
   } catch (error) {

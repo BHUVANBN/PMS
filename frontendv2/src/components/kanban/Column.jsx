@@ -10,6 +10,7 @@ const Column = ({
   onDragStart,
   onDrop,
   headerExtras,
+  renderTicket,
 }) => {
   const handleDragOver = (e) => e.preventDefault();
 
@@ -55,13 +56,21 @@ const Column = ({
         {tickets.length === 0 ? (
           <Typography variant="caption" color="text.secondary">No tickets</Typography>
         ) : (
-          tickets.map((t, idx) => (
-            <TicketCard
-              key={t._id || t.id || idx}
-              ticket={t}
-              onDragStart={(e) => onDragStart && onDragStart(e, { ticket: t, from: columnKey, fromId: columnId, index: idx })}
-            />
-          ))
+          tickets.map((t, idx) => {
+            const key = t._id || t.id || idx;
+            const dragHandler = (e) => onDragStart && onDragStart(e, { ticket: t, from: columnKey, fromId: columnId, index: idx });
+            if (renderTicket) {
+              return renderTicket({ key, ticket: t, columnKey, columnId, index: idx, onDragStart: dragHandler });
+            }
+
+            return (
+              <TicketCard
+                key={key}
+                ticket={t}
+                onDragStart={dragHandler}
+              />
+            );
+          })
         )}
       </Stack>
     </Paper>

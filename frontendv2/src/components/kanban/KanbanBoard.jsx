@@ -12,6 +12,14 @@ const defaultStatusMap = {
   done: 'done',
 };
 
+const columnOrderIndex = {
+  todo: 0,
+  inProgress: 1,
+  review: 2,
+  testing: 3,
+  done: 4,
+};
+
 // KanbanBoard is a reusable board with drag/drop and header toolbar
 // Consumers pass in fetchBoard(), moveTicket(), and optional project selector props.
 const KanbanBoard = ({
@@ -33,6 +41,8 @@ const KanbanBoard = ({
   onColumnSettings,
   onProjectChange,
   refreshKey,
+  renderTicket,
+  onTicketUpdated,
 }) => {
   const { user } = useAuth();
   const isManager = user?.role === 'manager';
@@ -147,6 +157,7 @@ const KanbanBoard = ({
     const unsub = subscribeToEvents(resolvedSseParams, (evt) => {
       if (evt?.type && (evt.type.startsWith('ticket.') || evt.type.startsWith('kanban.') || evt.type.startsWith('bug.'))) {
         doFetchBoard(projectId);
+        onTicketUpdated?.(evt);
       }
     });
     return () => unsub && unsub();
@@ -174,16 +185,23 @@ const KanbanBoard = ({
     }
     setDragCtx(ctx);
   };
-
   const onDrop = async (e, to) => {
-    if (isManager) {
-      // Disable drag and drop for managers
-      return;
-    }
+    if (isManager) return; // Disable drag and drop for managers
+
     e.preventDefault();
     if (!dragCtx) return;
+
     const toKey = to.key || to;
     if (toKey === dragCtx.from) return;
+
+    const fromOrder = columnOrderIndex[dragCtx.from] ?? columnsOrder.indexOf(dragCtx.from);
+    const toOrder = columnOrderIndex[toKey] ?? columnsOrder.indexOf(toKey);
+    if (fromOrder !== -1 && toOrder !== -1 && toOrder <= fromOrder) {
+      setDragCtx(null);
+      setError('Tickets can only be moved forward to later columns.');
+      return;
+    }
+
     try {
       await moveTicket?.({
         ticket: dragCtx.ticket,
@@ -194,6 +212,7 @@ const KanbanBoard = ({
         statusMap: defaultStatusMap,
       });
       setDragCtx(null);
+      setError(null);
       doFetchBoard(projectId);
     } catch (err) {
       setError(err.message || 'Failed to move ticket');
@@ -270,9 +289,11 @@ const KanbanBoard = ({
             key={c.key}
             title={c.title}
             columnKey={c.key}
+            columnId={c.id}
             tickets={c.tickets}
             onDragStart={onDragStart}
             onDrop={onDrop}
+            renderTicket={renderTicket}
           />
         ))}
       </Stack>

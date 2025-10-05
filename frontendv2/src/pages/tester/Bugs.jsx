@@ -1,146 +1,352 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, Grid, IconButton, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
-import { Add, Refresh } from '@mui/icons-material';
-import DataTable from '../../components/shared/DataTable';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Divider,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Typography,
+} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { testerAPI } from '../../services/api';
 
-const STATUS_OPTIONS = ['open', 'in-progress', 'resolved', 'closed'];
-const SEVERITY_OPTIONS = ['low', 'medium', 'high', 'critical'];
-const TYPE_OPTIONS = ['bug', 'feature', 'task'];
-
 const Bugs = () => {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [bugs, setBugs] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loadingBugs, setLoadingBugs] = useState(false);
   const [error, setError] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const [newBug, setNewBug] = useState({ title: '', description: '', severity: 'medium', type: 'bug' });
 
-  const fetchBugs = async () => {
+  const loadProjects = useCallback(async () => {
     try {
-      setLoading(true);
+      setLoadingProjects(true);
       setError(null);
-      const res = await testerAPI.getAllBugs();
-      const bugs = res?.bugs || res?.data?.bugs || res?.data || res || [];
-      const normalized = (Array.isArray(bugs) ? bugs : []).map((b) => ({
-        id: b._id || b.id,
-        title: b.title || b.name || 'Untitled',
-        status: b.status,
-        severity: b.severity,
-        type: b.type,
-        reporter: b.reportedBy?.username || b.reporter?.username || '-',
-        assignee: b.assignedTo?.username || '-',
-        createdAt: b.createdAt,
+      const res = await testerAPI.getProjects();
+      const list = res?.projects || res?.data?.projects || res?.data || [];
+      const normalized = list.map((p) => ({
+        id: (p._id || p.id || '').toString(),
+        name: p.name,
       }));
-      setRows(normalized);
-    } catch (e) {
-      setError(e.message || 'Failed to load bugs');
+      setProjects(normalized);
+      if (!selectedProject && normalized.length) {
+        setSelectedProject(normalized[0].id);
+      } else if (selectedProject && !normalized.some((proj) => proj.id === selectedProject)) {
+        // Previously selected project no longer available, reset to first
+        setSelectedProject(normalized[0]?.id || '');
+      }
+    } catch (err) {
+      console.error('Failed to load projects', err);
+      setError(err.message || 'Failed to load projects');
     } finally {
-      setLoading(false);
+      setLoadingProjects(false);
     }
-  };
+  }, [selectedProject]);
 
-  useEffect(() => { fetchBugs(); }, []);
-
-  const updateStatus = async (row, newStatus) => {
-    try {
-      await testerAPI.updateBugStatus(row.id, newStatus);
-      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: newStatus } : r)));
-    } catch (e) {
-      alert(e.message || 'Failed to update status');
+  const loadBugs = useCallback(async (projectId) => {
+    if (!projectId) {
+      setBugs([]);
+      return;
     }
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
     try {
-      setCreating(true);
-      await testerAPI.createBug(newBug);
-      setNewBug({ title: '', description: '', severity: 'medium', type: 'bug' });
-      await fetchBugs();
-    } catch (e) {
-      alert(e.message || 'Failed to create bug');
+      setLoadingBugs(true);
+      setError(null);
+      const res = await testerAPI.getProjectBugs(projectId, { sortBy: 'createdAt', sortOrder: 'desc', limit: 100 });
+      const bugPayload = res?.data?.bugs || res?.data || res?.bugs || [];
+      setBugs(Array.isArray(bugPayload) ? bugPayload : []);
+    } catch (err) {
+      console.error('Failed to load bugs', err);
+      setError(err.message || 'Failed to load bugs');
     } finally {
-      setCreating(false);
+      setLoadingBugs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadBugs(selectedProject);
+    }
+  }, [selectedProject, loadBugs]);
+
+  const handleProjectChange = (event) => {
+    setSelectedProject(event.target.value);
+  };
+
+  const projectName = useMemo(() => {
+    return projects.find((proj) => proj.id === selectedProject)?.name || 'Select a project';
+  }, [projects, selectedProject]);
+
+  const severityColor = (severity) => {
+    switch ((severity || '').toLowerCase()) {
+      case 'critical':
+        return 'error';
+      case 'high':
+        return 'warning';
+      case 'medium':
+        return 'info';
+      case 'low':
+      default:
+        return 'success';
     }
   };
 
-  const columns = useMemo(() => [
-    { key: 'title', label: 'Title', sortable: true },
-    { key: 'reporter', label: 'Reporter', sortable: true },
-    { key: 'assignee', label: 'Assignee' },
-    { key: 'severity', label: 'Severity', type: 'chip' },
-    { key: 'type', label: 'Type', type: 'chip' },
-    { key: 'status', label: 'Status', type: 'status', valueMap: { 'open': 'Open', 'in-progress': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed' } },
-    { key: 'createdAt', label: 'Created', type: 'date' },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (row) => (
-        <Stack direction="row" spacing={1}>
-          <Select size="small" value={row.status} onChange={(e) => updateStatus(row, e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <MenuItem key={s} value={s}>{s}</MenuItem>
-            ))}
-          </Select>
-        </Stack>
-      ),
-    },
-  ], []);
+  const statusColor = (status) => {
+    switch ((status || '').toLowerCase()) {
+      case 'new':
+      case 'open':
+        return 'warning';
+      case 'assigned':
+      case 'in_progress':
+      case 'in-progress':
+        return 'info';
+      case 'resolved':
+        return 'success';
+      case 'closed':
+        return 'default';
+      case 'reopened':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const renderDetailRow = (label, value) => (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <Typography variant="caption" color="text.secondary" sx={{ width: { sm: 180 } }}>
+        {label}
+      </Typography>
+      <Typography variant="body2">{value || '-'}</Typography>
+    </Stack>
+  );
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-        <div>
-          <Typography variant="h4" fontWeight="bold">Bug Tracker</Typography>
-          <Typography variant="body2" color="text.secondary">Report and track bugs; update status as you verify fixes</Typography>
-        </div>
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<Refresh />} onClick={fetchBugs}>Refresh</Button>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} mb={3}>
+        <Box>
+          <Typography variant="h4" fontWeight={700}>Project Bug Tracker</Typography>
+          <Typography variant="body2" color="text.secondary">
+            View comprehensive bug reports for a selected project.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <FormControl size="small" sx={{ minWidth: 220 }} disabled={loadingProjects}>
+            <InputLabel id="project-select-label">Project</InputLabel>
+            <Select
+              labelId="project-select-label"
+              label="Project"
+              value={selectedProject}
+              onChange={handleProjectChange}
+            >
+              {projects.map((project) => (
+                <MenuItem key={project.id} value={project.id}>
+                  {project.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => selectedProject && loadBugs(selectedProject)}
+            disabled={!selectedProject || loadingBugs}
+          >
+            Refresh
+          </Button>
         </Stack>
       </Stack>
 
-      {/* Create Bug */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <form onSubmit={handleCreate}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={3}>
-              <TextField label="Title" size="small" fullWidth required value={newBug.title} onChange={(e) => setNewBug({ ...newBug, title: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField label="Description" size="small" fullWidth value={newBug.description} onChange={(e) => setNewBug({ ...newBug, description: e.target.value })} />
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Select size="small" fullWidth value={newBug.severity} onChange={(e) => setNewBug({ ...newBug, severity: e.target.value })}>
-                {SEVERITY_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-              </Select>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Select size="small" fullWidth value={newBug.type} onChange={(e) => setNewBug({ ...newBug, type: e.target.value })}>
-                {TYPE_OPTIONS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-              </Select>
-            </Grid>
-            <Grid item xs={12} sm={1}>
-              <Button type="submit" variant="contained" startIcon={<Add />} disabled={creating} fullWidth>Create</Button>
-            </Grid>
-          </Grid>
-        </form>
-      </Paper>
-
       {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
-          <Typography color="error">{error}</Typography>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {loadingProjects && (
+        <Stack alignItems="center" py={6}>
+          <CircularProgress />
+          <Typography variant="body2" color="text.secondary" mt={2}>
+            Loading projects...
+          </Typography>
+        </Stack>
+      )}
+
+      {!loadingProjects && !projects.length && (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body1">No projects assigned.</Typography>
+          <Typography variant="body2" color="text.secondary">
+            You will see bug details here once you are part of a project.
+          </Typography>
         </Paper>
       )}
 
-      <DataTable
-        columns={columns}
-        data={rows}
-        loading={loading}
-        enableSearch
-        searchableKeys={["title","reporter","assignee","severity","status","type"]}
-        initialPageSize={10}
-        emptyMessage="No bugs found"
-      />
+      {selectedProject && !loadingProjects && (
+        <Paper sx={{ p: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} mb={2}>
+            <Box>
+              <Typography variant="h6" fontWeight={600}>{projectName}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {bugs.length ? `${bugs.length} bug${bugs.length === 1 ? '' : 's'} found` : 'No bugs recorded yet'}
+              </Typography>
+            </Box>
+            {loadingBugs && <CircularProgress size={24} />}
+          </Stack>
+
+          {!loadingBugs && bugs.length === 0 && (
+            <Box py={6} textAlign="center">
+              <Typography variant="body1">No bug reports available for this project.</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Newly reported bugs will appear here automatically.
+              </Typography>
+            </Box>
+          )}
+
+          {bugs.map((bug, index) => (
+            <Accordion key={bug._id || bug.id || index} defaultExpanded={index === 0} sx={{ mb: 2, borderRadius: 2, '&:before': { display: 'none' } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ width: '100%' }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ flexGrow: 1 }}>
+                    {bug.bugNumber || bug.title || 'Untitled Bug'}
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}>
+                    {bug.severity && (
+                      <Chip label={`Severity: ${bug.severity}`} color={severityColor(bug.severity)} size="small" />
+                    )}
+                    {bug.status && (
+                      <Chip label={`Status: ${bug.status}`} color={statusColor(bug.status)} size="small" />
+                    )}
+                    {bug.bugType && (
+                      <Chip label={bug.bugType} variant="outlined" size="small" />
+                    )}
+                  </Stack>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="space-between">
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Bug Title:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {bug.title || '-'}
+                    </Typography>
+                  </Stack>
+
+                  <Divider flexItem />
+
+                  <Stack spacing={1.5}>
+                    {renderDetailRow('Reported By', `${bug.reportedBy?.firstName || ''} ${bug.reportedBy?.lastName || ''}`.trim() || bug.reportedBy?.username || '-')}
+                    {renderDetailRow('Assigned To', bug.assignedTo ? `${bug.assignedTo.firstName || ''} ${bug.assignedTo.lastName || ''}`.trim() || bug.assignedTo.username : 'Unassigned')}
+                    {renderDetailRow('Created At', bug.createdAt ? new Date(bug.createdAt).toLocaleString() : '-')}
+                    {renderDetailRow('Updated At', bug.updatedAt ? new Date(bug.updatedAt).toLocaleString() : '-')}
+                    {renderDetailRow('Found In Version', bug.foundInVersion)}
+                    {renderDetailRow('Fixed In Version', bug.fixedInVersion)}
+                  </Stack>
+
+                  {bug.description && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Description</Typography>
+                      <Typography variant="body2" color="text.secondary">{bug.description}</Typography>
+                    </Box>
+                  )}
+
+                  {(bug.expectedBehavior || bug.actualBehavior) && (
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                      {bug.expectedBehavior && (
+                        <Box flex={1}>
+                          <Typography variant="subtitle2" gutterBottom>Expected Behaviour</Typography>
+                          <Typography variant="body2" color="text.secondary">{bug.expectedBehavior}</Typography>
+                        </Box>
+                      )}
+                      {bug.actualBehavior && (
+                        <Box flex={1}>
+                          <Typography variant="subtitle2" gutterBottom>Actual Behaviour</Typography>
+                          <Typography variant="body2" color="text.secondary">{bug.actualBehavior}</Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  )}
+
+                  {Array.isArray(bug.stepsToReproduce) && bug.stepsToReproduce.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Steps to Reproduce</Typography>
+                      <Stack spacing={0.5}>
+                        {bug.stepsToReproduce
+                          .sort((a, b) => (a.order || 0) - (b.order || 0))
+                          .map((step, idx) => (
+                            <Typography key={step.order || idx} variant="body2" color="text.secondary">
+                              {`${step.order || idx + 1}. ${step.step}`}
+                            </Typography>
+                          ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {Array.isArray(bug.comments) && bug.comments.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Comments</Typography>
+                      <Stack spacing={1}>
+                        {bug.comments.slice().reverse().map((comment) => (
+                          <Paper key={comment.commentId || comment._id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {comment.comment || '-'}
+                            </Typography>
+                            <Typography variant="caption" color="text.disabled">
+                              {new Date(comment.createdAt || bug.createdAt).toLocaleString()}
+                            </Typography>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {Array.isArray(bug.watchers) && bug.watchers.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Watchers</Typography>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        {bug.watchers.map((watcher) => (
+                          <Chip
+                            key={watcher._id || watcher.id}
+                            label={`${watcher.firstName || ''} ${watcher.lastName || ''}`.trim() || watcher.username || 'Unknown'}
+                            variant="outlined"
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {Array.isArray(bug.attachments) && bug.attachments.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>Attachments</Typography>
+                      <Stack spacing={0.5}>
+                        {bug.attachments.map((file, idx) => (
+                          <Typography key={idx} component="a" href={file} target="_blank" rel="noopener noreferrer" variant="body2" color="primary.main">
+                            {file}
+                          </Typography>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Paper>
+      )}
     </Box>
   );
 };

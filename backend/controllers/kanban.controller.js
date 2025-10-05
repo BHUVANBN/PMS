@@ -82,33 +82,75 @@ export const getDeveloperKanbanBoard = async (req, res) => {
       });
     });
 
+    const ticketIds = personalTickets
+      .map(t => t._id?.toString())
+      .filter(Boolean);
+
+    let bugMap = new Map();
+    if (ticketIds.length) {
+      const bugDocs = await BugTracker.find({ ticketId: { $in: ticketIds } })
+        .populate('reportedBy', 'firstName lastName email')
+        .populate('assignedTo', 'firstName lastName email')
+        .populate('watchers', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      bugMap = bugDocs.reduce((map, bugDoc) => {
+        const key = bugDoc.ticketId?.toString();
+        if (!key) return map;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(bugDoc);
+        return map;
+      }, new Map());
+    }
+
+    personalTickets.forEach(ticket => {
+      const key = ticket._id?.toString();
+      const bugs = key && bugMap.has(key) ? bugMap.get(key) : [];
+      const openBugCount = bugs.filter(bug => {
+        const status = (bug.status || '').toLowerCase();
+        return status !== 'resolved' && status !== 'closed';
+      }).length;
+      ticket.bugs = bugs;
+      ticket.openBugCount = openBugCount;
+      ticket.hasOpenBugs = openBugCount > 0;
+    });
+
     // Group tickets by status for kanban columns
+    const todoTickets = personalTickets.filter(t => t.status === 'open');
+    const inProgressTickets = personalTickets.filter(t => t.status === 'in_progress');
+    const reviewTickets = personalTickets.filter(t => t.status === 'code_review');
+    const testingTickets = personalTickets.filter(t =>
+      t.status === 'testing' || (t.status === 'done' && t.hasOpenBugs)
+    );
+    const doneTickets = personalTickets.filter(t => t.status === 'done' && !t.hasOpenBugs);
+
     const kanbanData = {
       columns: {
         todo: {
           id: 'todo',
           title: 'To Do',
-          tickets: personalTickets.filter(t => t.status === 'open')
+          tickets: todoTickets
         },
         inProgress: {
           id: 'inProgress',
           title: 'In Progress',
-          tickets: personalTickets.filter(t => t.status === 'in_progress')
+          tickets: inProgressTickets
         },
         review: {
           id: 'review',
           title: 'Code Review',
-          tickets: personalTickets.filter(t => t.status === 'code_review')
+          tickets: reviewTickets
         },
         testing: {
           id: 'testing',
           title: 'Testing',
-          tickets: personalTickets.filter(t => t.status === 'testing')
+          tickets: testingTickets
         },
         done: {
           id: 'done',
           title: 'Done',
-          tickets: personalTickets.filter(t => t.status === 'done')
+          tickets: doneTickets
         }
       },
       totalTickets: personalTickets.length,
@@ -290,26 +332,62 @@ export const getTesterKanbanBoard = async (req, res) => {
       });
     });
 
+    const allTicketIds = [
+      ...testerTickets.map(t => t._id?.toString()).filter(Boolean),
+      ...needsAssignment.map(t => t._id?.toString()).filter(Boolean)
+    ];
+
+    let bugMap = new Map();
+    if (allTicketIds.length) {
+      const bugDocs = await BugTracker.find({ ticketId: { $in: allTicketIds } })
+        .select('ticketId bugNumber title severity status createdAt');
+      bugMap = bugDocs.reduce((map, bugDoc) => {
+        const key = bugDoc.ticketId?.toString();
+        if (!key) return map;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push({
+          _id: bugDoc._id,
+          bugNumber: bugDoc.bugNumber,
+          title: bugDoc.title,
+          severity: bugDoc.severity,
+          status: bugDoc.status,
+          createdAt: bugDoc.createdAt
+        });
+        return map;
+      }, new Map());
+    }
+
+    const attachBugs = ticket => {
+      const key = ticket?._id?.toString();
+      return {
+        ...ticket,
+        bugs: key && bugMap.has(key) ? bugMap.get(key) : []
+      };
+    };
+
+    const testerTicketsWithBugs = testerTickets.map(attachBugs);
+    const needsAssignmentWithBugs = needsAssignment.map(attachBugs);
+
     const kanbanData = {
       columns: {
         testing: {
           id: 'testing',
           title: 'Testing Queue',
           tickets: [
-            ...needsAssignment,
-            ...testerTickets.filter(t => ['code_review', 'testing'].includes(t.status))
+            ...needsAssignmentWithBugs,
+            ...testerTicketsWithBugs.filter(t => ['code_review', 'testing'].includes(t.status))
           ]
         },
         done: {
           id: 'done',
           title: 'Done',
-          tickets: testerTickets.filter(t => t.status === 'done')
+          tickets: testerTicketsWithBugs.filter(t => t.status === 'done')
         }
       },
       totalTickets: testerTickets.length + needsAssignment.length,
       activeTickets: [
-        ...testerTickets.filter(t => ['code_review', 'testing'].includes(t.status)),
-        ...needsAssignment
+        ...testerTicketsWithBugs.filter(t => ['code_review', 'testing'].includes(t.status)),
+        ...needsAssignmentWithBugs
       ].length,
       projectId: testerProjectId ? testerProjectId.toString() : '',
       availableProjects: projects.map(project => ({

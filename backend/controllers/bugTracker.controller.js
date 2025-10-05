@@ -41,7 +41,13 @@ export const createBugReport = async (req, res) => {
 
     // Generate unique bug number
     const bugCount = await BugTracker.countDocuments({ projectId });
-    const bugNumber = `BUG-${project.name.substring(0, 3).toUpperCase()}-${String(bugCount + 1).padStart(4, '0')}`;
+    const projectCodeSource = project?.projectCode || project?.code || project?.name || projectId.toString();
+    const projectPrefix = (projectCodeSource || 'PRJ')
+      .toString()
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase()
+      .slice(0, 4) || projectId.toString().slice(-4).toUpperCase();
+    const bugNumber = `BUG-${projectPrefix}-${String(bugCount + 1).padStart(4, '0')}`;
 
     const bugReport = new BugTracker({
       projectId,
@@ -112,6 +118,13 @@ export const createBugReport = async (req, res) => {
 export const getProjectBugs = async (req, res) => {
   try {
     const { projectId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid projectId'
+      });
+    }
+    const projectObjectId = new mongoose.Types.ObjectId(projectId);
     const { 
       status, 
       severity, 
@@ -124,7 +137,7 @@ export const getProjectBugs = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    const filter = { projectId };
+    const filter = { projectId: projectObjectId };
     if (status) filter.status = status;
     if (severity) filter.severity = severity;
     if (priority) filter.priority = priority;
@@ -346,9 +359,12 @@ export const updateBugStatus = async (req, res) => {
 
     // Check permissions based on status transition
     const userRole = req.effectiveRole || req.userRole;
-    const isAssignee = bug.assignedTo?.toString() === req.user._id.toString();
-    const canUpdate = ['admin', 'manager'].includes(userRole) || 
-                     (isAssignee && ['developer', 'tester'].includes(userRole));
+    const isAssignedDeveloper = bug.assignedTo?.toString() === req.user._id.toString();
+    const isReporter = bug.reportedBy?.toString() === req.user._id.toString();
+    const canUpdate =
+      ['admin', 'manager'].includes(userRole) ||
+      (isAssignedDeveloper && ['developer'].includes(userRole)) ||
+      (isReporter && ['tester'].includes(userRole));
 
     if (!canUpdate) {
       return res.status(403).json({
@@ -359,11 +375,12 @@ export const updateBugStatus = async (req, res) => {
 
     // Validate status transitions
     const validTransitions = {
-      [BUG_STATUS.OPEN]: [BUG_STATUS.ASSIGNED, BUG_STATUS.CLOSED],
-      [BUG_STATUS.ASSIGNED]: [BUG_STATUS.IN_PROGRESS, BUG_STATUS.OPEN, BUG_STATUS.CLOSED],
-      [BUG_STATUS.IN_PROGRESS]: [BUG_STATUS.FIXED, BUG_STATUS.ASSIGNED, BUG_STATUS.CLOSED],
-      [BUG_STATUS.FIXED]: [BUG_STATUS.CLOSED, BUG_STATUS.IN_PROGRESS],
-      [BUG_STATUS.CLOSED]: [BUG_STATUS.OPEN]
+      [BUG_STATUS.OPEN]: [BUG_STATUS.ASSIGNED, BUG_STATUS.IN_PROGRESS],
+      [BUG_STATUS.ASSIGNED]: [BUG_STATUS.IN_PROGRESS, BUG_STATUS.OPEN],
+      [BUG_STATUS.IN_PROGRESS]: [BUG_STATUS.RESOLVED, BUG_STATUS.ASSIGNED, BUG_STATUS.OPEN],
+      [BUG_STATUS.RESOLVED]: [BUG_STATUS.CLOSED, BUG_STATUS.IN_PROGRESS],
+      [BUG_STATUS.CLOSED]: [BUG_STATUS.REOPENED],
+      [BUG_STATUS.REOPENED]: [BUG_STATUS.IN_PROGRESS]
     };
 
     const currentStatus = bug.status;
@@ -383,17 +400,16 @@ export const updateBugStatus = async (req, res) => {
     // Update timestamps based on status
     if (status === BUG_STATUS.IN_PROGRESS && !bug.startedAt) {
       bug.startedAt = new Date();
-    } else if (status === BUG_STATUS.FIXED && !bug.fixedAt) {
-      bug.fixedAt = new Date();
+      if (!bug.assignedTo) {
+        bug.assignedTo = req.user._id;
+      }
+    } else if (status === BUG_STATUS.RESOLVED) {
+      bug.resolvedAt = new Date();
       bug.resolvedBy = req.user._id;
       if (resolution) {
-        bug.resolution = {
-          description: resolution,
-          resolvedBy: req.user._id,
-          resolvedAt: new Date()
-        };
+        bug.resolution = resolution;
       }
-    } else if (status === BUG_STATUS.CLOSED && !bug.closedAt) {
+    } else if (status === BUG_STATUS.CLOSED) {
       bug.closedAt = new Date();
       if (testingNotes) {
         bug.testingNotes = testingNotes;
@@ -435,6 +451,49 @@ export const updateBugStatus = async (req, res) => {
         newStatus: status
       }
     });
+
+    // If developer resolved bug, move ticket back to tester testing column
+    if (status === BUG_STATUS.RESOLVED) {
+      const project = await Project.findById(bug.projectId);
+      if (project) {
+        let ticketDoc = null;
+        for (const module of project.modules) {
+          const t = module.tickets.id(bug.ticketId);
+          if (t) {
+            ticketDoc = t;
+            break;
+          }
+        }
+
+        if (ticketDoc) {
+          ticketDoc.status = 'testing';
+          ticketDoc.comments.push({
+            userId: req.user._id,
+            comment: `Bug ${bug.bugNumber} resolved and ready for retest`,
+            createdAt: new Date()
+          });
+
+          await project.save();
+
+          emitTicketEvent({
+            projectId: bug.projectId.toString(),
+            userIds: [ticketDoc.tester?.toString(), ticketDoc.assignedDeveloper?.toString()].filter(Boolean),
+            type: 'ticket.ready_for_retest',
+            data: {
+              ticketId: ticketDoc._id.toString(),
+              bugId: bug._id.toString(),
+              status: ticketDoc.status
+            }
+          });
+        }
+      }
+    }
+
+    // Ensure tester stays watcher
+    if (bug.reportedBy && !bug.watchers?.some(w => w?.toString() === bug.reportedBy.toString())) {
+      bug.watchers = [...(bug.watchers || []), bug.reportedBy];
+      await bug.save();
+    }
 
     res.json({
       success: true,

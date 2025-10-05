@@ -63,7 +63,6 @@ export function initRealtime(app) {
 
     // Choose a channel (prioritize user, then project, then role, else broadcast)
     const channel = userId ? `user:${userId}` : projectId ? `project:${projectId}` : role ? `role:${role}` : 'broadcast';
-
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -97,4 +96,13 @@ export function emitTicketEvent({ projectId, userIds = [], type, data }) {
 
 export function emitBugEvent({ projectId, userIds = [], type, data }) {
   emitTicketEvent({ projectId, userIds, type, data });
+}
+
+export function emitTesterKanbanUpdate({ projectId, testerId, ticketId, bug }) {
+  emitTicketEvent({
+    projectId,
+    userIds: testerId ? [testerId] : [],
+    type: 'kanban.tester.bug_created',
+    data: { ticketId, bug }
+  });
 }

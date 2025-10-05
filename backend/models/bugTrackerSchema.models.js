@@ -117,13 +117,12 @@ const bugTrackerSchema = new mongoose.Schema({
   resolvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null   // REQUIRED: Tester needs to know who fixed it for follow-up
   },
   resolvedAt: {
     type: Date,
     default: null   // When bug was marked as fixed (helps track resolution time)
   },
-  
+
   // Testing verification
   // REMOVED: testedBy field - in tester-only system, reporter does retesting
   testedBy: {
@@ -132,22 +131,25 @@ const bugTrackerSchema = new mongoose.Schema({
      default: null
    },
   testingNotes: String,  // Tester's notes during verification/retesting
-  
+
   // Version tracking
   foundInVersion: String,    // Which version/build the bug was found in
   // REMOVED: fixedInVersion - testers don't track which version it was fixed in
   fixedInVersion: String,
-  
+
   // Supporting materials
   attachments: [String],     // Screenshots, logs, videos to help reproduce bug
-  
-  
+
+  // Stakeholders keeping track of the bug
+  watchers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+
    relatedBugs: [{
      type: mongoose.Schema.Types.ObjectId,
      ref: 'BugTracker'
    }],
-  
-  // Communication
   comments: [{
     commentId: {
       type: mongoose.Schema.Types.ObjectId,

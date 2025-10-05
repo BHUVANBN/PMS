@@ -147,6 +147,13 @@ const ticketSchema = new mongoose.Schema({
     default: null           // Only populated for bug-type tickets
   },
 
+  bugTrackerIds: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BugTracker'
+    }
+  ],
+
   // SYSTEM: Timestamps for workflow tracking
   startedAt: {
     type: Date,

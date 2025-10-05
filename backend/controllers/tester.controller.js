@@ -45,14 +45,19 @@ export const getMyReportedBugs = async (req, res) => {
 };
 
 /**
- * Get all bugs assigned to the current tester for testing
+ * Get all bugs accessible to the current tester (reported or assigned)
  */
-export const getMyAssignedBugs = async (req, res) => {
+export const getAllBugs = async (req, res) => {
   try {
     const testerId = req.user._id;
     const { status, severity, bugType, projectId } = req.query;
 
-    let query = { assignedTo: testerId };
+    let query = {
+      $or: [
+        { reportedBy: testerId },
+        { assignedTo: testerId }
+      ]
+    };
 
     // Apply filters
     if (status) query.status = status;
@@ -62,6 +67,7 @@ export const getMyAssignedBugs = async (req, res) => {
 
     const bugs = await BugTracker.find(query)
       .populate('projectId', 'name')
+      .populate('assignedTo', 'firstName lastName username')
       .populate('reportedBy', 'firstName lastName username')
       .populate('resolvedBy', 'firstName lastName username')
       .sort({ createdAt: -1 });
@@ -72,10 +78,10 @@ export const getMyAssignedBugs = async (req, res) => {
       count: bugs.length
     });
   } catch (error) {
-    console.error('Error fetching assigned bugs:', error);
+    console.error('Error fetching all bugs:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch assigned bugs'
+      error: 'Failed to fetch bugs'
     });
   }
 };
@@ -355,6 +361,42 @@ export const closeBug = async (req, res) => {
 // ========================================
 // 2. TICKET TESTING & VERIFICATION
 // ========================================
+
+/**
+ * Get all bugs assigned to the current tester for testing
+ */
+export const getMyAssignedBugs = async (req, res) => {
+  try {
+    const testerId = req.user._id;
+    const { status, severity, bugType, projectId } = req.query;
+
+    let query = { assignedTo: testerId };
+
+    // Apply filters
+    if (status) query.status = status;
+    if (severity) query.severity = severity;
+    if (bugType) query.bugType = bugType;
+    if (projectId) query.projectId = projectId;
+
+    const bugs = await BugTracker.find(query)
+      .populate('projectId', 'name')
+      .populate('reportedBy', 'firstName lastName username')
+      .populate('resolvedBy', 'firstName lastName username')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: bugs,
+      count: bugs.length
+    });
+  } catch (error) {
+    console.error('Error fetching assigned bugs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch assigned bugs'
+    });
+  }
+};
 
 /**
  * Get tickets assigned to the current tester for testing

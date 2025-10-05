@@ -5,6 +5,7 @@ import {
   // Bug Tracking & Management
   getMyReportedBugs,
   getMyAssignedBugs,
+  getAllBugs,
   createBugReport,
   updateBugReport,
   addBugComment,
@@ -46,6 +47,9 @@ router.get('/bugs/reported', getMyReportedBugs);
 
 // Get all bugs assigned to the current tester for testing
 router.get('/bugs/assigned', getMyAssignedBugs);
+
+// Get all bugs accessible to the current tester (reported or assigned)
+router.get('/bugs', getAllBugs);
 
 // Create a new bug report
 router.post('/bugs', createBugReport);

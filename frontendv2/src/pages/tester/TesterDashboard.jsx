@@ -56,7 +56,7 @@ const TesterDashboard = () => {
       ]);
       
       setStats(statsResponse.stats);
-      setRecentBugs(bugsResponse.slice(0, 5)); // Show only recent 5 bugs
+      setRecentBugs(bugsResponse.data.slice(0, 5)); // Show only recent 5 bugs
     } catch (err) {
       setError(err.message || 'Failed to fetch tester data');
       console.error('Tester Dashboard error:', err);

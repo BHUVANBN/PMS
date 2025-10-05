@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, Grid, IconButton, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import { Add, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
-import { testerAPI, bugsAPI } from '../../services/api';
+import { testerAPI } from '../../services/api';
 
 const STATUS_OPTIONS = ['open', 'in-progress', 'resolved', 'closed'];
 const SEVERITY_OPTIONS = ['low', 'medium', 'high', 'critical'];
@@ -19,7 +19,7 @@ const Bugs = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await bugsAPI.getAllBugs();
+      const res = await testerAPI.getAllBugs();
       const bugs = res?.bugs || res?.data?.bugs || res?.data || res || [];
       const normalized = (Array.isArray(bugs) ? bugs : []).map((b) => ({
         id: b._id || b.id,

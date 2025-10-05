@@ -446,8 +446,12 @@ export const testerAPI = {
     apiRequest('/tester/dashboard'),
 
   // Get tester stats
-  getStats: () =>
+  getTesterStats: () =>
     apiRequest('/tester/stats'),
+
+  // Get all bugs accessible to tester
+  getAllBugs: () =>
+    apiRequest('/tester/bugs'),
 
   // Get tickets assigned to tester
   getMyTestTickets: () =>

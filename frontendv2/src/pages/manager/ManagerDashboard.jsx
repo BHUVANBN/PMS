@@ -4,19 +4,6 @@ import {
   Box,
   Grid,
   Paper,
-  Card,
-  CardContent,
-  CardHeader,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Chip,
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
   LinearProgress
 } from '@mui/material';
 import {
@@ -46,7 +33,6 @@ const ManagerDashboard = () => {
     completedTasks: 0
   });
   const [projects, setProjects] = useState([]);
-  const [teamPerformance, setTeamPerformance] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,19 +90,6 @@ const ManagerDashboard = () => {
       };
       setStats(normalizedStats);
 
-      // Optional: derive team performance if backend returns per-member metrics
-      const perf = s?.team?.members || s?.teamMembers || [];
-      const mappedPerf = Array.isArray(perf) ? perf.slice(0, 6).map((m, idx) => ({
-        id: m._id || m.id || idx,
-        name: m.name || `${m.firstName || ''} ${m.lastName || ''}`.trim() || 'Member',
-        role: m.role || 'member',
-        tasksCompleted: m.tasksCompleted || m.completed || 0,
-        tasksInProgress: m.tasksInProgress || m.inProgress || 0,
-        efficiency: m.efficiency || Math.min(100, Math.round(((m.completed || 0) / Math.max((m.completed || 0) + (m.inProgress || 0) + 1, 1)) * 100)),
-        avatar: m.avatar || undefined,
-      })) : [];
-      setTeamPerformance(mappedPerf);
-
       // Build real tasks list from tickets endpoint
       const tickets = ticketsResponse?.data || ticketsResponse || [];
       const progressMap = {
@@ -144,12 +117,6 @@ const ManagerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getEfficiencyColor = (efficiency) => {
-    if (efficiency >= 90) return 'success';
-    if (efficiency >= 75) return 'warning';
-    return 'error';
   };
 
   if (loading) {
@@ -210,83 +177,17 @@ const ManagerDashboard = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
-        {/* Project Overview - full width for better grid layout */}
+      <Grid container spacing={3} mb={4}>
         <Grid item xs={12}>
-          <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
-        </Grid>
-
-        {/* Quick Actions - placed below project grid */}
-        <Grid item xs={12} md={6} lg={4}>
           <QuickActions actions={quickActions} />
         </Grid>
+      </Grid>
 
-        {/* Team Performance */}
-        <Grid item xs={12} lg={6}>
-          <Card sx={{ height: '100%' }}>
-            <CardHeader
-              title="Team Performance"
-              titleTypographyProps={{ variant: 'h6', fontWeight: 'bold' }}
-              action={
-                <Button size="small" variant="outlined">
-                  View All
-                </Button>
-              }
-            />
-            <CardContent sx={{ pt: 0 }}>
-              <List sx={{ p: 0 }}>
-                {teamPerformance.map((member) => (
-                  <ListItem key={member.id} sx={{ px: 0, py: 2 }}>
-                    <ListItemAvatar>
-                      <Avatar src={member.avatar} sx={{ bgcolor: 'primary.main' }}>
-                        {member.name.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Typography variant="body1" fontWeight="medium">
-                            {member.name}
-                          </Typography>
-                          <Chip
-                            label={`${member.efficiency}%`}
-                            size="small"
-                            color={getEfficiencyColor(member.efficiency)}
-                            variant="filled"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            {member.role}
-                          </Typography>
-                          <Box display="flex" alignItems="center" gap={2} mt={1}>
-                            <Typography variant="caption" color="text.secondary">
-                              Completed: {member.tasksCompleted}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              In Progress: {member.tasksInProgress}
-                            </Typography>
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={member.efficiency}
-                            color={getEfficiencyColor(member.efficiency)}
-                            sx={{ mt: 1, height: 6, borderRadius: 3 }}
-                          />
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+      <Grid container spacing={3}>
+        <Grid item xs={9} sm={9} md={9} lg={9}>
+          <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
         </Grid>
-
-        {/* Task Progress */}
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={3} sm={3} md={3} lg={3}>
           <TaskProgress tasks={tasks} />
         </Grid>
       </Grid>

@@ -24,7 +24,6 @@ import {
 } from '@mui/material';
 import {
   FolderIcon,
-  UserGroupIcon,
   CalendarDaysIcon,
   EllipsisVerticalIcon,
   PlusIcon,
@@ -33,7 +32,7 @@ import {
 } from '@heroicons/react/24/outline';
 import DashboardCard from '../components/dashboard/DashboardCard';
 import Badge from '../components/ui/Badge';
-import { projectsAPI, adminAPI, managerAPI } from '../services/api';
+import { projectsAPI, managerAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProjectsPage = () => {
@@ -52,8 +51,6 @@ const ProjectsPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [managers, setManagers] = useState([]);
-  const [projectManager, setProjectManager] = useState('');
 
   const tabs = ['All Projects', 'Active', 'Planning', 'Completed', 'On Hold'];
 
@@ -67,27 +64,12 @@ const ProjectsPage = () => {
   useEffect(() => {
     // Reset page to 1 when filters change (except page itself)
     setPage(1);
-  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, limit, projectManager]);
+  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, limit]);
 
   useEffect(() => {
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, page, limit, projectManager]);
-
-  // Load managers for filter (skip for developers since filters are hidden)
-  useEffect(() => {
-    if (isDeveloper) return;
-    const loadManagers = async () => {
-      try {
-        const res = await adminAPI.getUsersByRole('manager');
-        const list = res?.data || [];
-        setManagers(list);
-      } catch (e) {
-        console.warn('Failed to load managers', e);
-      }
-    };
-    loadManagers();
-  }, [isDeveloper]);
+  }, [selectedTab, statusFilter, searchTerm, sortBy, sortOrder, page, limit]);
 
   // Removed client-side filter; server handles filtering/searching
 
@@ -105,7 +87,6 @@ const ProjectsPage = () => {
       const tabStatus = statusMapTabToBackend[selectedTab] || '';
       const effectiveStatus = statusFilter || tabStatus;
       if (effectiveStatus) params.status = effectiveStatus;
-      if (projectManager) params.projectManager = projectManager;
       if (searchTerm) params.search = searchTerm;
 
       let res;
@@ -236,24 +217,6 @@ const ProjectsPage = () => {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <FormControl fullWidth size="medium">
-                    <InputLabel id="pm-filter-label">Project Manager</InputLabel>
-                    <Select
-                      labelId="pm-filter-label"
-                      label="Project Manager"
-                      value={projectManager}
-                      onChange={(e) => setProjectManager(e.target.value)}
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      {managers.map((m) => (
-                        <MenuItem key={m._id} value={m._id}>
-                          {m.firstName} {m.lastName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <FormControl fullWidth size="medium">
                     <InputLabel id="sort-by-label">Sort By</InputLabel>
                     <Select
                       labelId="sort-by-label"
@@ -349,14 +312,14 @@ const ProjectsPage = () => {
       {/* Projects Grid */}
       <Grid container spacing={3}>
         {projects.map((project) => (
-          <Grid item xs={12} md={6} lg={4} key={project._id}>
+          <Grid item xs={12} sm={6} md={3} lg={3} key={project._id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardContent sx={{ flexGrow: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
+                    {/* <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
                       <FolderIcon className="h-5 w-5" />
-                    </Avatar>
+                    </Avatar> */}
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {project.name}

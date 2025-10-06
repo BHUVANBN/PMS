@@ -196,85 +196,87 @@ const TeamPage = () => {
         Projects & Teams
       </Typography>
       
-      <Stack spacing={2}>
+      <Grid container spacing={2}>
         {projects.map((project) => (
-          <Card key={project._id || project.id} sx={{ overflow: 'visible' }}>
-            <CardContent>
-              <Stack 
-                direction="row" 
-                justifyContent="space-between" 
-                alignItems="center"
-                sx={{ cursor: 'pointer' }}
-                onClick={() => toggleProjectExpansion(project._id || project.id)}
-              >
-                <Box>
-                  <Stack direction="row" alignItems="center" spacing={2}>
-                    <Typography variant="h6" fontWeight="bold">
-                      {project.name}
-                    </Typography>
-                    <Chip 
-                      label={project.status} 
-                      color={getStatusColor(project.status)}
-                      size="small"
-                    />
-                    <Chip 
-                      label={`${project.teamMembers.length} members`}
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Stack>
-                  {project.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {project.description}
-                    </Typography>
-                  )}
-                </Box>
-                <IconButton>
-                  {expandedProjects[project._id || project.id] ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
-              </Stack>
+          <Grid item xs={12} sm={6} md={4} key={project._id || project.id}>
+            <Card sx={{ overflow: 'visible', height: '100%' }}>
+              <CardContent>
+                <Stack 
+                  direction="row" 
+                  justifyContent="space-between" 
+                  alignItems="center"
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => toggleProjectExpansion(project._id || project.id)}
+                >
+                  <Box>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <Typography variant="h6" fontWeight="bold">
+                        {project.name}
+                      </Typography>
+                      <Chip 
+                        label={project.status} 
+                        color={getStatusColor(project.status)}
+                        size="small"
+                      />
+                      <Chip 
+                        label={`${project.teamMembers.length} members`}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Stack>
+                    {project.description && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {project.description}
+                      </Typography>
+                    )}
+                  </Box>
+                  <IconButton>
+                    {expandedProjects[project._id || project.id] ? <ExpandLess /> : <ExpandMore />}
+                  </IconButton>
+                </Stack>
 
-              <Collapse in={expandedProjects[project._id || project.id]}>
-                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-                  {project.teamMembers.length > 0 ? (
-                    <Grid container spacing={2}>
-                      {project.teamMembers.map((member) => (
-                        <Grid item xs={12} sm={6} md={4} key={member._id || member.id}>
-                          <Paper sx={{ p: 2 }}>
-                            <Stack direction="row" alignItems="center" spacing={2}>
-                              <Avatar sx={{ bgcolor: 'primary.main' }}>
-                                {(member.name || member.firstName || 'U')[0].toUpperCase()}
-                              </Avatar>
-                              <Box sx={{ flexGrow: 1 }}>
-                                <Typography variant="subtitle2">
-                                  {member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim()}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                  {member.email}
-                                </Typography>
-                                <Chip 
-                                  label={member.role} 
-                                  color={getRoleColor(member.role)}
-                                  size="small"
-                                  sx={{ mt: 0.5 }}
-                                />
-                              </Box>
-                            </Stack>
-                          </Paper>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  ) : (
-                    <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                      No team members assigned to this project
-                    </Typography>
-                  )}
-                </Box>
-              </Collapse>
-            </CardContent>
-          </Card>
+                <Collapse in={expandedProjects[project._id || project.id]}>
+                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                    {project.teamMembers.length > 0 ? (
+                      <Grid container spacing={2}>
+                        {project.teamMembers.map((member) => (
+                          <Grid item xs={12} sm={6} md={4} key={member._id || member.id}>
+                            <Paper sx={{ p: 2 }}>
+                              <Stack direction="row" alignItems="center" spacing={2}>
+                                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                                  {(member.name || member.firstName || 'U')[0].toUpperCase()}
+                                </Avatar>
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="subtitle2">
+                                    {member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim()}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {member.email}
+                                  </Typography>
+                                  <Chip 
+                                    label={member.role} 
+                                    color={getRoleColor(member.role)}
+                                    size="small"
+                                    sx={{ mt: 0.5 }}
+                                  />
+                                </Box>
+                              </Stack>
+                            </Paper>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    ) : (
+                      <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                        No team members assigned to this project
+                      </Typography>
+                    )}
+                  </Box>
+                </Collapse>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </Stack>
+      </Grid>
 
       {projects.length === 0 && !loading && (
         <Paper sx={{ p: 4, textAlign: 'center' }}>

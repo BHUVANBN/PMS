@@ -18,6 +18,7 @@ import { standupSchema, STANDUP_STATUS, TASK_STATUS, PRIORITY, LEAVE_STATUS, LEA
 import { activityLogSchema, ENTITY_TYPES, ACTIONS, ACTION_CATEGORIES, CHANGE_TYPES } from './activityLogSchema.models.js';
 import { leaveSchema, LEAVE_STATUS as LEAVE_SCHEMA_STATUS, LEAVE_TYPES as LEAVE_SCHEMA_TYPES, LEAVE_PRIORITY } from './leaveSchema.models.js';
 import { analyticsSchema, DASHBOARD_TYPES, METRIC_TYPES, TIME_PERIODS } from './analyticsSchema.models.js';
+import calendarEventSchema from './calendarEventModel.js';
 import { Onboarding, ONBOARDING_STATUS } from './onboardingSchema.models.js';
 
 
@@ -30,6 +31,7 @@ const BugTracker = mongoose.models.BugTracker || mongoose.model('BugTracker', bu
 const Standup = mongoose.models.Standup || mongoose.model('Standup', standupSchema);
 const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', activityLogSchema);
 const Leave = mongoose.models.Leave || mongoose.model('Leave', leaveSchema);
+const CalendarEvent = mongoose.models.CalendarEvent || mongoose.model('CalendarEvent', calendarEventSchema);
 const Analytics = mongoose.models.Analytics || mongoose.model('Analytics', analyticsSchema);
 
 
@@ -43,6 +45,7 @@ export {
   Standup,
   ActivityLog,
   Leave,
+  CalendarEvent,
   Analytics,
   Onboarding,
 

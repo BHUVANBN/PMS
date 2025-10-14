@@ -27,16 +27,21 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import DashboardCard from "../components/dashboard/DashboardCard";
 import Badge from "../components/ui/Badge";
-import { meetingAPI } from "../services/api";
+import { calendarAPI, subscribeToEvents } from "../services/api";
 import { toast } from "react-hot-toast";
+import CalendarEventModal from "../components/calendar/CalendarEventModal";
+import { useAuth } from "../contexts/AuthContext";
 
 const CalendarPage = () => {
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [events, setEvents] = useState([]);
   const [todayEvents, setTodayEvents] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   // Utility functions for color/icon mapping
   const getEventTypeColor = (type) => {
@@ -66,28 +71,51 @@ const CalendarPage = () => {
   const handlePrevMonth = () => setCurrentMonth(currentMonth.subtract(1, "month"));
   const handleNextMonth = () => setCurrentMonth(currentMonth.add(1, "month"));
 
-  // Fetch meetings directly from backend
-  const fetchMeetings = async () => {
+  const handleAddEvent = () => {
+    setEditingEvent(null);
+    setModalOpen(true);
+  };
+
+  const handleEditEvent = (event) => {
+    setEditingEvent(event);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingEvent(null);
+  };
+
+  const handleEventSubmitted = () => {
+    setModalOpen(false);
+    setEditingEvent(null);
+    fetchEvents(); // Refresh events
+  };
+
+  // Fetch calendar events
+  const fetchEvents = async () => {
     setLoading(true);
     try {
-      const res = await meetingAPI.getUserMeetings();
-      const meetings = res.meetings || res.data || [];
+      const res = await calendarAPI.getAllEvents();
+      const events = res.events || [];
 
-      const mappedEvents = meetings.map((m) => ({
-        id: m._id,
-        title: m.title,
-        date: dayjs(m.startTime).format("YYYY-MM-DD"),
-        time: dayjs(m.startTime).format("h:mm A"),
-        duration: `${dayjs(m.endTime).diff(dayjs(m.startTime), "minute")} mins`,
-        type: "meeting",
-        attendees: m.participants?.map((p) => p.name) || [],
-        location: m.location || "Virtual",
+      const mappedEvents = events.map((event) => ({
+        id: event._id,
+        title: event.title,
+        date: dayjs(event.eventDate).format("YYYY-MM-DD"),
+        time: `${event.startTime} - ${event.endTime}`,
+        duration: event.isAllDay ? 'All Day' : `${event.startTime} - ${event.endTime}`,
+        type: event.eventType || "meeting",
+        attendees: event.attendees?.map((a) => `${a.firstName} ${a.lastName}`) || [],
+        location: event.location || "Virtual",
+        meetLink: event.meetLink,
+        description: event.description,
       }));
 
       setEvents(mappedEvents);
     } catch (err) {
-      console.error("Error fetching meetings:", err);
-      toast.error("Failed to fetch meetings.");
+      console.error("Error fetching calendar events:", err);
+      toast.error("Failed to fetch calendar events.");
     } finally {
       setLoading(false);
     }
@@ -95,8 +123,28 @@ const CalendarPage = () => {
 
   // Load data initially
   useEffect(() => {
-    fetchMeetings();
+    fetchEvents();
   }, []);
+
+  // Realtime: subscribe to calendar updates for current user
+  useEffect(() => {
+    let unsubscribe;
+    try {
+      if (user?._id) {
+        unsubscribe = subscribeToEvents({ userId: user._id }, (msg) => {
+          const type = msg?.type || '';
+          if (type.startsWith('calendar.')) {
+            fetchEvents();
+          }
+        });
+      }
+    } catch {
+      // ignore SSE errors
+    }
+    return () => {
+      try { if (typeof unsubscribe === 'function') unsubscribe(); } catch { /* ignore */ }
+    };
+  }, [user?._id]);
 
   // Update daily and upcoming events dynamically
   useEffect(() => {
@@ -121,7 +169,7 @@ const CalendarPage = () => {
     if (upcomingEvents.length > 0) {
       const nextMeeting = upcomingEvents[0];
       toast.success(
-        `📅 Upcoming Meeting: "${nextMeeting.title}" on ${dayjs(nextMeeting.date).format(
+        `Upcoming Meeting: "${nextMeeting.title}" on ${dayjs(nextMeeting.date).format(
           "MMM D"
         )} at ${nextMeeting.time}`
       );
@@ -147,6 +195,7 @@ const CalendarPage = () => {
             variant="contained"
             startIcon={<PlusIcon className="h-4 w-4" />}
             sx={{ borderRadius: 2 }}
+            onClick={handleAddEvent}
           >
             Add Event
           </Button>
@@ -183,7 +232,7 @@ const CalendarPage = () => {
                 <CircularProgress size={24} />
               ) : todayEvents.length > 0 ? (
                 todayEvents.map((event) => (
-                  <Card key={event.id} sx={{ mb: 2, p: 2 }}>
+                  <Card key={event.id} sx={{ mb: 2, p: 2, cursor: 'pointer' }} onClick={() => handleEditEvent(event)}>
                     <Box
                       sx={{
                         display: "flex",
@@ -218,11 +267,16 @@ const CalendarPage = () => {
                     </Box>
 
                     <Typography variant="body2" color="text.secondary">
-                      📍 {event.location}
+                      {event.location}
                     </Typography>
                     {event.attendees.length > 0 && (
                       <Typography variant="body2" color="text.secondary">
-                        👥 {event.attendees.join(", ")}
+                        {event.attendees.join(", ")}
+                      </Typography>
+                    )}
+                    {event.meetLink && (
+                      <Typography variant="body2" color="primary">
+                        <a href={event.meetLink} target="_blank" rel="noopener noreferrer">Join Meeting</a>
                       </Typography>
                     )}
                   </Card>
@@ -289,10 +343,19 @@ const CalendarPage = () => {
             bottom: 24,
             right: 24,
           }}
+          onClick={handleAddEvent}
         >
           <PlusIcon className="h-6 w-6" />
         </Fab>
       </Box>
+
+      {/* Calendar Event Modal */}
+      <CalendarEventModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        event={editingEvent}
+        onSubmitted={handleEventSubmitted}
+      />
     </LocalizationProvider>
   );
 };

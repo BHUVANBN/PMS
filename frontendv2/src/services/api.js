@@ -1,5 +1,9 @@
 // API Configuration
-const API_BASE_URL = 'https://pms-cf34.onrender.com/api';
+// Prefer environment variable (Vite), then window override, then localhost fallback
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
+  || (typeof window !== 'undefined' && window.__API_BASE_URL__)
+  || 'http://localhost:5000/api';
 
 // Helper function to get auth token from localStorage
 const getAuthToken = () => {
@@ -941,6 +945,44 @@ export const subscribeToEvents = ({ userId, projectId, role } = {}, onMessage, o
   };
 };
 
+export const calendarAPI = {
+  // Create a new calendar event (HR only)
+  createEvent: (eventData) =>
+    apiRequest('/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    }),
+
+  // Get all calendar events
+  getAllEvents: () =>
+    apiRequest('/calendar/events'),
+
+  // Get events for a specific date range
+  getEventsByDateRange: (startDate, endDate) =>
+    apiRequest(`/calendar/events/range?startDate=${startDate}&endDate=${endDate}`),
+
+  // Get a single calendar event by ID
+  getEventById: (eventId) =>
+    apiRequest(`/calendar/events/${eventId}`),
+
+  // Update a calendar event
+  updateEvent: (eventId, eventData) =>
+    apiRequest(`/calendar/events/${eventId}`, {
+      method: 'PUT',
+      body: JSON.stringify(eventData),
+    }),
+
+  // Delete a calendar event
+  deleteEvent: (eventId) =>
+    apiRequest(`/calendar/events/${eventId}`, {
+      method: 'DELETE',
+    }),
+
+  // Get users for attendee selection (HR only)
+  getUsersForAttendees: () =>
+    apiRequest('/calendar/users/attendees'),
+};
+
 export const meetingAPI = {
   // Schedule a meeting (manager only)
   scheduleMeeting: (payload) =>
@@ -1003,7 +1045,8 @@ export default {
   analytics: analyticsAPI,
   users: usersAPI,
   standup: standupAPI,
-  utils: apiUtils,
+  calendar: calendarAPI,
   meetings: meetingAPI,
+  utils: apiUtils,
   subscribeToEvents,
 };

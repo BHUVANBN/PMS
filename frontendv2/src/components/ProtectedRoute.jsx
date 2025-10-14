@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './ui/LoadingSpinner';
 import { employeeAPI } from '../services/api.js';
 
-const ONBOARDING_ROLES = new Set(['employee', 'manager', 'developer', 'tester']);
+const ONBOARDING_ROLES = new Set(['employee']);
 const ONBOARDING_ROUTE_PREFIXES = ['/onboarding', '/employee/onboarding'];
 
 const ProtectedRoute = ({ 
@@ -23,25 +23,7 @@ const ProtectedRoute = ({
     error: null,
   });
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <Navigate 
-        to={fallbackPath} 
-        state={{ from: location.pathname }} 
-        replace 
-      />
-    );
-  }
+  // NOTE: Early returns are placed AFTER hooks to avoid conditional hook calls
 
   const isOnboardingRole = user?.role && ONBOARDING_ROLES.has(user.role);
   const isOnboardingRoute = ONBOARDING_ROUTE_PREFIXES.some((prefix) => location.pathname.startsWith(prefix));
@@ -95,7 +77,27 @@ const ProtectedRoute = ({
     return () => {
       isMounted = false;
     };
-  }, [isOnboardingRole, isOnboardingRoute]);
+  }, [isOnboardingRole, isOnboardingRoute, onboardingState.checked, onboardingState.status]);
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Navigate 
+        to={fallbackPath} 
+        state={{ from: location.pathname }} 
+        replace 
+      />
+    );
+  }
 
   if (isOnboardingRole && !isOnboardingRoute) {
     if (!onboardingState.checked || onboardingState.loading) {

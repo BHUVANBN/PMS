@@ -35,7 +35,8 @@ import {
   AttachMoney,
   Schedule
 } from '@mui/icons-material';
-import { marketingAPI } from '../../services/api';
+// marketingAPI not used on this page; events widget handles fetching
+import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 
 const MarketingDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -258,19 +259,16 @@ const MarketingDashboard = () => {
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Marketing Dashboard
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={handleRefresh}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
-      </Box>
+      <Grid container spacing={2} alignItems="center" mb={3}>
+        <Grid item xs={12} md={8}>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            Marketing Dashboard
+          </Typography>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <MyUpcomingEvents title="My Upcoming Events" days={14} />
+        </Grid>
+      </Grid>
 
       {/* Statistics Cards */}
       <Grid container spacing={3} mb={4}>

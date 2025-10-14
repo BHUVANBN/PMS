@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 
 import { connectDB } from './db/connectDB.js';
+import meetingRoutes from "./routes/meeting.routes.js"
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.route.js';
 import adminRoutes from './routes/admin.route.js';
@@ -109,6 +110,8 @@ app.use('/api/project', projectRoutes);
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/bugs', bugRoutes);
 app.use('/api/standup', standupRoutes);
+
+app.use('/api/meetings', meetingRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

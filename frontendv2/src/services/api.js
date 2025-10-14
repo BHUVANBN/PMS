@@ -941,6 +941,39 @@ export const subscribeToEvents = ({ userId, projectId, role } = {}, onMessage, o
   };
 };
 
+export const meetingAPI = {
+  // Schedule a meeting (manager only)
+scheduleMeeting: (payload) =>
+  apiRequest('/meetings/schedule', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+
+
+  // Get all meetings for a project
+  getProjectMeetings: (projectId) =>
+    apiRequest(`/meetings/project/${projectId}`),
+
+  // Optional: get a single meeting by ID
+  getMeetingById: (meetingId) =>
+    apiRequest(`/meetings/${meetingId}`),
+
+  // Optional: update a meeting (manager only)
+  updateMeeting: (meetingId, payload) =>
+    apiRequest(`/meetings/${meetingId}`, {
+      method: 'PUT',
+      body: payload,
+    }),
+
+  // Optional: delete a meeting (manager only)
+  deleteMeeting: (meetingId) =>
+    apiRequest(`/meetings/${meetingId}`, {
+      method: 'DELETE',
+    }),
+};
+
+
 // Default export with all APIs
 export default {
   auth: authAPI,
@@ -962,5 +995,6 @@ export default {
   users: usersAPI,
   standup: standupAPI,
   utils: apiUtils,
+  meetings: meetingAPI,
   subscribeToEvents,
 };

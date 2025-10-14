@@ -40,6 +40,8 @@ import TesterKanban from './pages/tester/Kanban';
 import SalesDashboard from './pages/sales/SalesDashboard';
 import MarketingDashboard from './pages/marketing/MarketingDashboard';
 import InternDashboard from './pages/intern/InternDashboard';
+import OnboardingPage from './pages/employee/OnboardingPage';
+import OnboardingManager from './pages/hr/OnboardingManager';
 
 // Generic pages
 import ProjectsPage from './pages/ProjectsPage';
@@ -98,6 +100,9 @@ function App() {
               <Route path="admin/settings" element={<ProtectedRoute requiredRoles={["admin"]}><SystemSettings /></ProtectedRoute>} />
 
               <Route path="hr/dashboard" element={<ProtectedRoute requiredRoles={["hr"]}><HRDashboard /></ProtectedRoute>} />
+              <Route path="employee/onboarding" element={<ProtectedRoute requiredRoles={["employee"]}><OnboardingPage /></ProtectedRoute>} />
+              <Route path="onboarding" element={<ProtectedRoute requiredRoles={["employee","manager","developer","tester"]}><OnboardingPage /></ProtectedRoute>} />
+              <Route path="hr/onboarding" element={<ProtectedRoute requiredRoles={["hr"]}><OnboardingManager /></ProtectedRoute>} />
               <Route path="hr/employees" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeList /></ProtectedRoute>} />
               <Route path="hr/employees/new" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeCreate /></ProtectedRoute>} />
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />

@@ -1,6 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './ui/LoadingSpinner';
+import { employeeAPI } from '../services/api.js';
+
+const ONBOARDING_ROLES = new Set(['employee', 'manager', 'developer', 'tester']);
+const ONBOARDING_ROUTE_PREFIXES = ['/onboarding', '/employee/onboarding'];
 
 const ProtectedRoute = ({ 
   children, 
@@ -11,6 +16,12 @@ const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, isLoading, user, hasAnyRole, hasPermission } = useAuth();
   const location = useLocation();
+  const [onboardingState, setOnboardingState] = useState({
+    loading: false,
+    status: null,
+    checked: false,
+    error: null,
+  });
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -30,6 +41,90 @@ const ProtectedRoute = ({
         replace 
       />
     );
+  }
+
+  const isOnboardingRole = user?.role && ONBOARDING_ROLES.has(user.role);
+  const isOnboardingRoute = ONBOARDING_ROUTE_PREFIXES.some((prefix) => location.pathname.startsWith(prefix));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isOnboardingRole || isOnboardingRoute) {
+      if (isMounted) {
+        setOnboardingState((prev) => ({ ...prev, loading: false, checked: true }));
+      }
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (onboardingState.checked && onboardingState.status) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const fetchOnboardingStatus = async () => {
+      try {
+        if (isMounted) {
+          setOnboardingState((prev) => ({ ...prev, loading: true, error: null }));
+        }
+        const response = await employeeAPI.getOnboardingStatus();
+        if (isMounted) {
+          setOnboardingState({
+            loading: false,
+            status: response.onboarding?.status || null,
+            checked: true,
+            error: null,
+          });
+        }
+      } catch (error) {
+        if (isMounted) {
+          setOnboardingState({
+            loading: false,
+            status: null,
+            checked: true,
+            error: error.message || 'Failed to fetch onboarding status',
+          });
+        }
+      }
+    };
+
+    fetchOnboardingStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOnboardingRole, isOnboardingRoute]);
+
+  if (isOnboardingRole && !isOnboardingRoute) {
+    if (!onboardingState.checked || onboardingState.loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+          <LoadingSpinner size="lg" />
+        </div>
+      );
+    }
+
+    if (onboardingState.error) {
+      return (
+        <Navigate 
+          to="/onboarding" 
+          state={{ from: location.pathname, error: onboardingState.error }} 
+          replace 
+        />
+      );
+    }
+
+    if (onboardingState.status && onboardingState.status !== 'verified') {
+      return (
+        <Navigate 
+          to="/onboarding" 
+          state={{ from: location.pathname }} 
+          replace 
+        />
+      );
+    }
   }
 
   // Check role-based access

@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://pms-cf34.onrender.com/api';
 
 // Helper function to get auth token from localStorage
 const getAuthToken = () => {
@@ -90,14 +90,21 @@ const handleApiError = (error, url) => {
 // Generic API request handler with error interceptor
 const apiRequest = async (url, options = {}) => {
   try {
+    const includeAuth = options.includeAuth !== false;
+    const baseHeaders = createHeaders(includeAuth);
+    const providedHeaders = options.headers || {};
+
     const config = {
       method: 'GET',
-      headers: createHeaders(options.includeAuth !== false),
       credentials: 'include', // Include cookies for authentication
       ...options,
     };
 
-    if (config.body && typeof config.body === 'object') {
+    config.headers = { ...baseHeaders, ...providedHeaders };
+
+    if (config.body instanceof FormData) {
+      delete config.headers['Content-Type'];
+    } else if (config.body && typeof config.body === 'object') {
       config.body = JSON.stringify(config.body);
     }
 
@@ -288,6 +295,27 @@ export const hrAPI = {
 
   getEmployeeStandups: (employeeId) => 
     apiRequest(`/hr/standups/${employeeId}`),
+
+  getOnboardingList: (params) =>
+    apiRequest(`/hr/onboarding${buildQuery(params)}`),
+
+  getOnboardingSummary: () =>
+    apiRequest('/hr/onboarding/summary'),
+
+  getOnboardingDetails: (userId) =>
+    apiRequest(`/hr/onboarding/${userId}`),
+
+  uploadOnboardingDocuments: (userId, formData) =>
+    apiRequest(`/hr/onboarding/${userId}/documents`, {
+      method: 'POST',
+      body: formData,
+    }),
+
+  verifyOnboarding: (userId, payload) =>
+    apiRequest(`/hr/onboarding/${userId}/verify`, {
+      method: 'POST',
+      body: payload,
+    }),
 };
 
 // Manager API
@@ -551,6 +579,15 @@ export const testerAPI = {
 export const employeeAPI = {
   getDashboard: () => 
     apiRequest('/employee/dashboard'),
+
+  getOnboardingStatus: () =>
+    apiRequest('/employee/onboarding'),
+
+  uploadOnboardingDocuments: (formData) =>
+    apiRequest('/employee/onboarding/documents', {
+      method: 'POST',
+      body: formData,
+    }),
 };
 
 // Sales API

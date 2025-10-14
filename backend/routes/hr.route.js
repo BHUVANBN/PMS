@@ -16,6 +16,14 @@ import {
 	getAllStandups,
 	getEmployeeStandups
 } from '../controllers/hr.controller.js';
+import {
+	getHROnboardingList,
+	getHROnboardingDetails,
+	uploadHRDocuments,
+	verifyOnboarding,
+	getOnboardingSummary
+} from '../controllers/onboarding.controller.js';
+import { hrOnboardingUpload } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -60,6 +68,13 @@ router.put('/leave-requests/:leaveId/reject', rejectLeaveRequest);
 // Standup tracking
 router.get('/standups', getAllStandups);
 router.get('/standups/:employeeId', getEmployeeStandups);
+
+// Onboarding management
+router.get('/onboarding', getHROnboardingList);
+router.get('/onboarding/summary', getOnboardingSummary);
+router.get('/onboarding/:userId', getHROnboardingDetails);
+router.post('/onboarding/:userId/documents', hrOnboardingUpload, uploadHRDocuments);
+router.post('/onboarding/:userId/verify', verifyOnboarding);
 
 export default router;
 

@@ -1,6 +1,8 @@
 import express from 'express';
 import { verifyToken, allowEmployeesAndAbove } from '../middleware/verifyToken.js';
 import { USER_ROLES } from '../models/userschema.models.js';
+import { getEmployeeOnboardingStatus, uploadEmployeeDocuments } from '../controllers/onboarding.controller.js';
+import { employeeOnboardingUpload } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -33,5 +35,8 @@ router.get('/dashboard', (req, res) => {
 		]
 	});
 });
+
+router.get('/onboarding', getEmployeeOnboardingStatus);
+router.post('/onboarding/documents', employeeOnboardingUpload, uploadEmployeeDocuments);
 
 export default router;

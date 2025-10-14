@@ -42,6 +42,7 @@ import MarketingDashboard from './pages/marketing/MarketingDashboard';
 import InternDashboard from './pages/intern/InternDashboard';
 
 // Generic pages
+import Meeting from './pages/Meeting'
 import ProjectsPage from './pages/ProjectsPage';
 import TicketsPage from './pages/TicketsPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
@@ -136,6 +137,7 @@ function App() {
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="help" element={<HelpPage />} />
+              <Route path="meetings" element={<Meeting/>}/>
             </Route>
             
             {/* 404 page */}

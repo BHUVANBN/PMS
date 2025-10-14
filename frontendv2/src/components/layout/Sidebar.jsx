@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
@@ -13,8 +13,9 @@ import {
   useTheme,
   useMediaQuery,
   Box,
-  Collapse
+  Badge,
 } from '@mui/material';
+import VideoCallIcon from '@mui/icons-material/VideoCall';
 import {
   Dashboard as DashboardIcon,
   People as PeopleIcon,
@@ -22,23 +23,15 @@ import {
   BugReport as BugReportIcon,
   Assessment as AssessmentIcon,
   Settings as SettingsIcon,
-  ExpandLess,
-  ExpandMore,
-  StarBorder,
-  List as ListIcon,
   CalendarMonth as CalendarIcon,
   GroupWork as GroupWorkIcon,
-  Timeline as TimelineIcon,
+  List as ListIcon,
   BarChart as BarChartIcon,
-  Person as PersonIcon,
-  Description as DescriptionIcon,
-  Chat as ChatIcon,
-  Notifications as NotificationsIcon,
   Help as HelpIcon,
-  Logout as LogoutIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../contexts/AuthContext';
+import { meetingAPI } from '../../services/api.js'; // adjust path
 
 const drawerWidth = 240;
 
@@ -50,8 +43,6 @@ const StyledDrawer = styled(Drawer)(({ theme }) => ({
     boxSizing: 'border-box',
     borderRight: '1px solid rgba(0, 0, 0, 0.12)',
     backgroundColor: theme.palette.background.paper,
-    borderRightWidth: '1px',
-    borderRightStyle: 'solid',
   },
 }));
 
@@ -77,30 +68,23 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    if (isMobile) onClose();
-  };
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const [meetingCount, setMeetingCount] = useState(0);
 
   const role = (userRole || user?.role || '').toLowerCase();
 
   const dashboardPath = role ? `/${role}/dashboard` : '/dashboard';
-  const usersPath = role === 'admin' ? '/admin/users' : role === 'hr' ? '/hr/employees' : '/users';
-
+  const usersPath =
+    role === 'admin' ? '/admin/users' : role === 'hr' ? '/hr/employees' : '/users';
   const projectsPath = role === 'manager' ? '/manager/projects' : '/projects';
   const teamPath = role === 'manager' ? '/manager/team' : '/team';
-  // Route Tickets menu to Kanban for dev/tester, project Kanban for manager
-  const ticketsPath = role === 'developer'
-    ? '/developer/kanban'
-    : role === 'tester'
+  const ticketsPath =
+    role === 'developer'
+      ? '/developer/kanban'
+      : role === 'tester'
       ? '/tester/kanban'
       : role === 'manager'
-        ? '/manager/kanban'
-        : '/tickets';
+      ? '/manager/kanban'
+      : '/tickets';
 
   const menuItems = [
     {
@@ -134,6 +118,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       roles: ['admin', 'hr', 'manager'],
     },
     {
+      text: 'Meetings',
+      icon: <VideoCallIcon />,
+      path: '/meetings',
+      roles: ['manager', 'developer', 'tester', 'hr', 'intern', 'admin'],
+    },
+    {
       text: 'Sprints',
       icon: <GroupWorkIcon />,
       path: '/sprints',
@@ -164,10 +154,37 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     { text: 'Help & Support', icon: <HelpIcon />, path: '/help' },
   ];
 
-  const effectiveRole = (userRole || user?.role || '').toLowerCase();
-  const filteredMenuItems = effectiveRole
-    ? menuItems.filter((item) => item.roles.includes(effectiveRole))
-    : menuItems; // if no role yet, show all to avoid empty sidebar; access still protected by routes
+  const filteredMenuItems = role
+    ? menuItems.filter((item) => item.roles.includes(role))
+    : menuItems;
+
+  const isActive = (path) => location.pathname === path;
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    if (isMobile) onClose();
+  };
+
+  // Fetch meetings for notification badge
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        const res = await meetingAPI.getUserMeetings();
+        const meetings = res.meetings || res.data || [];
+        const now = new Date();
+        const activeMeetings = meetings.filter((m) => new Date(m.endTime) > now);
+        setMeetingCount(activeMeetings.length);
+      } catch (err) {
+        console.error('Failed to fetch meetings for sidebar:', err);
+      }
+    };
+
+    fetchMeetings();
+
+    // Poll every 1 min
+    const interval = setInterval(fetchMeetings, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const drawer = (
     <>
@@ -189,12 +206,20 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
           >
             <ListItemButton>
               <ListItemIcon sx={{ minWidth: 40 }}>
-                {React.cloneElement(item.icon, {
-                  color: isActive(item.path) ? 'primary' : 'inherit',
-                })}
+                {item.text === 'Meetings' && meetingCount > 0 ? (
+                  <Badge badgeContent={meetingCount} color="error">
+                    {React.cloneElement(item.icon, {
+                      color: isActive(item.path) ? 'primary' : 'inherit',
+                    })}
+                  </Badge>
+                ) : (
+                  React.cloneElement(item.icon, {
+                    color: isActive(item.path) ? 'primary' : 'inherit',
+                  })
+                )}
               </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
+              <ListItemText
+                primary={item.text}
                 primaryTypographyProps={{
                   fontWeight: isActive(item.path) ? 'medium' : 'regular',
                 }}
@@ -230,24 +255,13 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     <Box
       component="nav"
       sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      aria-label="mailbox folders"
+      aria-label="navigation drawer"
     >
       <StyledDrawer
         variant={isMobile ? 'temporary' : 'permanent'}
         open={isMobile ? mobileOpen : true}
         onClose={onClose}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
-        }}
-        sx={{
-          display: { xs: 'block', sm: 'block' },
-          '& .MuiDrawer-paper': { 
-            boxSizing: 'border-box', 
-            width: drawerWidth,
-            border: 'none',
-            borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-          },
-        }}
+        ModalProps={{ keepMounted: true }}
       >
         {drawer}
       </StyledDrawer>

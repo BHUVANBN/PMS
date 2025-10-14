@@ -5,8 +5,18 @@ import { User, Project, USER_ROLES } from '../models/index.js';
 // ✅ Schedule a meeting (only by Manager)
 export const scheduleMeeting = async (req, res) => {
   try {
-    const { projectId, title, description, meetingLink, startTime, endTime, participantIds, isTeamMeeting } = req.body;
-    const createdBy = req.user._id; // Use _id from your User model
+    const { 
+      projectId, 
+      title, 
+      description, 
+      meetingLink, 
+      startTime, 
+      endTime, 
+      participantIds, // optional from frontend
+      isTeamMeeting 
+    } = req.body;
+
+    const createdBy = req.user._id; // Manager ID from JWT
 
     // Validate required fields
     if (!projectId || !title || !startTime || !endTime) {
@@ -16,10 +26,10 @@ export const scheduleMeeting = async (req, res) => {
       });
     }
 
-    // Validate dates
+    // Validate date
     const start = new Date(startTime);
     const end = new Date(endTime);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ message: 'Invalid date format for startTime or endTime' });
     }
@@ -51,36 +61,34 @@ export const scheduleMeeting = async (req, res) => {
 
     // Determine participants
     let participants = [];
+
     if (isTeamMeeting) {
       // Include all team members
-      participants = project.teamMembers.map(member => member._id);
-      
+      participants = project.teamMembers.map(member => member._id.toString());
       // Ensure the manager is included
-      if (!participants.some(p => p.toString() === createdBy.toString())) {
-        participants.push(createdBy);
-      }
-    } else if (participantIds && participantIds.length > 0) {
-      // Validate that all participant IDs exist
-      const validParticipants = await User.find({ 
-        _id: { $in: participantIds } 
-      }).select('_id');
-      
-      if (validParticipants.length !== participantIds.length) {
-        return res.status(400).json({ 
-          message: 'One or more participant IDs are invalid' 
-        });
-      }
-      
-      participants = participantIds;
-      
-      // Ensure the manager is included
-      if (!participants.includes(createdBy)) {
-        participants.push(createdBy);
+      if (!participants.includes(createdBy.toString())) {
+        participants.push(createdBy.toString());
       }
     } else {
-      return res.status(400).json({ 
-        message: 'Provide participants or set isTeamMeeting to true' 
-      });
+      // Accept either participantIds or req.body.participants (frontend may send 'attendees')
+      const ids = (participantIds || req.body.participants || []).map(id => id.toString());
+
+      if (ids.length === 0) {
+        return res.status(400).json({ message: 'Provide participants or set isTeamMeeting to true' });
+      }
+
+      // Validate participants exist
+      const validParticipants = await User.find({ _id: { $in: ids } }).select('_id');
+      if (validParticipants.length !== ids.length) {
+        return res.status(400).json({ message: 'One or more participant IDs are invalid' });
+      }
+
+      participants = ids;
+
+      // Ensure manager is included
+      if (!participants.includes(createdBy.toString())) {
+        participants.push(createdBy.toString());
+      }
     }
 
     // Create meeting
@@ -96,7 +104,7 @@ export const scheduleMeeting = async (req, res) => {
       isTeamMeeting: isTeamMeeting || false
     });
 
-    // Populate the meeting before sending response
+    // Populate meeting for response
     const populatedMeeting = await Meeting.findById(meeting._id)
       .populate('createdBy', 'firstName lastName email role')
       .populate('participants', 'firstName lastName email role')
@@ -106,6 +114,7 @@ export const scheduleMeeting = async (req, res) => {
       message: 'Meeting scheduled successfully', 
       meeting: populatedMeeting 
     });
+
   } catch (err) {
     console.error('Error scheduling meeting:', err);
     res.status(500).json({ 
@@ -114,6 +123,7 @@ export const scheduleMeeting = async (req, res) => {
     });
   }
 };
+
 
 // ✅ Get all meetings for a project
 export const getProjectMeetings = async (req, res) => {
@@ -271,6 +281,49 @@ export const deleteMeeting = async (req, res) => {
     res.status(500).json({ 
       message: 'Error deleting meeting', 
       error: err.message 
+    });
+  }
+};
+
+// ✅ End an ongoing meeting (Manager only)
+export const endMeeting = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const userId = req.user.id;
+
+    // Fetch the meeting and populate the project details including manager
+    const meeting = await Meeting.findById(meetingId)
+      .populate('projectId', 'projectManager name');
+
+    if (!meeting) {
+      return res.status(404).json({ message: 'Meeting not found' });
+    }
+
+    const project = meeting.projectId;
+
+    // Ensure the user is the project manager
+    if (!project || project.projectManager.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Only the Project Manager can end this meeting' });
+    }
+
+    // Prevent ending if already ended
+    if (new Date(meeting.endTime) <= new Date()) {
+      return res.status(400).json({ message: 'Meeting has already ended' });
+    }
+
+    // Mark meeting as ended
+    meeting.endTime = new Date();
+    await meeting.save();
+
+    res.json({
+      message: 'Meeting ended successfully',
+      meeting,
+    });
+  } catch (err) {
+    console.error('Error ending meeting:', err);
+    res.status(500).json({
+      message: 'Error ending meeting',
+      error: err.message,
     });
   }
 };

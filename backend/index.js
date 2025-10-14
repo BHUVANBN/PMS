@@ -117,6 +117,11 @@ app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
+app.get('/api/test', (req, res) => {
+  res.json({ success: true, message: 'Server test route working 🚀' });
+});
+
+
 // Global error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);

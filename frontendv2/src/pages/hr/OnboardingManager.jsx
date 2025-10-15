@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -83,11 +83,9 @@ const OnboardingManager = () => {
     }, {});
   }, [summary]);
 
-  const selectedListItem = useMemo(() => {
-    return list.find((item) => item.user?._id === selectedUserId) || null;
-  }, [list, selectedUserId]);
+  
 
-  const reloadSummary = async () => {
+  const reloadSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       const response = await hrAPI.getOnboardingSummary();
@@ -97,7 +95,7 @@ const OnboardingManager = () => {
     } finally {
       setSummaryLoading(false);
     }
-  };
+  }, []);
 
   const handleDeleteDoc = async (scope, field) => {
     if (!selectedUserId) return;
@@ -114,7 +112,7 @@ const OnboardingManager = () => {
     }
   };
 
-  const reloadList = async () => {
+  const reloadList = useCallback(async () => {
     try {
       setListLoading(true);
       setListError('');
@@ -126,9 +124,9 @@ const OnboardingManager = () => {
     } finally {
       setListLoading(false);
     }
-  };
+  }, [filterStatus]);
 
-  const reloadDetails = async (userId) => {
+  const reloadDetails = useCallback(async (userId) => {
     if (!userId) return;
     try {
       setDetailsLoading(true);
@@ -141,15 +139,15 @@ const OnboardingManager = () => {
     } finally {
       setDetailsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    reloadSummary();
   }, []);
 
   useEffect(() => {
+    reloadSummary();
+  }, [reloadSummary]);
+
+  useEffect(() => {
     reloadList();
-  }, [filterStatus]);
+  }, [reloadList]);
 
   useEffect(() => {
     if (!selectedUserId && list.length > 0) {
@@ -161,7 +159,7 @@ const OnboardingManager = () => {
     if (selectedUserId) {
       reloadDetails(selectedUserId);
     }
-  }, [selectedUserId]);
+  }, [selectedUserId, reloadDetails]);
 
   const handleSelectCandidate = (userId) => {
     setSelectedUserId(userId);

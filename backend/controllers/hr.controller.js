@@ -50,7 +50,8 @@ export const createEmployee = async (req, res) => {
       role: selectedRole,
       firstName,
       lastName,
-      isActive: true
+      isActive: true,
+	  isVerifiedByHR: false
     });
 
     // Return employee data without password

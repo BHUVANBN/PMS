@@ -27,16 +27,45 @@ const onboardingSchema = new mongoose.Schema({
     enum: Object.values(ONBOARDING_STATUS),
     default: ONBOARDING_STATUS.PENDING_DOCUMENTS,
   },
+  employeeDetails: {
+    mobile: { type: String, default: '' },
+    address: { type: String, default: '' },
+    dateOfBirth: { type: Date, default: null },
+    pan: { type: String, default: '' },
+    emergencyContactName: { type: String, default: '' },
+    emergencyContactPhone: { type: String, default: '' },
+    bankAccountNumber: { type: String, default: '' },
+    ifsc: { type: String, default: '' },
+  },
   employeeDocuments: {
     aadhar: { type: documentSchema, default: null },
     photo: { type: documentSchema, default: null },
-    education: { type: documentSchema, default: null },
+    tenth: { type: documentSchema, default: null },
+    twelfth: { type: documentSchema, default: null },
+    diploma: { type: documentSchema, default: null },
+    passbook: { type: documentSchema, default: null },
   },
   hrDocuments: {
     codeOfConduct: { type: documentSchema, default: null },
     nda: { type: documentSchema, default: null },
     employmentAgreement: { type: documentSchema, default: null },
   },
+  hrAcknowledgements: {
+    codeOfConduct: {
+      acknowledged: { type: Boolean, default: false },
+      acknowledgedAt: { type: Date, default: null },
+    },
+    nda: {
+      acknowledged: { type: Boolean, default: false },
+      acknowledgedAt: { type: Date, default: null },
+    },
+    employmentAgreement: {
+      acknowledged: { type: Boolean, default: false },
+      acknowledgedAt: { type: Date, default: null },
+    },
+  },
+  hrAckToken: { type: String, default: null },
+  hrAckTokenExpires: { type: Date, default: null },
   hrVerification: {
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     verifiedAt: { type: Date, default: null },

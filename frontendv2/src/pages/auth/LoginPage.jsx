@@ -18,7 +18,20 @@ import {
   useTheme
 } from '@mui/material';
 import { LockOutlined, Business } from '@mui/icons-material';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../../contexts/AuthContext';
+
+const dashboardRoutes = {
+  admin: '/admin/dashboard',
+  hr: '/hr/dashboard',
+  manager: '/manager/dashboard',
+  developer: '/developer/dashboard',
+  tester: '/tester/dashboard',
+  sales: '/sales/dashboard',
+  marketing: '/marketing/dashboard',
+  intern: '/intern/dashboard',
+};
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -40,10 +53,11 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, navigate, location]);
 
-  // Clear errors when component mounts
+  // Clear errors when component mounts - FIXED: Remove dependency
   useEffect(() => {
     clearError();
-  }, [clearError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,6 +72,26 @@ const LoginPage = () => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  const handleLogin = async () => {
+    const { success, firstLogin, user, error } = await login(formData);
+
+    if (success) {
+      // Show success toast
+      if (firstLogin) {
+        toast.success(`Welcome ${user.fullName}! Your account has been verified by HR.`);
+      } else {
+        toast.success(`Welcome back, ${user.fullName}!`);
+      }
+
+      // Redirect to the dashboard based on role
+      const redirectTo = dashboardRoutes[user.role] || '/';
+      navigate(redirectTo, { replace: true });
+    } else {
+      // Show error toast
+      toast.error(`Login failed: ${error || 'Unknown error'}`);
     }
   };
 
@@ -83,19 +117,12 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
-      const result = await login(formData);
-      
-      if (result.success) {
-        const from = location.state?.from || '/';
-        navigate(from, { replace: true });
-      }
+      await handleLogin();
     } catch (err) {
       console.error('Login error:', err);
     } finally {
@@ -227,24 +254,38 @@ const LoginPage = () => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
             
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Don't have an account?{' '}
-                <Link
-                  to="/register"
-                  style={{
-                    color: theme.palette.primary.main,
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                  }}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  component={Link}
+                  to="/onboard"
+                  fullWidth
+                  variant="outlined"
+                  sx={{ py: 1.25, borderRadius: 2 }}
                 >
-                  Sign up here
-                </Link>
-              </Typography>
-            </Box>
+                  Onboard
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'right' }, mt: { xs: 1, sm: 0 } }}>
+                  HR will provide your credentials
+                </Typography>
+              </Grid>
+            </Grid>
           </Box>
         </Paper>
       </Container>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </Box>
   );
 };

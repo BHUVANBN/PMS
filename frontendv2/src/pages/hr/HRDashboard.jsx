@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material';
 import { hrAPI } from '../../services/api';
 import StatsCard from '../../components/dashboard/StatsCard';
+import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 
 const HRDashboard = () => {
   const navigate = useNavigate();
@@ -139,34 +140,39 @@ const HRDashboard = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            HR Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage employees, track performance, and oversee HR operations
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/hr/employees/new')}
-            sx={{ bgcolor: 'primary.main' }}
-          >
-            Add Employee
-          </Button>
-        </Stack>
-      </Box>
+      <Grid container spacing={2} alignItems="center" mb={4}>
+        <Grid item xs={12} md={8}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              HR Dashboard
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+              Manage employees, track performance, and oversee HR operations
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => navigate('/hr/employees/new')}
+                sx={{ bgcolor: 'primary.main' }}
+              >
+                Add Employee
+              </Button>
+            </Stack>
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <MyUpcomingEvents title="My Upcoming Events" days={14} />
+        </Grid>
+      </Grid>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>

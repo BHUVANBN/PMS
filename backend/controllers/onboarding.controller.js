@@ -1,14 +1,79 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
+import { sendMail } from '../utils/mailer.js';
 import cloudinary from '../utils/cloudinary.js';
 import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
 import { Onboarding, ONBOARDING_STATUS, USER_ROLES } from '../models/index.js';
 
-const REQUIRED_EMPLOYEE_DOCS = ['aadhar', 'photo', 'education'];
+const REQUIRED_EMPLOYEE_DOCS = ['aadhar', 'photo', 'tenth', 'twelfth', 'diploma', 'passbook'];
 const HR_DOCUMENT_FIELDS = ['codeOfConduct', 'nda', 'employmentAgreement'];
 
 const serializeOnboarding = (doc) => {
   if (!doc) return null;
   return doc.toObject({ virtuals: true });
+};
+
+export const deleteOnboardingDocument = async (req, res, next) => {
+  try {
+    const { userId, scope, docKey } = req.params;
+    assertObjectId(userId);
+
+    const normalizedScope = String(scope || '').toLowerCase();
+    if (!['hr', 'employee'].includes(normalizedScope)) {
+      return res.status(400).json({ message: 'Scope must be either "hr" or "employee"' });
+    }
+
+    const onboarding = await ensureOnboardingRecord(userId);
+
+    // Determine valid keys
+    const validEmployeeKeys = new Set(REQUIRED_EMPLOYEE_DOCS);
+    const validHRKeys = new Set(HR_DOCUMENT_FIELDS);
+
+    if (normalizedScope === 'employee') {
+      if (!validEmployeeKeys.has(docKey)) {
+        return res.status(400).json({ message: 'Invalid employee document key' });
+      }
+      const current = onboarding.employeeDocuments?.[docKey];
+      await removeExistingAsset(current);
+      onboarding.employeeDocuments[docKey] = null;
+      // Downgrade status since required doc removed
+      if (onboarding.status !== ONBOARDING_STATUS.PENDING_DOCUMENTS) {
+        onboarding.status = ONBOARDING_STATUS.PENDING_DOCUMENTS;
+        onboarding.appendHistory({ status: ONBOARDING_STATUS.PENDING_DOCUMENTS, userId: req.user?._id, remark: `HR removed employee document: ${docKey}` });
+      }
+      // Clear HR verification if any
+      onboarding.hrVerification.verifiedBy = null;
+      onboarding.hrVerification.verifiedAt = null;
+      onboarding.hrVerification.status = null;
+      onboarding.hrVerification.remarks = '';
+    } else {
+      if (!validHRKeys.has(docKey)) {
+        return res.status(400).json({ message: 'Invalid HR document key' });
+      }
+      const current = onboarding.hrDocuments?.[docKey];
+      await removeExistingAsset(current);
+      onboarding.hrDocuments[docKey] = null;
+      // If HR doc removed and status was verified, reset to pending_verification
+      if (onboarding.status === ONBOARDING_STATUS.VERIFIED) {
+        onboarding.status = ONBOARDING_STATUS.PENDING_VERIFICATION;
+        onboarding.appendHistory({ status: ONBOARDING_STATUS.PENDING_VERIFICATION, userId: req.user?._id, remark: `HR removed HR document: ${docKey}` });
+        onboarding.hrVerification.verifiedBy = null;
+        onboarding.hrVerification.verifiedAt = null;
+        onboarding.hrVerification.status = null;
+        onboarding.hrVerification.remarks = '';
+      }
+    }
+
+    await onboarding.save();
+    await onboarding.populate('user', 'firstName lastName email role');
+
+    return res.status(200).json({
+      message: 'Document deleted',
+      onboarding: serializeOnboarding(onboarding)
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const ensureOnboardingRecord = async (userId) => {
@@ -76,6 +141,31 @@ export const uploadEmployeeDocuments = async (req, res, next) => {
     if (onboarding.status === ONBOARDING_STATUS.VERIFIED) {
       return res.status(400).json({ message: 'Onboarding already verified. Document upload not allowed.' });
     }
+
+    // Persist basic details if provided
+    const {
+      mobile,
+      address,
+      dateOfBirth,
+      pan,
+      emergencyContactName,
+      emergencyContactPhone,
+      bankAccountNumber,
+      ifsc,
+    } = req.body || {};
+    const details = onboarding.employeeDetails || {};
+    if (typeof mobile === 'string') details.mobile = mobile;
+    if (typeof address === 'string') details.address = address;
+    if (typeof pan === 'string') details.pan = pan;
+    if (typeof emergencyContactName === 'string') details.emergencyContactName = emergencyContactName;
+    if (typeof emergencyContactPhone === 'string') details.emergencyContactPhone = emergencyContactPhone;
+    if (typeof bankAccountNumber === 'string') details.bankAccountNumber = bankAccountNumber;
+    if (typeof ifsc === 'string') details.ifsc = ifsc;
+    if (dateOfBirth) {
+      const d = new Date(dateOfBirth);
+      if (!isNaN(d.getTime())) details.dateOfBirth = d;
+    }
+    onboarding.employeeDetails = details;
 
     for (const field of REQUIRED_EMPLOYEE_DOCS) {
       const file = req.files[field]?.[0];

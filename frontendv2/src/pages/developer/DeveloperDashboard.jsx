@@ -28,6 +28,7 @@ import StatsGrid from '../../components/dashboard/StatsGrid';
 import DashboardCard from '../../components/dashboard/DashboardCard';
 import Badge from '../../components/ui/Badge';
 import { developerAPI } from '../../services/api';
+import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 
 const DeveloperDashboard = () => {
   const [stats, setStats] = useState([]);
@@ -222,8 +223,11 @@ const DeveloperDashboard = () => {
           </DashboardCard>
         </Grid>
 
-        {/* Standups (real-time from backend) */}
+        {/* Right column: Events + Standups */}
         <Grid item xs={12} lg={4}>
+          <Box sx={{ mb: 3 }}>
+            <MyUpcomingEvents title="My Upcoming Events" days={14} />
+          </Box>
           <DashboardCard title="Recent Standups" className="h-full">
             <List dense>
               {standups.length === 0 && (

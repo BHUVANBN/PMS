@@ -123,41 +123,49 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login function
-  const login = async (credentials) => {
-    dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-    
-    try {
-      // Backend expects { username, password }, where username can be username or email
-      const payload = {
-        username: credentials.username || credentials.email,
-        password: credentials.password,
-      };
-      const response = await authAPI.login(payload);
+const login = async (credentials) => {
+  dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
-      // Store token and role locally
-      apiUtils.setAuthToken(response.token);
-      if (response.role) localStorage.setItem('role', response.role);
+  try {
+    // Backend expects { username, password }, where username can be username or email
+    const payload = {
+      username: credentials.username || credentials.email,
+      password: credentials.password,
+    };
 
-      const userObj = response.user || (response.role ? { role: response.role } : null);
+    const response = await authAPI.login(payload);
 
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: {
-          user: userObj,
-          token: response.token,
-        },
-      });
+    // Store token and role locally
+    apiUtils.setAuthToken(response.token);
+    if (response.role) localStorage.setItem('role', response.role);
 
-      return { success: true, user: userObj };
-    } catch (error) {
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_FAILURE,
-        payload: error.message,
-      });
-      
-      return { success: false, error: error.message };
-    }
-  };
+    const userObj = response.user || (response.role ? { role: response.role } : null);
+
+    dispatch({
+      type: AUTH_ACTIONS.LOGIN_SUCCESS,
+      payload: {
+        user: userObj,
+        token: response.token,
+      },
+    });
+
+    // Return firstLogin flag along with success
+    return { 
+      success: true, 
+      user: userObj, 
+      firstLogin: response.firstLogin || false 
+    };
+
+  } catch (error) {
+    dispatch({
+      type: AUTH_ACTIONS.LOGIN_FAILURE,
+      payload: error.message,
+    });
+
+    return { success: false, error: error.message, firstLogin: false };
+  }
+};
+
 
   // Register function
   const register = async (userData) => {

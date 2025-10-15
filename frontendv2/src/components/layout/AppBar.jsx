@@ -24,13 +24,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 
-const AppBar = ({ onMenuClick }) => {
+const AppBar = ({ onMenuClick, drawerWidth = 240 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const isHR = (user?.role || '').toLowerCase() === 'hr';
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -78,9 +79,18 @@ const AppBar = ({ onMenuClick }) => {
       position="fixed"
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: theme.palette.background.paper,
+        backgroundColor: isHR ? 'rgba(255, 255, 255, 0.7)' : theme.palette.background.paper,
         color: theme.palette.text.primary,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: isHR ? '0 8px 32px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+        backdropFilter: isHR ? 'blur(10px)' : 'none',
+        border: isHR ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid',
+        borderColor: isHR ? 'rgba(255, 255, 255, 0.3)' : 'divider',
+        borderRadius: '12px',
+        // Do not overlay the sidebar on sm+ screens
+        left: { xs: 0, sm: `calc(${drawerWidth}px + 16px)` },
+        right: { xs: 0, sm: 16 },
+        width: { xs: 'auto', sm: `calc(100% - ${drawerWidth}px - 32px)` },
+        mt: { xs: 0, sm: 1 },
       }}
     >
       <Toolbar>

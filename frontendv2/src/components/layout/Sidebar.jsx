@@ -32,6 +32,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../contexts/AuthContext';
 import { meetingAPI } from '../../services/api.js'; // adjust path
+import skillonxLogo from '../../assets/skillonx.png';
 
 const drawerWidth = 240;
 
@@ -71,6 +72,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   const [meetingCount, setMeetingCount] = useState(0);
 
   const role = (userRole || user?.role || '').toLowerCase();
+  const isHR = role === 'hr';
 
   const dashboardPath = role ? `/${role}/dashboard` : '/dashboard';
   const usersPath =
@@ -194,11 +196,14 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
 
   const drawer = (
     <>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', p: 1, width: '100%' }}>
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            PMS
-          </Typography>
+      <Toolbar disableGutters>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0, py: 1, width: '100%' }}>
+          <Box
+            component="img"
+            src={skillonxLogo}
+            alt="Logo"
+            sx={{ width: '100%', height: '70px', display: 'block', objectFit: 'contain' }}
+          />
         </Box>
       </Toolbar>
       <Divider />
@@ -209,6 +214,11 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
             disablePadding
             selected={isActive(item.path)}
             onClick={() => handleNavigation(item.path)}
+            sx={isHR ? {
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(98, 84, 243, 0.1)'
+              }
+            } : undefined}
           >
             <ListItemButton>
               <ListItemIcon sx={{ minWidth: 40 }}>
@@ -242,6 +252,11 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
             disablePadding
             selected={isActive(item.path)}
             onClick={() => handleNavigation(item.path)}
+            sx={isHR ? {
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(98, 84, 243, 0.1)'
+              }
+            } : undefined}
           >
             <ListItemButton>
               <ListItemIcon sx={{ minWidth: 40 }}>
@@ -268,6 +283,13 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
         open={isMobile ? mobileOpen : true}
         onClose={onClose}
         ModalProps={{ keepMounted: true }}
+        sx={isHR ? {
+          '& .MuiDrawer-paper': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(20px)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+          }
+        } : undefined}
       >
         {drawer}
       </StyledDrawer>

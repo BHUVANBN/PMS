@@ -12,6 +12,7 @@ const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerWidth = 240;
   const { user } = useAuth();
+  const isHR = (user?.role || '').toLowerCase() === 'hr';
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -59,9 +60,17 @@ const MainLayout = () => {
   }, [user]);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      minHeight: '100vh', 
+      backgroundImage: isHR 
+        ? 'linear-gradient(135deg, rgba(147, 197, 253, 0.3) 0%, rgba(196, 181, 253, 0.3) 50%, rgba(251, 207, 232, 0.3) 100%)' 
+        : 'none',
+      backgroundAttachment: isHR ? 'fixed' : 'initial',
+      backgroundSize: isHR ? 'cover' : 'initial',
+    }}>
       <CssBaseline />
-      <AppBar onMenuClick={handleDrawerToggle} />
+      <AppBar onMenuClick={handleDrawerToggle} drawerWidth={drawerWidth} />
       <Sidebar 
         mobileOpen={mobileOpen} 
         onClose={handleDrawerToggle}
@@ -72,7 +81,7 @@ const MainLayout = () => {
           flexGrow: 1,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: theme.palette.background.default,
+          backgroundColor: isHR ? 'transparent' : theme.palette.background.default,
           minHeight: '100vh',
           position: 'relative',
           margin: 0,

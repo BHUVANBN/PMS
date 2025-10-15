@@ -9,7 +9,8 @@ const StatsCard = ({
   changeType = 'positive', 
   icon: Icon,
   color = 'primary',
-  subtitle 
+  subtitle,
+  sx: sxProp
 }) => {
   const getChangeColor = () => {
     if (changeType === 'positive') return 'success.main';
@@ -25,14 +26,17 @@ const StatsCard = ({
 
   return (
     <Card 
-      sx={{ 
-        height: '100%',
-        transition: 'all 0.3s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 4,
-        }
-      }}
+      sx={[
+        { 
+          height: '100%',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: 4,
+          }
+        },
+        sxProp,
+      ]}
     >
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between">

@@ -99,6 +99,21 @@ const OnboardingManager = () => {
     }
   };
 
+  const handleDeleteDoc = async (scope, field) => {
+    if (!selectedUserId) return;
+    const ok = window.confirm(`Delete ${scope === 'hr' ? 'HR' : 'Employee'} document: ${field}?`);
+    if (!ok) return;
+    try {
+      setFeedback({ type: '', message: '' });
+      await hrAPI.deleteOnboardingDocument(selectedUserId, scope, field);
+      await reloadDetails(selectedUserId);
+      await reloadList();
+      setFeedback({ type: 'success', message: `${field} deleted successfully` });
+    } catch (error) {
+      setFeedback({ type: 'error', message: error.message || 'Failed to delete document' });
+    }
+  };
+
   const reloadList = async () => {
     try {
       setListLoading(true);
@@ -262,25 +277,77 @@ const OnboardingManager = () => {
     );
   };
 
-  const employeeDocActions = [];
+  const employeeDocActions = [
+    {
+      field: 'aadhar',
+      render: () => (
+        <Stack direction="row" spacing={1}>
+          <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'aadhar')}>
+            Delete
+          </Button>
+        </Stack>
+      )
+    },
+    {
+      field: 'photo',
+      render: () => (
+        <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'photo')}>Delete</Button>
+      )
+    },
+    {
+      field: 'tenth',
+      render: () => (
+        <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'tenth')}>Delete</Button>
+      )
+    },
+    {
+      field: 'twelfth',
+      render: () => (
+        <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'twelfth')}>Delete</Button>
+      )
+    },
+    {
+      field: 'diploma',
+      render: () => (
+        <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'diploma')}>Delete</Button>
+      )
+    },
+    {
+      field: 'passbook',
+      render: () => (
+        <Button variant="text" size="small" color="error" onClick={() => handleDeleteDoc('employee', 'passbook')}>Delete</Button>
+      )
+    },
+  ];
+
   const hrDocActions = HR_DOCS.map((doc) => ({
     field: doc.key,
     render: () => (
-      <Button
-        component="label"
-        variant="outlined"
-        size="small"
-        startIcon={<CloudUploadIcon fontSize="small" />}
-        disabled={hrUploadLoading}
-      >
-        {hrFiles[doc.key] ? hrFiles[doc.key].name : 'Upload'}
-        <input
-          type="file"
-          hidden
-          accept="application/pdf,image/*"
-          onChange={(event) => handleFileSelection(event, doc.key)}
-        />
-      </Button>
+      <Stack direction="row" spacing={1}>
+        <Button
+          component="label"
+          variant="outlined"
+          size="small"
+          startIcon={<CloudUploadIcon fontSize="small" />}
+          disabled={hrUploadLoading}
+        >
+          {hrFiles[doc.key] ? hrFiles[doc.key].name : 'Upload'}
+          <input
+            type="file"
+            hidden
+            accept="application/pdf,image/*"
+            onChange={(event) => handleFileSelection(event, doc.key)}
+          />
+        </Button>
+        <Button
+          variant="text"
+          size="small"
+          color="error"
+          onClick={() => handleDeleteDoc('hr', doc.key)}
+        >
+          Delete
+        </Button>
+      </Stack>
     )
   }));
 

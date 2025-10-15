@@ -5,7 +5,7 @@ import LoadingSpinner from './ui/LoadingSpinner';
 import { employeeAPI } from '../services/api.js';
 
 const ONBOARDING_ROLES = new Set(['employee']);
-const ONBOARDING_ROUTE_PREFIXES = ['/onboarding', '/employee/onboarding'];
+const ONBOARDING_ROUTE_PREFIXES = ['/onboarding', '/employee/onboarding', '/onboard'];
 
 const ProtectedRoute = ({ 
   children, 
@@ -111,7 +111,7 @@ const ProtectedRoute = ({
     if (onboardingState.error) {
       return (
         <Navigate 
-          to="/onboarding" 
+          to="/onboard" 
           state={{ from: location.pathname, error: onboardingState.error }} 
           replace 
         />
@@ -121,7 +121,7 @@ const ProtectedRoute = ({
     if (onboardingState.status && onboardingState.status !== 'verified') {
       return (
         <Navigate 
-          to="/onboarding" 
+          to="/onboard" 
           state={{ from: location.pathname }} 
           replace 
         />

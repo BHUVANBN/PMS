@@ -10,6 +10,22 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
+// Public (unauthenticated) API
+export const publicAPI = {
+  submitOnboarding: (formData) =>
+    apiRequest('/public/onboarding', {
+      method: 'POST',
+      body: formData,
+      includeAuth: false,
+    }),
+  listPublicOnboarding: () =>
+    apiRequest('/public/onboarding'),
+  approvePublicOnboarding: (id) =>
+    apiRequest(`/public/onboarding/${id}/approve`, {
+      method: 'POST',
+    }),
+};
+
 // Standup API (per-user daily standup)
 export const standupAPI = {
   // Check if current user submitted today
@@ -320,6 +336,11 @@ export const hrAPI = {
       method: 'POST',
       body: payload,
     }),
+
+  deleteOnboardingDocument: (userId, scope, docKey) =>
+    apiRequest(`/hr/onboarding/${userId}/documents/${scope}/${docKey}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Manager API
@@ -614,6 +635,8 @@ export const internAPI = {
   getDashboard: () => 
     apiRequest('/intern/dashboard'),
 };
+
+ 
 
 // Generic APIs
 export const ticketsAPI = {
@@ -1047,6 +1070,7 @@ export default {
   standup: standupAPI,
   calendar: calendarAPI,
   meetings: meetingAPI,
+  public: publicAPI,
   utils: apiUtils,
   subscribeToEvents,
 };

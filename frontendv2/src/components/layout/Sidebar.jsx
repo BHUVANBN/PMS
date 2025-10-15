@@ -147,6 +147,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       path: '/analytics',
       roles: ['admin', 'hr', 'manager'],
     },
+    {
+      text: 'Onboarding (Public)',
+      icon: <PeopleIcon />,
+      path: '/hr/onboarding-public',
+      roles: ['hr', 'admin'],
+    },
   ];
 
   const bottomMenuItems = [

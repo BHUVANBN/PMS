@@ -9,7 +9,8 @@ import MainLayout from './layouts/MainLayout';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+// import RegisterPage from './pages/auth/RegisterPage';
+import Onboard from './pages/Onboard';
 
 // Dashboard pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -57,6 +58,8 @@ import SettingsPage from './pages/SettingsPage';
 import HelpPage from './pages/HelpPage';
 import StandupLogout from './pages/StandupLogout.jsx';
 import AllStandups from './pages/standup/AllStandups.jsx';
+import PublicOnboardingList from './pages/hr/PublicOnboardingList.jsx';
+import OnboardingSuccess from './pages/OnboardingSuccess.jsx';
 
 // Shared pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -71,7 +74,12 @@ function App() {
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            {/* Signup disabled: only HR creates credentials */}
+            {/* <Route path="/register" element={<RegisterPage />} /> */}
+            {/* Onboarding route (public UI; uploads require auth) */}
+            <Route path="/onboard" element={<Onboard />} />
+            {/* Public success page after onboarding submission */}
+            <Route path="/onboarding-success" element={<OnboardingSuccess />} />
 
             {/* Full-screen Standup Logout page (protected, no main layout) */}
             <Route path="/standup-logout" element={<ProtectedRoute><StandupLogout /></ProtectedRoute>} />
@@ -103,6 +111,7 @@ function App() {
               <Route path="hr/employees/new" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeCreate /></ProtectedRoute>} />
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
               <Route path="hr/standups" element={<ProtectedRoute requiredRoles={["hr","admin"]}><AllStandups /></ProtectedRoute>} />
+              <Route path="hr/onboarding-public" element={<ProtectedRoute requiredRoles={["hr","admin"]}><PublicOnboardingList /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
               <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Projects /></ProtectedRoute>} />

@@ -191,14 +191,17 @@ const CalendarPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Calendar
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<PlusIcon className="h-4 w-4" />}
-            sx={{ borderRadius: 2 }}
-            onClick={handleAddEvent}
-          >
-            Add Event
-          </Button>
+          {(user?.role === 'admin' || user?.role === 'hr') && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAddEvent}
+              sx={{ mb: 2 }}
+            >
+              Add Event
+            </Button>
+          )}
+
         </Box>
 
         <Grid container spacing={3}>
@@ -312,9 +315,8 @@ const CalendarPage = () => {
                       </Avatar>
                       <ListItemText
                         primary={event.title}
-                        secondary={`${dayjs(event.date).format("MMM D")} at ${
-                          event.time
-                        } • ${event.location}`}
+                        secondary={`${dayjs(event.date).format("MMM D")} at ${event.time
+                          } • ${event.location}`}
                       />
                       <Badge variant={getEventTypeColor(event.type)}>
                         {event.type}

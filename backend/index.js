@@ -33,24 +33,27 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration - Allow frontend to make requests
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://127.0.0.1:3000',
-            'http://127.0.0.1:5173',
-            process.env.FRONTEND_URL // Allow environment-specific frontend URL
-        ].filter(Boolean); // Remove any undefined values
-        
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
+        if (process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
         }
+
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
     },
     credentials: true, // Enable credentials (cookies, authorization headers)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -115,6 +118,7 @@ app.use('/api/standup', standupRoutes);
 
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/meetings',meetingRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

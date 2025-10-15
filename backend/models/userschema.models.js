@@ -225,8 +225,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  
+
   emailVerificationToken: String,
+
+  isVerifiedByHR: { type: Boolean, default: false },
   
   // Two-factor authentication
   twoFactorEnabled: {

@@ -162,6 +162,7 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify(credentials),
       includeAuth: false,
+      isVerifiedByHR:false
     }),
 
   // Register user

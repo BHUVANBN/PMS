@@ -115,6 +115,7 @@ app.use('/api/standup', standupRoutes);
 
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/meetings',meetingRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

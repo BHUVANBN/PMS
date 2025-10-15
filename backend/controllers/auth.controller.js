@@ -16,30 +16,53 @@ export const attachCookieParser = (app) => {
 };
 
 export const login = async (req, res) => {
-	try {
-		const { username, password } = req.body;
-		if (!username || !password) {
-			return res.status(400).json({ message: 'username and password are required' });
-		}
-		// Allow login with either username or email
-		const user = await User.findOne({ 
-			$or: [{ username }, { email: username }], 
-			isActive: true 
-		});
-		if (!user) {
-			return res.status(401).json({ message: 'Invalid credentials' });
-		}
-		const isMatch = await bcrypt.compare(password, user.password);
-		if (!isMatch) {
-			return res.status(401).json({ message: 'Invalid credentials' });
-		}
-		const token = signToken(user);
-		res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 24*60*60*1000 });
-		return res.status(200).json({ message: 'Login successful', token, role: user.role });
-	} catch (error) {
-		return res.status(500).json({ message: 'Server error', error: error.message });
-	}
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ message: 'username and password are required' });
+    }
+
+    // Allow login with either username or email
+    const user = await User.findOne({ 
+      $or: [{ username }, { email: username }], 
+      isActive: true 
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    let firstLogin = false;
+
+    // Mark employee as verified by HR on first login
+    if (!user.isVerifiedByHR) {
+      user.isVerifiedByHR = true;
+      await user.save();
+      firstLogin = true;
+    }
+
+    const token = signToken(user);
+
+    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 24*60*60*1000 });
+
+    return res.status(200).json({ 
+      message: 'Login successful', 
+      token, 
+      role: user.role,
+      firstLogin, // frontend can show notification or onboarding
+      isVerifiedByHR: user.isVerifiedByHR
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
+
 
 export const logout = async (req, res) => {
 	try {

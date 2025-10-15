@@ -23,6 +23,8 @@ import projectRoutes from './routes/project.route.js';
 import sprintRoutes from './routes/sprint.route.js';
 import bugRoutes from './routes/bugTracker.route.js';
 import standupRoutes from './routes/standup.route.js';
+import calendarRoutes from "./routes/calendar.routes.js";
+import publicRoutes from './routes/public.route.js';
 import { initRealtime } from './utils/realtime.js';
 
 dotenv.config();
@@ -111,7 +113,8 @@ app.use('/api/sprints', sprintRoutes);
 app.use('/api/bugs', bugRoutes);
 app.use('/api/standup', standupRoutes);
 
-app.use('/api/meetings', meetingRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/public', publicRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

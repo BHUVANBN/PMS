@@ -20,6 +20,7 @@ import {
 import StatsCard from '../../components/dashboard/StatsCard';
 import ProjectOverview from '../../components/dashboard/ProjectOverview';
 import TaskProgress from '../../components/dashboard/TaskProgress';
+import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import QuickActions from '../../components/dashboard/QuickActions';
 import { managerAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -188,6 +189,9 @@ const ManagerDashboard = () => {
           <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
         </Grid>
         <Grid item xs={3} sm={3} md={3} lg={3}>
+          <Box sx={{ mb: 3 }}>
+            <MyUpcomingEvents title="My Upcoming Events" days={14} />
+          </Box>
           <TaskProgress tasks={tasks} />
         </Grid>
       </Grid>

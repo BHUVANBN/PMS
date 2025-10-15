@@ -227,21 +227,24 @@ const LoginPage = () => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
             
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Don't have an account?{' '}
-                <Link
-                  to="/register"
-                  style={{
-                    color: theme.palette.primary.main,
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                  }}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  component={Link}
+                  to="/onboard"
+                  fullWidth
+                  variant="outlined"
+                  sx={{ py: 1.25, borderRadius: 2 }}
                 >
-                  Sign up here
-                </Link>
-              </Typography>
-            </Box>
+                  Onboard
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'right' }, mt: { xs: 1, sm: 0 } }}>
+                  HR will provide your credentials
+                </Typography>
+              </Grid>
+            </Grid>
           </Box>
         </Paper>
       </Container>

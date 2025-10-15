@@ -21,7 +21,8 @@ import {
 	getHROnboardingDetails,
 	uploadHRDocuments,
 	verifyOnboarding,
-	getOnboardingSummary
+	getOnboardingSummary,
+	deleteOnboardingDocument
 } from '../controllers/onboarding.controller.js';
 import { hrOnboardingUpload } from '../middleware/upload.js';
 
@@ -75,6 +76,8 @@ router.get('/onboarding/summary', getOnboardingSummary);
 router.get('/onboarding/:userId', getHROnboardingDetails);
 router.post('/onboarding/:userId/documents', hrOnboardingUpload, uploadHRDocuments);
 router.post('/onboarding/:userId/verify', verifyOnboarding);
+// Delete a specific onboarding document (scope: 'employee' or 'hr')
+router.delete('/onboarding/:userId/documents/:scope/:docKey', deleteOnboardingDocument);
 
 export default router;
 

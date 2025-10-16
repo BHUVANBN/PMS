@@ -29,7 +29,7 @@ import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 import { calendarAPI, meetingAPI, subscribeToEvents } from '../../services/api';
 import dayjs from 'dayjs';
 
-const AppBar = ({ onMenuClick }) => {
+const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -238,7 +238,18 @@ const AppBar = ({ onMenuClick }) => {
   return (
     <MuiAppBar 
       position="fixed"
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        // Rounded, glass-like bar that does not overlap the sidebar
+        top: 8,
+        left: { xs: 8, sm: `calc(${drawerWidth}px + 8px)` },
+        right: 8,
+        width: { xs: 'auto', sm: `calc(100% - ${drawerWidth}px - 16px)` },
+        borderRadius: 1,
+        backgroundColor: (theme) => theme.palette.background.paper,
+        color: (theme) => theme.palette.text.primary,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+      }}
     >
       <Toolbar>
         <IconButton

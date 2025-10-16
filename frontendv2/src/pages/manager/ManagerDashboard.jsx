@@ -4,30 +4,30 @@ import {
   Box,
   Grid,
   Paper,
-  LinearProgress
+  LinearProgress,
+  Button,
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import {
   Assignment,
   Group,
   TrendingUp,
   Schedule,
-  Add,
-  MoreVert,
-  PlayArrow,
-  Pause,
-  CheckCircle
+  CheckCircle,
+  Refresh
 } from '@mui/icons-material';
 import StatsCard from '../../components/dashboard/StatsCard';
-import ProjectOverview from '../../components/dashboard/ProjectOverview';
 import TaskProgress from '../../components/dashboard/TaskProgress';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import QuickActions from '../../components/dashboard/QuickActions';
 import { managerAPI } from '../../services/api';
-import TwoColumnRight from '../../components/layout/TwoColumnRight';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ManagerDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     activeProjects: 0,
     pendingTasks: 0,
@@ -38,8 +38,6 @@ const ManagerDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Team performance will be derived from backend ticket stats per member when available.
 
   const quickActions = [
     {
@@ -92,7 +90,6 @@ const ManagerDashboard = () => {
       };
       setStats(normalizedStats);
 
-      // Build real tasks list from tickets endpoint
       const tickets = ticketsResponse?.data || ticketsResponse || [];
       const progressMap = {
         open: 0,
@@ -123,83 +120,330 @@ const ManagerDashboard = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-        <LinearProgress sx={{ width: '60%' }} />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress size={60} />
       </Box>
     );
   }
 
-  const rightRail = (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ mb: 3 }}>
-        <MyUpcomingEvents title="My Upcoming Events" days={14} />
-      </Box>
-      <TaskProgress tasks={tasks} />
-    </Box>
-  );
+  const getStatusColor = (status) => {
+    const colors = {
+      active: '#4caf50',
+      completed: '#2196f3',
+      pending: '#ff9800',
+      on_hold: '#f44336',
+      planning: '#9c27b0'
+    };
+    return colors[status] || '#757575';
+  };
 
   return (
-    <TwoColumnRight right={rightRail}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Manager Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Welcome back, {user?.username || 'Manager'}! Here's your team overview.
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box mb={4}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: 800, 
+            color: 'text.primary',
+            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+            letterSpacing: '-0.02em',
+            mb: 1.5
+          }}
+        >
+          Manager Dashboard
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'text.secondary',
+            fontWeight: 400,
+            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+            lineHeight: 1.6,
+            letterSpacing: '0.01em'
+          }}
+        >
+          Welcome back, {user?.username || 'Manager'}! Here's your team overview.
+        </Typography>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchDashboardData}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      </Box>
+
       {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
+        <Paper sx={{ 
+          p: 2, 
+          mb: 3, 
+          background: 'rgba(244, 67, 54, 0.1)',
+          border: '1px solid rgba(244, 67, 54, 0.3)',
+          borderRadius: '12px'
+        }}>
           <Typography color="error">{error}</Typography>
         </Paper>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Active Projects"
-            value={stats.activeProjects}
-            icon={Assignment}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Pending Tasks"
-            value={stats.pendingTasks}
-            icon={Schedule}
-            color="warning"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="In Progress Tasks"
-            value={stats.inProgressTasks}
-            icon={Assignment}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Completed Tasks"
-            value={stats.completedTasks}
-            icon={CheckCircle}
-            color="success"
-          />
-        </Grid>
-      </Grid>
+      {/* Main Layout */}
+      <Box sx={{ display: { lg: 'flex' }, gap: { lg: 3 }, alignItems: 'flex-start' }}>
+        {/* Main Content Column */}
+        <Box sx={{ flex: 1 }}>
+          {/* Stats Cards */}
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Active Projects"
+                value={stats.activeProjects}
+                icon={Assignment}
+                color="primary"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Pending Tasks"
+                value={stats.pendingTasks}
+                icon={Schedule}
+                color="warning"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="In Progress Tasks"
+                value={stats.inProgressTasks}
+                icon={Assignment}
+                color="info"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Completed Tasks"
+                value={stats.completedTasks}
+                icon={CheckCircle}
+                color="success"
+              />
+            </Grid>
+          </Grid>
 
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12}>
-          <QuickActions actions={quickActions} />
-        </Grid>
-      </Grid>
+          {/* Quick Actions */}
+          <Box mb={4}>
+            <QuickActions actions={quickActions} />
+          </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
-        </Grid>
-      </Grid>
-    </TwoColumnRight>
+          {/* Project Overview - Bento Grid */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Project Overview
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => navigate('/projects')}
+              >
+                View All Projects
+              </Button>
+            </Box>
+
+            {projects.length === 0 ? (
+              <Box textAlign="center" py={6}>
+                <Typography variant="body2" color="text.secondary">
+                  No projects found
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                {projects.map((project) => (
+                  <Grid item xs={12} sm={6} lg={4} key={project._id}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 3,
+                        height: '100%',
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.5)',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                          background: 'rgba(255, 255, 255, 0.4)',
+                        }
+                      }}
+                      onClick={() => navigate(`/projects/${project._id}`)}
+                    >
+                      <Box>
+                        {/* Project Header */}
+                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              fontWeight: 600,
+                              fontSize: '1.1rem',
+                              color: 'text.primary',
+                              lineHeight: 1.3
+                            }}
+                          >
+                            {project.projectName || project.name || 'Unnamed Project'}
+                          </Typography>
+                        </Box>
+
+                        {/* Status Badge */}
+                        <Box mb={2}>
+                          <Box
+                            sx={{
+                              display: 'inline-block',
+                              px: 1.5,
+                              py: 0.5,
+                              borderRadius: '20px',
+                              bgcolor: `${getStatusColor(project.status)}15`,
+                              border: `1px solid ${getStatusColor(project.status)}30`
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: getStatusColor(project.status),
+                                fontWeight: 600,
+                                textTransform: 'capitalize',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              {project.status || 'Active'}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Project Description */}
+                        {project.description && (
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary" 
+                            sx={{ 
+                              mb: 2,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              fontSize: '0.875rem',
+                              lineHeight: 1.5
+                            }}
+                          >
+                            {project.description}
+                          </Typography>
+                        )}
+
+                        {/* Project Manager */}
+                        {project.projectManager && (
+                          <Box 
+                            display="flex" 
+                            alignItems="center" 
+                            mt={2}
+                            pt={2}
+                            borderTop="1px solid rgba(0, 0, 0, 0.08)"
+                          >
+                            <Box
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                bgcolor: '#2196f3',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                mr: 1.5
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '0.875rem'
+                                }}
+                              >
+                                {(project.projectManager?.firstName?.[0] || '').toUpperCase()}
+                                {(project.projectManager?.lastName?.[0] || '').toUpperCase()}
+                              </Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Project Manager
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {project.projectManager.firstName} {project.projectManager.lastName}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        )}
+
+                        {/* Team Size */}
+                        {project.team && project.team.length > 0 && (
+                          <Box 
+                            display="flex" 
+                            alignItems="center" 
+                            mt={2}
+                            sx={{
+                              p: 1.5,
+                              borderRadius: '8px',
+                              bgcolor: 'rgba(33, 150, 243, 0.08)'
+                            }}
+                          >
+                            <Group sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {project.team.length} team {project.team.length === 1 ? 'member' : 'members'}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Paper>
+        </Box>
+
+        {/* Right Sidebar */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: 360 },
+          flexShrink: 0,
+          mt: { xs: 3, lg: 0 }
+        }}>
+          {/* My Upcoming Events */}
+          <Box sx={{ mb: 3 }}>
+            <MyUpcomingEvents title="My Upcoming Events" days={14} />
+          </Box>
+
+          {/* Task Progress */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            position: { lg: 'sticky' },
+            top: { lg: 24 }
+          }}>
+            <TaskProgress tasks={tasks} />
+          </Paper>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

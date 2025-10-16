@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Chip, IconButton, Paper, Stack, Typography } from '@mui/material';
+import UserAvatarName from '../../components/shared/UserAvatarName';
 import { Add, Edit, ToggleOn } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { hrAPI } from '../../services/api';
@@ -80,7 +81,23 @@ const EmployeeList = () => {
   };
 
   const columns = useMemo(() => [
-    { field: 'name', headerName: 'Name', sortable: true },
+    {
+      field: 'name',
+      headerName: 'Name',
+      sortable: true,
+      render: (row) => (
+        <UserAvatarName
+          name={row.name}
+          email={row.email}
+          role={row.role}
+          // HRDashboard style: 40x40, font 1rem, weight 600, mr=2
+          size={40}
+          fontSize={'1rem'}
+          fontWeight={600}
+          mr={2}
+        />
+      ),
+    },
     { field: 'email', headerName: 'Email', sortable: true },
     { field: 'role', headerName: 'Role', type: 'chip' },
     { field: 'department', headerName: 'Department' },

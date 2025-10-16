@@ -194,7 +194,7 @@ const SalesDashboard = () => {
               </Box>
             )}
           </Box>
-          <Avatar sx={{ bgcolor: `${color}20`, color }}>
+          <Avatar sx={{ bgcolor: `${color}20`, color: '#fff' }}>
             {icon}
           </Avatar>
         </Box>
@@ -238,8 +238,29 @@ const SalesDashboard = () => {
       {/* Header */}
       <Grid container spacing={2} alignItems="center" mb={3}>
         <Grid item xs={12} md={8}>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography 
+            variant="h3" 
+            sx={{ 
+              fontWeight: 800, 
+              color: 'text.primary',
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+              letterSpacing: '-0.02em',
+              mb: 1.5
+            }}
+          >
             Sales Dashboard
+          </Typography>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: 'text.secondary',
+              fontWeight: 400,
+              fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+              lineHeight: 1.6,
+              letterSpacing: '0.01em'
+            }}
+          >
+            Your sales performance overview and pipeline at a glance.
           </Typography>
         </Grid>
         <Grid item xs={12} md={4}>
@@ -411,7 +432,7 @@ const SalesDashboard = () => {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'success.light', color: 'success.dark', mx: 'auto', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'success.light', color: '#fff', mx: 'auto', mb: 1 }}>
                     <CheckCircle />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>
@@ -424,7 +445,7 @@ const SalesDashboard = () => {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'info.light', color: 'info.dark', mx: 'auto', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'info.light', color: '#fff', mx: 'auto', mb: 1 }}>
                     <AttachMoney />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>
@@ -437,7 +458,7 @@ const SalesDashboard = () => {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'warning.light', color: 'warning.dark', mx: 'auto', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'warning.light', color: '#fff', mx: 'auto', mb: 1 }}>
                     <Schedule />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>
@@ -450,7 +471,7 @@ const SalesDashboard = () => {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center" p={2}>
-                  <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', mx: 'auto', mb: 1 }}>
+                  <Avatar sx={{ bgcolor: 'primary.light', color: '#fff', mx: 'auto', mb: 1 }}>
                     <Star />
                   </Avatar>
                   <Typography variant="h5" fontWeight={600}>

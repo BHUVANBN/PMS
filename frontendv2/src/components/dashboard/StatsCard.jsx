@@ -41,7 +41,7 @@ const StatsCard = ({
             <Typography color="text.secondary" gutterBottom sx={{ fontSize: 14, fontWeight: 600 }}>
               {title}
             </Typography>
-            <Typography component="div" fontWeight="bold" sx={{ fontSize: { xs: 28, md: 32 }, lineHeight: 1.2 }}>
+            <Typography component="div" fontWeight="bold" sx={{ fontSize: { xs: 32, md: 36 }, lineHeight: 1.2 }}>
               {value}
             </Typography>
             {subtitle && (
@@ -70,6 +70,7 @@ const StatsCard = ({
                 bgcolor: `${color}.main`,
                 width: 56,
                 height: 56,
+                color: '#fff',
               }}
             >
               <Icon />

@@ -31,19 +31,20 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import useViewportSize from '../../utils/useViewportSize';
-import GlassSearchBar from '../glass/GlassSearchBar';
+import logo from '../../assets/skillonx.png';
 
-import { useAuth } from '../../contexts/AuthContext'; // Your auth context
+import { useAuth } from '../../contexts/AuthContext';
 import { meetingAPI, calendarAPI, subscribeToEvents } from '../../services/api';
 
-const StyledDrawer = styled(Drawer)(() => ({
+const StyledDrawer = styled(Drawer)(({ theme }) => ({
   flexShrink: 0,
   '& .MuiDrawer-paper': {
     boxSizing: 'border-box',
-    borderRight: '1px solid rgba(255,255,255,0.25)',
-    background: 'rgba(255,255,255,0.3)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
+    borderRight: '1px solid rgba(255,255,255,0.4)',
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.25) 100%)',
+    backdropFilter: 'blur(24px) saturate(120%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(120%)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 30px rgba(0,0,0,0.08)',
   },
 }));
 
@@ -58,7 +59,7 @@ const ActiveListItem = styled(ListItem)(({ theme }) => ({
     backgroundColor: 'rgba(99,102,241,0.06)',
   },
   borderRadius: theme.shape.borderRadius,
-  margin: theme.spacing(0.5, 2),
+  margin: theme.spacing(0.5, 1.5),
   width: 'auto',
 }));
 
@@ -73,10 +74,8 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   const [meetingCount, setMeetingCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
 
-  // Role-based filtering
   const role = (userRole || user?.role || '').toLowerCase();
 
-  // MENU items
   const menuItems = [
     {
       text: 'Dashboard',
@@ -163,7 +162,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     { text: 'Help & Support', icon: <HelpIcon />, path: '/help' },
   ];
 
-  // Filter menu items based on role
   const filteredItems = role
     ? menuItems.filter((item) => item.roles.includes(role))
     : menuItems;
@@ -190,7 +188,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     }
   };
 
-  // Fetch meeting count
   useEffect(() => {
     const fetchMeetings = async () => {
       try {
@@ -208,14 +205,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     return () => clearInterval(intervalId);
   }, [user?._id]);
 
-  // Fetch calendar events count
   useEffect(() => {
     if (user?._id) fetchEvents();
     const intervalId = setInterval(fetchEvents, 60000);
     return () => clearInterval(intervalId);
   }, [user?._id]);
 
-  // Optional: Subscribe to real-time updates for instant sync (for calendar and meetings)
   useEffect(() => {
     let unsubscribeFns = [];
     if (user?._id) {
@@ -223,7 +218,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
         { userId: user._id },
         (msg) => {
           if (msg?.type?.startsWith('calendar.')) {
-            fetchEvents(); // Reload calendar events
+            fetchEvents();
           }
         }
       );
@@ -231,7 +226,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
         { userId: user._id },
         (msg) => {
           if (msg?.type?.startsWith('meeting.')) {
-            // Reload meetings count
             meetingAPI.getUserMeetings().then((res) => {
               const meetings = res?.meetings || res?.data || [];
               const now = new Date();
@@ -244,7 +238,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       unsubscribeFns = [unsubscribeCalendar, unsubscribeMeetings];
     }
     return () => {
-      // Cleanup for SSE
       unsubscribeFns.forEach((unsub) => {
         if (typeof unsub === 'function') unsub();
       });
@@ -269,16 +262,22 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       >
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 1, width: '100%' }}>
-            <Typography variant='h6' fontWeight={600}>
-              PMS
-            </Typography>
+            <Box 
+              component="img" 
+              src={logo} 
+              alt="Skillonx" 
+              sx={{ 
+                height: 'auto', 
+                width: '170px',
+                maxWidth: '100%'
+              }} 
+            />
           </Box>
         </Toolbar>
-        <Box sx={{ px: 2, pb: 2 }}>
-          <GlassSearchBar placeholder="Search..." />
-        </Box>
-        <Divider />
-        <List>
+
+        <Divider sx={{ opacity: 0.6 }} />
+        
+        <List sx={{ px: 1, py: 1.5 }}>
           {filteredItems.map((item) => {
             let badgeCount = 0;
             let badgeColor = 'error';
@@ -299,10 +298,41 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
                 selected={isActive(item.path)}
                 onClick={() => handleNavigation(item.path)}
               >
-                <ListItemButton sx={{ height: 48, py: 1, px: 2.5 }}>
-                  <ListItemIcon sx={{ minWidth: 28, '& .MuiSvgIcon-root': { width: 20, height: 20 } }}>
+                <ListItemButton 
+                  sx={{ 
+                    height: 52,
+                    py: 1.5, 
+                    px: 2,
+                    borderRadius: 1.5,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <ListItemIcon 
+                    sx={{ 
+                      minWidth: 36,
+                      '& .MuiSvgIcon-root': { 
+                        width: 22, 
+                        height: 22,
+                        transition: 'transform 0.2s ease',
+                      },
+                      '&:hover .MuiSvgIcon-root': {
+                        transform: 'scale(1.1)'
+                      }
+                    }}
+                  >
                     {badgeCount > 0 ? (
-                      <Badge badgeContent={badgeCount} color={badgeColor}>
+                      <Badge 
+                        badgeContent={badgeCount} 
+                        color={badgeColor}
+                        sx={{
+                          '& .MuiBadge-badge': {
+                            fontSize: '0.625rem',
+                            height: 18,
+                            minWidth: 18,
+                            fontWeight: 600
+                          }
+                        }}
+                      >
                         {React.cloneElement(item.icon, {
                           color: isActive(item.path) ? 'primary' : 'inherit',
                         })}
@@ -317,7 +347,14 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
                     primary={item.text}
                     primaryTypographyProps={{
                       fontWeight: isActive(item.path) ? '600' : '500',
-                      fontSize: 14,
+                      fontSize: '0.9375rem',
+                      lineHeight: 1.5,
+                      letterSpacing: '0.01em',
+                      color: isActive(item.path) ? 'primary.main' : 'text.primary',
+                      sx: {
+                        WebkitFontSmoothing: 'antialiased',
+                        MozOsxFontSmoothing: 'grayscale',
+                      }
                     }}
                   />
                 </ListItemButton>
@@ -325,8 +362,10 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
             );
           })}
         </List>
-        <Divider sx={{ mt: 'auto' }} />
-        <List>
+        
+        <Divider sx={{ mt: 'auto', opacity: 0.6 }} />
+        
+        <List sx={{ px: 1, py: 1.5 }}>
           {bottomMenuItems.map((item) => (
             <ActiveListItem
               key={item.text}
@@ -334,13 +373,46 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
               selected={isActive(item.path)}
               onClick={() => handleNavigation(item.path)}
             >
-              <ListItemButton>
-                <ListItemIcon sx={{ minWidth: 40 }}>
+              <ListItemButton
+                sx={{ 
+                  height: 52,
+                  py: 1.5, 
+                  px: 2,
+                  borderRadius: 1.5,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    minWidth: 36,
+                    '& .MuiSvgIcon-root': { 
+                      width: 22, 
+                      height: 22,
+                      transition: 'transform 0.2s ease',
+                    },
+                    '&:hover .MuiSvgIcon-root': {
+                      transform: 'scale(1.1)'
+                    }
+                  }}
+                >
                   {React.cloneElement(item.icon, {
                     color: isActive(item.path) ? 'primary' : 'inherit',
                   })}
                 </ListItemIcon>
-                <ListItemText primary={item.text} />
+                <ListItemText 
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: isActive(item.path) ? '600' : '500',
+                    fontSize: '0.9375rem',
+                    lineHeight: 1.5,
+                    letterSpacing: '0.01em',
+                    color: isActive(item.path) ? 'primary.main' : 'text.primary',
+                    sx: {
+                      WebkitFontSmoothing: 'antialiased',
+                      MozOsxFontSmoothing: 'grayscale',
+                    }
+                  }}
+                />
               </ListItemButton>
             </ActiveListItem>
           ))}

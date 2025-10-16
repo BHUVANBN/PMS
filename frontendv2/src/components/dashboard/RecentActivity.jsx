@@ -129,11 +129,15 @@ const RecentActivity = ({ activities = [], onShowMore }) => {
                     <Avatar
                       sx={{
                         bgcolor: `${getActivityColor(activity.type)}.main`,
+                        color: '#fff',
                         width: 40,
                         height: 40,
+                        fontWeight: 700
                       }}
                     >
-                      {getActivityIcon(activity.type)}
+                      {activity.type === 'user_joined'
+                        ? (activity.user || '').charAt(0).toUpperCase()
+                        : getActivityIcon(activity.type)}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText

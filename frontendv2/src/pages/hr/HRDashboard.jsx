@@ -41,8 +41,6 @@ import {
 } from '@mui/icons-material';
 import { hrAPI } from '../../services/api';
 import StatsCard from '../../components/dashboard/StatsCard';
-import TwoColumnRight from '../../components/layout/TwoColumnRight';
-import GlassStatsCard from '../../components/glass/GlassStatsCard';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 
 const HRDashboard = () => {
@@ -139,88 +137,53 @@ const HRDashboard = () => {
     return colors[role] || theme.palette.grey[500];
   };
 
-  const rightRail = (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <GlassStatsCard title="Active Employees" value={stats?.employees?.active || 0} />
-      <GlassStatsCard title="Pending Leaves" value={stats?.leaves?.pending || 0} iconColor="warning.main" />
-      <GlassStatsCard title="Departments" value={stats?.overview?.departmentCount || 0} iconColor="info.main" />
-      <Box>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          Employee Distribution
-        </Typography>
-        <Box>
-          {stats?.roles && Object.entries(stats.roles).length > 0 ? (
-            Object.entries(stats.roles).map(([role, count]) => (
-              <Box key={role} mb={2}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
-                  <Typography variant="body2" sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
-                    {role}
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600} color="primary.main">
-                    {count}
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(count / (stats?.employees?.total || 1)) * 100}
-                  sx={{
-                    height: 6,
-                    borderRadius: 3,
-                    bgcolor: 'grey.200',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: getRoleColor(role),
-                      borderRadius: 3,
-                    },
-                  }}
-                />
-              </Box>
-            ))
-          ) : (
-            <Typography variant="body2" color="text.secondary" textAlign="center">
-              No role distribution data available
-            </Typography>
-          )}
-        </Box>
-      </Box>
-    </Box>
-  );
-
   return (
-    <TwoColumnRight right={rightRail}>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Grid container spacing={2} alignItems="center" mb={4}>
-        <Grid item xs={12} md={8}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              HR Dashboard
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-              Manage employees, track performance, and oversee HR operations
-            </Typography>
-            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Refresh />}
-                onClick={handleRefresh}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => navigate('/hr/employees/new')}
-                sx={{ bgcolor: 'primary.main' }}
-              >
-                Add Employee
-              </Button>
-            </Stack>
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <MyUpcomingEvents title="My Upcoming Events" days={14} />
-        </Grid>
-      </Grid>
+      <Box mb={4}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: 800, 
+            color: 'text.primary',
+            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+            letterSpacing: '-0.02em',
+            mb: 1.5
+          }}
+        >
+          HR Dashboard
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'text.secondary',
+            fontWeight: 400,
+            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+            lineHeight: 1.6,
+            letterSpacing: '0.01em'
+          }}
+        >
+          Manage employees, track performance, and oversee HR operations
+        </Typography>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/hr/employees/new')}
+            sx={{ bgcolor: 'primary.main' }}
+          >
+            Add Employee
+          </Button>
+        </Stack>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -228,54 +191,63 @@ const HRDashboard = () => {
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Total Employees"
-            value={stats?.employees?.total || 0}
-            change={`${stats?.employees?.active || 0} active employees`}
-            changeType="neutral"
-            icon={People}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Recent Hires"
-            value={stats?.employees?.recentHires || 0}
-            change="New employees this month"
-            changeType="positive"
-            icon={PersonAdd}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Leave Requests"
-            value={stats?.leaves?.pending || 0}
-            change={`${stats?.leaves?.total || 0} total requests`}
-            changeType="neutral"
-            icon={EventNote}
-            color="warning"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatsCard
-            title="Departments"
-            value={stats?.overview?.departmentCount || 0}
-            change="Active departments"
-            changeType="neutral"
-            icon={Work}
-            color="info"
-          />
-        </Grid>
-      </Grid>
+      {/* Main Layout with Sidebar */}
+      <Box sx={{ display: { lg: 'flex' }, gap: { lg: 3 }, alignItems: 'flex-start' }}>
+        {/* Main content column */}
+        <Box sx={{ flex: 1 }}>
+          {/* Statistics Cards */}
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Total Employees"
+                value={stats?.employees?.total || 0}
+                change={`${stats?.employees?.active || 0} active employees`}
+                changeType="neutral"
+                icon={People}
+                color="primary"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Recent Hires"
+                value={stats?.employees?.recentHires || 0}
+                change="New employees this month"
+                changeType="positive"
+                icon={PersonAdd}
+                color="success"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Leave Requests"
+                value={stats?.leaves?.pending || 0}
+                change={`${stats?.leaves?.total || 0} total requests`}
+                changeType="neutral"
+                icon={EventNote}
+                color="warning"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatsCard
+                title="Departments"
+                value={stats?.overview?.departmentCount || 0}
+                change="Active departments"
+                changeType="neutral"
+                icon={Work}
+                color="info"
+              />
+            </Grid>
+          </Grid>
 
-      <Grid container spacing={3}>
-        {/* Employee Management */}
-        <Grid item xs={12} lg={8}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            mb: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Recent Employees
@@ -329,11 +301,12 @@ const HRDashboard = () => {
                               height: 40,
                               mr: 2,
                               bgcolor: getRoleColor(employee.role),
+                              color: '#fff',
                               fontSize: '1rem',
-                              fontWeight: 600
+                              fontWeight: 700
                             }}
                           >
-                            {employee.firstName?.[0]}{employee.lastName?.[0]}
+                            {(employee.firstName || employee.lastName || '')?.charAt(0)?.toUpperCase()}
                           </Avatar>
                           <Box>
                             <Typography variant="body2" fontWeight={600}>
@@ -386,11 +359,16 @@ const HRDashboard = () => {
               </Table>
             </TableContainer>
           </Paper>
-        </Grid>
 
-        {/* Leave Requests Overview */}
-        <Grid item xs={12}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          {/* Leave Requests Overview */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Leave Management
@@ -401,8 +379,16 @@ const HRDashboard = () => {
             </Box>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
-                  <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1, width: 48, height: 48 }}>
+                <Card sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <Pending />
                   </Avatar>
                   <Typography variant="h4" fontWeight={700} color="warning.main">
@@ -414,8 +400,16 @@ const HRDashboard = () => {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
-                  <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1, width: 48, height: 48 }}>
+                <Card sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <CheckCircle />
                   </Avatar>
                   <Typography variant="h4" fontWeight={700} color="success.main">
@@ -427,8 +421,16 @@ const HRDashboard = () => {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
-                  <Avatar sx={{ bgcolor: 'error.main', mx: 'auto', mb: 1, width: 48, height: 48 }}>
+                <Card sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <Avatar sx={{ bgcolor: 'error.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <Cancel />
                   </Avatar>
                   <Typography variant="h4" fontWeight={700} color="error.main">
@@ -440,8 +442,16 @@ const HRDashboard = () => {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
-                  <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1, width: 48, height: 48 }}>
+                <Card sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                }}>
+                  <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <EventNote />
                   </Avatar>
                   <Typography variant="h4" fontWeight={700} color="info.main">
@@ -454,9 +464,71 @@ const HRDashboard = () => {
               </Grid>
             </Grid>
           </Paper>
-        </Grid>
-      </Grid>
-    </TwoColumnRight>
+        </Box>
+
+        {/* Right sidebar column */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: 360 },
+          flexShrink: 0,
+          mt: { xs: 3, lg: 0 }
+        }}>
+          {/* My Upcoming Events */}
+          <Box sx={{ mb: 3 }}>
+            <MyUpcomingEvents title="My Upcoming Events" days={14} />
+          </Box>
+
+          {/* Employee Distribution */}
+          <Paper elevation={0} sx={{ 
+            p: 3, 
+            height: 'fit-content',
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            position: { lg: 'sticky' },
+            top: { lg: 24 }
+          }}>
+            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+              Employee Distribution
+            </Typography>
+            <Box>
+              {stats?.roles && Object.entries(stats.roles).length > 0 ? (
+                Object.entries(stats.roles).map(([role, count]) => (
+                  <Box key={role} mb={3}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                      <Typography variant="body2" sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
+                        {role}
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600} color="primary.main">
+                        {count}
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      variant="determinate"
+                      value={(count / (stats?.employees?.total || 1)) * 100}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        bgcolor: 'grey.200',
+                        '& .MuiLinearProgress-bar': {
+                          bgcolor: getRoleColor(role),
+                          borderRadius: 4,
+                        },
+                      }}
+                    />
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  No role distribution data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

@@ -304,11 +304,15 @@ const ActivityLogs = () => {
                             <Avatar
                               sx={{
                                 bgcolor: `${getActivityColor(activity.type)}.main`,
+                                color: '#fff',
                                 width: 40,
                                 height: 40,
+                                fontWeight: 700,
                               }}
                             >
-                              {getActivityIcon(activity.type)}
+                              {activity.type === 'user_joined'
+                                ? (activity.user || '').trim().split(/\s+/).slice(0,2).map(s=>s.charAt(0).toUpperCase()).join('') || '?' 
+                                : getActivityIcon(activity.type)}
                             </Avatar>
                             <Typography variant="body2" fontWeight="medium">
                               {activity.title}

@@ -10,7 +10,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #fafafa !important;
+  background-color: transparent;
   color: #212121 !important;
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif !important;
   -webkit-font-smoothing: antialiased;
@@ -19,7 +19,7 @@ body {
 
 #root {
   min-height: 100vh;
-  background-color: #fafafa;
+  background-color: transparent;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -27,13 +27,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 
-/* Ensure Material-UI components render properly */
-.MuiCard-root {
-  background-color: #ffffff !important;
-  box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.08) !important;
-  border-radius: 16px !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-}
+/* MUI components are themed; avoid overriding with !important here */
 
 /* Fix main content alignment with sidebar */
 main.MuiBox-root {
@@ -49,11 +43,7 @@ main.MuiBox-root > div:first-child {
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-.MuiAppBar-root {
-  background-color: #ffffff !important;
-  color: #212121 !important;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1) !important;
-}
+/* AppBar styles handled via MUI theme */
 
 /* Animation keyframes */
 @keyframes fadeIn {

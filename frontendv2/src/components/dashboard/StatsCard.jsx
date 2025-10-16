@@ -27,20 +27,21 @@ const StatsCard = ({
     <Card 
       sx={{ 
         height: '100%',
+        minHeight: 160,
         transition: 'all 0.3s ease-in-out',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: 4,
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18)',
         }
       }}
     >
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography color="text.secondary" gutterBottom variant="body2">
+            <Typography color="text.secondary" gutterBottom sx={{ fontSize: 14, fontWeight: 600 }}>
               {title}
             </Typography>
-            <Typography variant="h4" component="div" fontWeight="bold">
+            <Typography component="div" fontWeight="bold" sx={{ fontSize: { xs: 28, md: 32 }, lineHeight: 1.2 }}>
               {value}
             </Typography>
             {subtitle && (
@@ -56,7 +57,7 @@ const StatsCard = ({
                   sx={{ color: getChangeColor() }}
                 >
                   {getChangeIcon()}
-                  <Typography variant="body2" sx={{ ml: 0.5 }}>
+                  <Typography sx={{ ml: 0.5, fontSize: 13 }}>
                     {change}
                   </Typography>
                 </Box>

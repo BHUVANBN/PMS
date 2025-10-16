@@ -41,6 +41,8 @@ import {
 } from '@mui/icons-material';
 import { hrAPI } from '../../services/api';
 import StatsCard from '../../components/dashboard/StatsCard';
+import TwoColumnRight from '../../components/layout/TwoColumnRight';
+import GlassStatsCard from '../../components/glass/GlassStatsCard';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 
 const HRDashboard = () => {
@@ -137,8 +139,54 @@ const HRDashboard = () => {
     return colors[role] || theme.palette.grey[500];
   };
 
+  const rightRail = (
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <GlassStatsCard title="Active Employees" value={stats?.employees?.active || 0} />
+      <GlassStatsCard title="Pending Leaves" value={stats?.leaves?.pending || 0} iconColor="warning.main" />
+      <GlassStatsCard title="Departments" value={stats?.overview?.departmentCount || 0} iconColor="info.main" />
+      <Box>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          Employee Distribution
+        </Typography>
+        <Box>
+          {stats?.roles && Object.entries(stats.roles).length > 0 ? (
+            Object.entries(stats.roles).map(([role, count]) => (
+              <Box key={role} mb={2}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                  <Typography variant="body2" sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
+                    {role}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="primary.main">
+                    {count}
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={(count / (stats?.employees?.total || 1)) * 100}
+                  sx={{
+                    height: 6,
+                    borderRadius: 3,
+                    bgcolor: 'grey.200',
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: getRoleColor(role),
+                      borderRadius: 3,
+                    },
+                  }}
+                />
+              </Box>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              No role distribution data available
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+
   return (
-    <Box sx={{ p: 3 }}>
+    <TwoColumnRight right={rightRail}>
       {/* Header */}
       <Grid container spacing={2} alignItems="center" mb={4}>
         <Grid item xs={12} md={8}>
@@ -340,48 +388,6 @@ const HRDashboard = () => {
           </Paper>
         </Grid>
 
-        {/* Role Distribution */}
-        <Grid item xs={12} lg={4}>
-          <Paper elevation={2} sx={{ p: 3, height: 'fit-content' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Employee Distribution
-            </Typography>
-            <Box>
-              {stats?.roles && Object.entries(stats.roles).length > 0 ? (
-                Object.entries(stats.roles).map(([role, count]) => (
-                  <Box key={role} mb={3}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography variant="body2" sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
-                        {role}
-                      </Typography>
-                      <Typography variant="body2" fontWeight={600} color="primary.main">
-                        {count}
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(count / (stats?.employees?.total || 1)) * 100}
-                      sx={{
-                        height: 8,
-                        borderRadius: 4,
-                        bgcolor: 'grey.200',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: getRoleColor(role),
-                          borderRadius: 4,
-                        },
-                      }}
-                    />
-                  </Box>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary" textAlign="center">
-                  No role distribution data available
-                </Typography>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-
         {/* Leave Requests Overview */}
         <Grid item xs={12}>
           <Paper elevation={2} sx={{ p: 3 }}>
@@ -450,7 +456,7 @@ const HRDashboard = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Box>
+    </TwoColumnRight>
   );
 };
 

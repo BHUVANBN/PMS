@@ -6,11 +6,13 @@ import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { calendarAPI } from '../services/api';
+import useViewportSize from '../utils/useViewportSize';
 
 const MainLayout = () => {
   const theme = useTheme();
+  const { metrics } = useViewportSize();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const drawerWidth = 240;
+  const drawerWidth = metrics.left;
   const { user } = useAuth();
 
   const handleDrawerToggle = () => {
@@ -72,7 +74,7 @@ const MainLayout = () => {
           flexGrow: 1,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: theme.palette.background.default,
+          backgroundColor: 'transparent',
           minHeight: '100vh',
           position: 'relative',
           margin: 0,

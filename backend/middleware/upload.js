@@ -24,6 +24,9 @@ const hrOnboardingUpload = baseUpload.fields([
   { name: 'employmentAgreement', maxCount: 1 }
 ]);
 
+// Generic HR document upload (any file type)
+const hrGenericUpload = baseUpload.single('file');
+
 const publicOnboardingUpload = baseUpload.fields([
   { name: 'aadhar', maxCount: 1 },
   { name: 'photo', maxCount: 1 },
@@ -37,5 +40,6 @@ export {
   baseUpload,
   employeeOnboardingUpload,
   hrOnboardingUpload,
+  hrGenericUpload,
   publicOnboardingUpload
 };

@@ -5,6 +5,8 @@ import {
   Card,
   Box,
   Button,
+  Switch,
+  FormControlLabel,
   List,
   ListItem,
   ListItemText,
@@ -30,6 +32,7 @@ import Badge from "../components/ui/Badge";
 import { calendarAPI, subscribeToEvents } from "../services/api";
 import { toast } from "react-hot-toast";
 import CalendarEventModal from "../components/calendar/CalendarEventModal";
+import CalendarEventViewDialog from "../components/calendar/CalendarEventViewDialog";
 import { useAuth } from "../contexts/AuthContext";
 
 const CalendarPage = () => {
@@ -42,6 +45,10 @@ const CalendarPage = () => {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewEvent, setViewEvent] = useState(null);
+
+  const [showPersonalOnly, setShowPersonalOnly] = useState(false);
 
   // Utility functions for color/icon mapping
   const getEventTypeColor = (type) => {
@@ -76,14 +83,36 @@ const CalendarPage = () => {
     setModalOpen(true);
   };
 
-  const handleEditEvent = (event) => {
-    setEditingEvent(event);
-    setModalOpen(true);
+  const handleViewEvent = async (event) => {
+    try {
+      // Load full event (with createdBy/attendees) so we can decide edit rights
+      const eventId = event._id || event.id;
+      let full = null;
+      try {
+        const res = await calendarAPI.getEventById(eventId);
+        full = res?.event || null;
+      } catch (e) { console.debug('load full event failed', e); }
+      setViewEvent(full || event);
+    } finally {
+      setViewOpen(true);
+    }
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
     setEditingEvent(null);
+  };
+
+  const handleViewClose = () => {
+    setViewOpen(false);
+    setViewEvent(null);
+  };
+
+  const handleEditFromView = () => {
+    if (!viewEvent) return;
+    setEditingEvent(viewEvent);
+    setModalOpen(true);
+    setViewOpen(false);
   };
 
   const handleEventSubmitted = () => {
@@ -110,6 +139,7 @@ const CalendarPage = () => {
         location: event.location || "Virtual",
         meetLink: event.meetLink,
         description: event.description,
+        isPersonal: !!event.isPersonal,
       }));
 
       setEvents(mappedEvents);
@@ -148,9 +178,9 @@ const CalendarPage = () => {
 
   // Update daily and upcoming events dynamically
   useEffect(() => {
-    const dayEvents = events.filter((event) =>
-      dayjs(event.date).isSame(selectedDate, "day")
-    );
+    const dayEvents = events
+      .filter((event) => dayjs(event.date).isSame(selectedDate, "day"))
+      .filter((e) => (showPersonalOnly ? e.isPersonal : true));
     setTodayEvents(dayEvents);
 
     const upcoming = events
@@ -159,10 +189,11 @@ const CalendarPage = () => {
           dayjs(event.date).isAfter(dayjs(), "day") &&
           dayjs(event.date).isBefore(dayjs().add(7, "day"))
       )
+      .filter((e) => (showPersonalOnly ? e.isPersonal : true))
       .sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
 
     setUpcomingEvents(upcoming);
-  }, [selectedDate, events]);
+  }, [selectedDate, events, showPersonalOnly]);
 
   // Show notification for next meeting
   useEffect(() => {
@@ -191,7 +222,11 @@ const CalendarPage = () => {
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Calendar
           </Typography>
-          {(user?.role === 'admin' || user?.role === 'hr') && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormControlLabel
+              control={<Switch checked={showPersonalOnly} onChange={(e) => setShowPersonalOnly(e.target.checked)} />}
+              label="Show personal only"
+            />
             <Button
               variant="contained"
               color="primary"
@@ -200,7 +235,7 @@ const CalendarPage = () => {
             >
               Add Event
             </Button>
-          )}
+          </Box>
 
         </Box>
 
@@ -235,7 +270,7 @@ const CalendarPage = () => {
                 <CircularProgress size={24} />
               ) : todayEvents.length > 0 ? (
                 todayEvents.map((event) => (
-                  <Card key={event.id} sx={{ mb: 2, p: 2, cursor: 'pointer' }} onClick={() => handleEditEvent(event)}>
+                  <Card key={event.id} sx={{ mb: 2, p: 2, cursor: 'pointer' }} onClick={() => handleViewEvent(event)}>
                     <Box
                       sx={{
                         display: "flex",
@@ -264,9 +299,14 @@ const CalendarPage = () => {
                           </Typography>
                         </Box>
                       </Box>
-                      <Badge variant={getEventTypeColor(event.type)}>
-                        {event.type}
-                      </Badge>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        {event.isPersonal && (
+                          <Badge variant="secondary">Personal</Badge>
+                        )}
+                        <Badge variant={getEventTypeColor(event.type)}>
+                          {event.type}
+                        </Badge>
+                      </Box>
                     </Box>
 
                     <Typography variant="body2" color="text.secondary">
@@ -318,9 +358,14 @@ const CalendarPage = () => {
                         secondary={`${dayjs(event.date).format("MMM D")} at ${event.time
                           } • ${event.location}`}
                       />
-                      <Badge variant={getEventTypeColor(event.type)}>
-                        {event.type}
-                      </Badge>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        {event.isPersonal && (
+                          <Badge variant="secondary">Personal</Badge>
+                        )}
+                        <Badge variant={getEventTypeColor(event.type)}>
+                          {event.type}
+                        </Badge>
+                      </Box>
                     </ListItem>
                   ))}
                 </List>
@@ -357,6 +402,16 @@ const CalendarPage = () => {
         onClose={handleModalClose}
         event={editingEvent}
         onSubmitted={handleEventSubmitted}
+        currentUserRole={user?.role}
+      />
+
+      {/* Read-only Event View Dialog */}
+      <CalendarEventViewDialog
+        open={viewOpen}
+        onClose={handleViewClose}
+        event={viewEvent}
+        canEdit={(!!viewEvent && (viewEvent.createdBy?._id === user?._id))}
+        onEdit={handleEditFromView}
       />
     </LocalizationProvider>
   );

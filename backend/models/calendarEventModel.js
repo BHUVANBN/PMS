@@ -71,6 +71,11 @@ const calendarEventSchema = new mongoose.Schema({
     default: 15
   },
 
+  isPersonal: {
+    type: Boolean,
+    default: false
+  },
+
   createdAt: {
     type: Date,
     default: Date.now

@@ -27,6 +27,7 @@ import {
   Help as HelpIcon,
   VideoCall as VideoCallIcon,
   CalendarMonth as CalendarMonthIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -131,6 +132,18 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       roles: ['admin', 'hr', 'manager', 'developer', 'tester'],
     },
     {
+      text: 'Documents',
+      icon: <DescriptionIcon />,
+      path: role === 'manager' ? '/manager/documents' : (role === 'hr' || role === 'admin' ? '/hr/documents' : '/documents'),
+      roles: ['admin', 'hr', 'manager'],
+    },
+    {
+      text: 'My Documents',
+      icon: <DescriptionIcon />,
+      path: '/documents',
+      roles: ['developer', 'tester', 'sales', 'marketing', 'intern'],
+    },
+    {
       text: 'Analytics',
       icon: <BarChartIcon />,
       path: '/analytics',
@@ -161,6 +174,21 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     if (isMobile) onClose();
   };
 
+  const fetchEvents = async () => {
+    try {
+      const res = await calendarAPI.getAllEvents();
+      const events = res?.events || res?.data || res || [];
+      const now = new Date();
+      const upcomingEvents = events.filter((e) => {
+        const endDate = new Date(e.endTime || e.end || e.eventDate);
+        return !isNaN(endDate) && endDate > now;
+      });
+      setEventCount(upcomingEvents.length);
+    } catch (err) {
+      console.error('Failed to fetch calendar events:', err);
+    }
+  };
+
   // Fetch meeting count
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -181,22 +209,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
 
   // Fetch calendar events count
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await calendarAPI.getAllEvents();
-        console.log('Fetching calendar events...');
-        console.log('API Response:', res);
-        const events = res?.events || res?.data || res || [];
-        const now = new Date();
-        const upcomingEvents = events.filter((e) => {
-          const endDate = new Date(e.endTime || e.end || e.eventDate);
-          return !isNaN(endDate) && endDate > now;
-        });
-        setEventCount(upcomingEvents.length);
-      } catch (err) {
-        console.error('Failed to fetch calendar events:', err);
-      }
-    };
     if (user?._id) fetchEvents();
     const intervalId = setInterval(fetchEvents, 60000);
     return () => clearInterval(intervalId);

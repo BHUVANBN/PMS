@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import MainLayout from './layouts/MainLayout';
+import { Toaster } from 'react-hot-toast';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -60,6 +61,12 @@ import StandupLogout from './pages/StandupLogout.jsx';
 import AllStandups from './pages/standup/AllStandups.jsx';
 import PublicOnboardingList from './pages/hr/PublicOnboardingList.jsx';
 import OnboardingSuccess from './pages/OnboardingSuccess.jsx';
+import OnboardingPage from './pages/employee/OnboardingPage.jsx';
+import HRDocuments from './pages/hr/HRDocuments.jsx';
+import MyDocuments from './pages/MyDocuments.jsx';
+import UserDocuments from './pages/UserDocuments.jsx';
+import ManagerDocuments from './pages/manager/ManagerDocuments.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
 
 // Shared pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -71,6 +78,7 @@ function App() {
         <CssBaseline />
         <Router>
           <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
+            <Toaster position="top-right" gutter={8} />
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -112,6 +120,8 @@ function App() {
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
               <Route path="hr/standups" element={<ProtectedRoute requiredRoles={["hr","admin"]}><AllStandups /></ProtectedRoute>} />
               <Route path="hr/onboarding-public" element={<ProtectedRoute requiredRoles={["hr","admin"]}><PublicOnboardingList /></ProtectedRoute>} />
+              <Route path="hr/documents" element={<ProtectedRoute requiredRoles={["hr","admin","manager"]}><HRDocuments /></ProtectedRoute>} />
+              <Route path="manager/documents" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDocuments /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
               <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Projects /></ProtectedRoute>} />
@@ -147,6 +157,18 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="meetings" element={<Meeting/>}/>
+              <Route path="documents" element={<ProtectedRoute><MyDocuments /></ProtectedRoute>} />
+              <Route path="notifications" element={<NotificationsPage />} />
+
+              {/* Role-based user documents viewing (Admin/HR/Manager only) */}
+              <Route path="admin/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="hr/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="manager/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="developer/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="tester/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="sales/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="marketing/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
+              <Route path="intern/:id/documents" element={<ProtectedRoute requiredRoles={['admin','hr','manager']}><UserDocuments /></ProtectedRoute>} />
             </Route>
             
             {/* 404 page */}

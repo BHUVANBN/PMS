@@ -50,6 +50,17 @@ const onboardingSchema = new mongoose.Schema({
     nda: { type: documentSchema, default: null },
     employmentAgreement: { type: documentSchema, default: null },
   },
+  // Generic HR documents (unrestricted types) with metadata
+  hrDocumentsList: {
+    type: [
+      new mongoose.Schema({
+        name: { type: String, required: true },
+        description: { type: String, default: '' },
+        file: { type: documentSchema, required: true },
+      }, { _id: true })
+    ],
+    default: [],
+  },
   hrAcknowledgements: {
     codeOfConduct: {
       acknowledged: { type: Boolean, default: false },
@@ -88,6 +99,8 @@ const onboardingSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  // When true, this onboarding has been archived to EmployeeDocuments and should be hidden from onboarding lists
+  archived: { type: Boolean, default: false },
 }, { timestamps: true });
 
 onboardingSchema.methods.appendHistory = function appendHistory({ status, userId, remark }) {

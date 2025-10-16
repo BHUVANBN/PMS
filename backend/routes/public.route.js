@@ -1,5 +1,5 @@
 import express from 'express';
-import { submitPublicOnboarding, listPublicOnboarding, approvePublicOnboarding } from '../controllers/publicOnboarding.controller.js';
+import { submitPublicOnboarding, listPublicOnboarding, approvePublicOnboarding, deletePublicOnboarding } from '../controllers/publicOnboarding.controller.js';
 import { publicOnboardingUpload } from '../middleware/upload.js';
 import { verifyToken, allowHRAndAbove } from '../middleware/verifyToken.js';
 
@@ -11,5 +11,6 @@ router.post('/onboarding', publicOnboardingUpload, submitPublicOnboarding);
 // HR/Admin protected endpoints for managing public onboarding submissions
 router.get('/onboarding', verifyToken, allowHRAndAbove, listPublicOnboarding);
 router.post('/onboarding/:id/approve', verifyToken, allowHRAndAbove, approvePublicOnboarding);
+router.delete('/onboarding/:id', verifyToken, allowHRAndAbove, deletePublicOnboarding);
 
 export default router;

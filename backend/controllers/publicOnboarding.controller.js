@@ -107,3 +107,21 @@ export const approvePublicOnboarding = async (req, res, next) => {
     next(err);
   }
 };
+
+// HR: Delete a public onboarding submission
+export const deletePublicOnboarding = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const record = await PublicOnboarding.findById(id);
+    if (!record) {
+      const err = new Error('Public onboarding record not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    await PublicOnboarding.findByIdAndDelete(id);
+    return res.status(200).json({ message: 'Public onboarding deleted' });
+  } catch (err) {
+    next(err);
+  }
+};

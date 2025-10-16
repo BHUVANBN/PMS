@@ -489,6 +489,44 @@ const OnboardingManager = () => {
                 <Typography variant="h6">HR Documents</Typography>
                 {renderDocumentSection(details.hrDocuments, HR_DOCS, hrDocActions)}
 
+                <Divider />
+
+                <Typography variant="h6">HR Documents (Other)</Typography>
+                <Stack spacing={2}>
+                  {(details.hrDocumentsList || []).length === 0 && (
+                    <Typography variant="body2" color="text.secondary">No additional HR documents uploaded.</Typography>
+                  )}
+                  {(details.hrDocumentsList || []).map((doc) => (
+                    <Paper key={doc._id} variant="outlined" sx={{ p: 2 }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" justifyContent="space-between">
+                        <Stack spacing={0.5}>
+                          <Typography fontWeight={600}>{doc.name || 'Untitled'}</Typography>
+                          {doc.description && (
+                            <Typography variant="body2" color="text.secondary">{doc.description}</Typography>
+                          )}
+                          <Typography variant="caption" color="text.secondary">
+                            {doc.file?.uploadedAt ? new Date(doc.file.uploadedAt).toLocaleString() : ''}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          {doc.file?.url && (
+                            <Button href={doc.file.url} target="_blank" rel="noopener noreferrer" size="small">View</Button>
+                          )}
+                          <Button size="small" color="error" onClick={async () => {
+                            try {
+                              await hrAPI.deleteHRGenericDocument(details.user?._id, doc._id);
+                              // reload details
+                              await reloadDetails(details.user?._id);
+                            } catch (e) {
+                              alert(e.message || 'Failed to delete document');
+                            }
+                          }}>Delete</Button>
+                        </Stack>
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+
                 <Stack direction="row" spacing={2}>
                   <Button
                     variant="contained"

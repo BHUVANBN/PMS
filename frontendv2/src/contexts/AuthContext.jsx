@@ -101,10 +101,11 @@ export const AuthProvider = ({ children }) => {
           // Verify token with backend
           const response = await authAPI.verifyToken();
           
+          const normalizedUser = response.user ? { ...response.user, role: (response.user.role || '').toLowerCase() } : null;
           dispatch({
             type: AUTH_ACTIONS.LOGIN_SUCCESS,
             payload: {
-              user: response.user,
+              user: normalizedUser,
               token,
             },
           });
@@ -137,9 +138,10 @@ const login = async (credentials) => {
 
     // Store token and role locally
     apiUtils.setAuthToken(response.token);
-    if (response.role) localStorage.setItem('role', response.role);
+    if (response.role) localStorage.setItem('role', String(response.role).toLowerCase());
 
-    const userObj = response.user || (response.role ? { role: response.role } : null);
+    const role = (response.user?.role || response.role || '').toLowerCase();
+    const userObj = response.user ? { ...response.user, role: role } : (role ? { role } : null);
 
     dispatch({
       type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -176,9 +178,10 @@ const login = async (credentials) => {
 
       // Store token and role locally
       apiUtils.setAuthToken(response.token);
-      if (response.role) localStorage.setItem('role', response.role);
+      if (response.role) localStorage.setItem('role', String(response.role).toLowerCase());
 
-      const userObj = response.user || (response.role ? { role: response.role } : null);
+      const role = (response.user?.role || response.role || '').toLowerCase();
+      const userObj = response.user ? { ...response.user, role: role } : (role ? { role } : null);
 
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -228,12 +231,15 @@ const login = async (credentials) => {
 
   // Check if user has specific role
   const hasRole = (role) => {
-    return state.user?.role === role;
+    const a = (state.user?.role || '').toString().trim().toLowerCase();
+    const b = (role || '').toString().trim().toLowerCase();
+    return a === b;
   };
 
   // Check if user has any of the specified roles
   const hasAnyRole = (roles) => {
-    return roles.includes(state.user?.role);
+    const current = (state.user?.role || '').toString().trim().toLowerCase();
+    return (roles || []).some(r => (r || '').toString().trim().toLowerCase() === current);
   };
 
   // Check if user has permission for specific action

@@ -86,8 +86,9 @@ const LoginPage = () => {
         toast.success(`Welcome back, ${user.fullName}!`);
       }
 
-      // Redirect to the dashboard based on role
-      const redirectTo = dashboardRoutes[user.role] || '/';
+      // Redirect to the dashboard based on normalized role
+      const normalizedRole = (user?.role || '').toString().trim().toLowerCase();
+      const redirectTo = dashboardRoutes[normalizedRole] || '/';
       navigate(redirectTo, { replace: true });
     } else {
       // Show error toast

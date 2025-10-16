@@ -31,7 +31,7 @@ export const createCalendarEvent = async (req, res) => {
       });
     }
 
-    // Check if user is HR
+    // Check if user is HR (org-wide events only)
     const user = await User.findById(createdBy);
     if (!user || user.role !== USER_ROLES.HR) {
       return res.status(403).json({
@@ -90,7 +90,8 @@ export const createCalendarEvent = async (req, res) => {
       eventType: eventType || 'meeting',
       isAllDay: isAllDay || false,
       reminder: reminder !== undefined ? reminder : true,
-      reminderTime: reminderTime || 15
+      reminderTime: reminderTime || 15,
+      isPersonal: false
     });
 
     // Populate the event for response
@@ -126,6 +127,77 @@ export const createCalendarEvent = async (req, res) => {
   }
 };
 
+// ✅ Create a personal calendar event (all roles)
+export const createPersonalEvent = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      eventDate,
+      startTime,
+      endTime,
+      meetLink,
+      location,
+      eventType,
+      isAllDay,
+      reminder,
+      reminderTime
+    } = req.body;
+
+    const createdBy = req.user._id;
+
+    if (!title || !eventDate || !startTime || !endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: title, eventDate, startTime, and endTime are required'
+      });
+    }
+
+    const eventDateObj = new Date(eventDate);
+    if (isNaN(eventDateObj.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid event date format' });
+    }
+
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      return res.status(400).json({ success: false, message: 'Invalid time format. Use HH:MM format (e.g., 14:30)' });
+    }
+
+    const calendarEvent = await CalendarEvent.create({
+      createdBy,
+      title,
+      description: description || '',
+      eventDate: eventDateObj,
+      startTime,
+      endTime,
+      meetLink: '',
+      location: '',
+      attendees: [], // personal - no attendees
+      eventType: eventType || 'other',
+      isAllDay: isAllDay || false,
+      reminder: reminder !== undefined ? reminder : true,
+      reminderTime: reminderTime || 15,
+      isPersonal: true
+    });
+
+    const populatedEvent = await CalendarEvent.findById(calendarEvent._id)
+      .populate('createdBy', 'firstName lastName email role')
+      .populate('attendees', 'firstName lastName email role');
+
+    res.status(201).json({ success: true, message: 'Personal event created successfully', event: populatedEvent });
+
+    try {
+      eventBus.emit('multicast', {
+        users: [createdBy.toString()],
+        payload: { type: 'calendar.created', data: populatedEvent }
+      });
+    } catch {}
+  } catch (err) {
+    console.error('Error creating personal calendar event:', err);
+    res.status(500).json({ success: false, message: 'Server error while creating personal calendar event', error: err.message });
+  }
+};
+
 // ✅ Get all calendar events (HR can see all, others see their events)
 export const getCalendarEvents = async (req, res) => {
   try {
@@ -135,8 +207,13 @@ export const getCalendarEvents = async (req, res) => {
     let query = {};
 
     if (user.role === USER_ROLES.HR) {
-      // HR can see all events
-      query = {};
+      // HR can see org-wide events and their own personal events, but not others' personal events
+      query = {
+        $or: [
+          { isPersonal: false },
+          { createdBy: userId }
+        ]
+      };
     } else {
       // Others can only see events they're attending or created
       query = {
@@ -195,7 +272,13 @@ export const getEventsByDateRange = async (req, res) => {
       eventDate: { $gte: start, $lte: end }
     };
 
-    if (user.role !== USER_ROLES.HR) {
+    if (user.role === USER_ROLES.HR) {
+      // Exclude others' personal events
+      query.$or = [
+        { isPersonal: false },
+        { createdBy: userId }
+      ];
+    } else {
       // Non-HR users can only see events they're attending or created
       query.$or = [
         { attendees: userId },
@@ -240,15 +323,18 @@ export const getCalendarEventById = async (req, res) => {
       });
     }
 
-    // Check if user has access to this event
-    const isAttendee = event.attendees.some(attendee => attendee._id.toString() === userId);
+    // Personal event privacy: only creator can view
     const isCreator = event.createdBy._id.toString() === userId;
-
-    if (!isAttendee && !isCreator) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied to this event'
-      });
+    if (event.isPersonal) {
+      if (!isCreator) {
+        return res.status(403).json({ success: false, message: 'Access denied to this personal event' });
+      }
+    } else {
+      // Non-personal: attendees or creator can view
+      const isAttendee = event.attendees.some(attendee => attendee._id.toString() === userId);
+      if (!isAttendee && !isCreator) {
+        return res.status(403).json({ success: false, message: 'Access denied to this event' });
+      }
     }
 
     res.json({
@@ -309,18 +395,15 @@ export const updateCalendarEvent = async (req, res) => {
       }
     }
 
-    // Validate attendees if provided
-    if (updates.attendeeIds) {
+    // Validate attendees if provided (non-personal only)
+    if (!event.isPersonal && updates.attendeeIds) {
       const validAttendees = await User.find({
         _id: { $in: updates.attendeeIds },
         isActive: true
       }).select('_id');
 
       if (validAttendees.length !== updates.attendeeIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: 'One or more attendee IDs are invalid or inactive'
-        });
+        return res.status(400).json({ success: false, message: 'One or more attendee IDs are invalid or inactive' });
       }
 
       event.attendees = updates.attendeeIds;
@@ -334,9 +417,21 @@ export const updateCalendarEvent = async (req, res) => {
 
     Object.keys(updates).forEach(key => {
       if (allowedUpdates.includes(key) && key !== 'attendeeIds') {
+        // For personal events, ignore meetLink/location updates
+        if (event.isPersonal && (key === 'meetLink' || key === 'location')) {
+          return;
+        }
+        if (key === 'eventType' && event.isPersonal && updates[key] === 'meeting') {
+          // no-op safe guard
+        }
         event[key] = updates[key];
       }
     });
+
+    // Prevent flipping personal flag
+    if (typeof updates.isPersonal !== 'undefined' && updates.isPersonal !== event.isPersonal) {
+      // ignore silently
+    }
 
     await event.save();
 

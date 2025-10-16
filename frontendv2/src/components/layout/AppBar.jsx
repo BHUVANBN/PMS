@@ -11,18 +11,23 @@ import {
   MenuItem, 
   ListItemIcon, 
   ListItemText,
-  useTheme
+  useTheme,
+  Badge,
+  Tooltip
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
   Logout, 
   Person, 
   Settings, 
-  Dashboard as DashboardIcon 
+  Dashboard as DashboardIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
+import { calendarAPI, meetingAPI, subscribeToEvents } from '../../services/api';
+import dayjs from 'dayjs';
 
 const AppBar = ({ onMenuClick }) => {
   const theme = useTheme();
@@ -31,6 +36,9 @@ const AppBar = ({ onMenuClick }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  // sound is always enabled via vibration cue for new notifications
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -39,6 +47,17 @@ const AppBar = ({ onMenuClick }) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const handleNotificationMenuOpen = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchorEl(null);
+    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+  };
+
+  // removed toast/sound preference toggles as per request
 
   const handleLogout = async () => {
     const role = user?.role?.toLowerCase?.();
@@ -73,6 +92,149 @@ const AppBar = ({ onMenuClick }) => {
     handleClose();
   };
 
+  React.useEffect(() => {
+    if (!user?._id) return;
+    const debug = (() => { try { return localStorage.getItem('notif_debug') === '1'; } catch { return false; } })();
+    const storageKey = `seen_event_reminders_${user._id}`;
+    const getSeen = () => {
+      try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+    };
+    const setSeen = (ids) => {
+      try { localStorage.setItem(storageKey, JSON.stringify(ids.slice(-500))); } catch (e) { console.debug('setSeen failed', e); }
+    };
+
+    const parseDateTime = (event) => {
+      // handle eventDate (date-only) + startTime (HH:mm) or ISO strings
+      const datePart = event.eventDate ? dayjs(event.eventDate) : (event.startTime ? dayjs(event.startTime) : dayjs());
+      let hh = 0, mm = 0;
+      if (event.startTime && typeof event.startTime === 'string' && event.startTime.includes(':')) {
+        const parts = event.startTime.split(':');
+        hh = parseInt(parts[0], 10) || 0; mm = parseInt(parts[1], 10) || 0;
+      } else if (dayjs(event.startTime).isValid()) {
+        hh = dayjs(event.startTime).hour(); mm = dayjs(event.startTime).minute();
+      }
+      return datePart.hour(hh).minute(mm).second(0).millisecond(0);
+    };
+
+    let timer;
+    let unsubscribe;
+    let retryTimer;
+    let retryDelay = 2000; // 2s -> 30s backoff
+
+    const processEvents = async () => {
+      try {
+        const res = await calendarAPI.getAllEvents();
+        const events = Array.isArray(res?.events) ? res.events : [];
+        const seen = new Set(getSeen());
+        const now = dayjs();
+        if (debug) console.debug('[notif] fetched calendar events:', events.length);
+        const mine = events.filter(ev => {
+          const isAttendee = (ev.attendees || []).some(a => (a?._id || a) === user._id);
+          const isCreator = (ev.createdBy?._id || ev.createdBy) === user._id;
+          return isAttendee || isCreator;
+        });
+        if (debug) console.debug('[notif] relevant calendar events for user:', mine.length);
+        const due = [];
+        for (const ev of mine) {
+          if (ev.reminder === false) continue;
+          const remindMins = Number(ev.reminderTime || 15);
+          const start = parseDateTime(ev);
+          const remindAt = start.subtract(remindMins, 'minute');
+          if (now.isAfter(remindAt) && now.isBefore(start.add(1, 'hour'))) {
+            const key = `rem_${ev._id}_${remindMins}`;
+            if (!seen.has(key)) {
+              due.push({
+                id: key,
+                title: 'Reminder',
+                message: `${ev.title || 'Event'} in ${Math.max(0, Math.round(start.diff(now, 'minute', true)))} min`,
+                time: now.format('HH:mm'),
+                read: false,
+              });
+              seen.add(key);
+            }
+          }
+        }
+        // Meetings support: default 10-minute reminder
+        try {
+          const mres = await meetingAPI.getUserMeetings();
+          const meetings = Array.isArray(mres?.meetings) ? mres.meetings : (Array.isArray(mres?.data) ? mres.data : []);
+          if (debug) console.debug('[notif] fetched user meetings:', meetings.length);
+          for (const mt of meetings) {
+            const start = dayjs(mt.startTime);
+            const remindMins = 10;
+            const remindAt = start.subtract(remindMins, 'minute');
+            if (now.isAfter(remindAt) && now.isBefore(start.add(1, 'hour'))) {
+              const key = `meet_${mt._id}_${remindMins}`;
+              if (!seen.has(key)) {
+                due.push({
+                  id: key,
+                  title: 'Meeting reminder',
+                  message: `${mt.title || 'Meeting'} in ${Math.max(0, Math.round(start.diff(now, 'minute', true)))} min`,
+                  time: now.format('HH:mm'),
+                  read: false,
+                });
+                seen.add(key);
+              }
+            }
+          }
+        } catch (err) { console.debug('meetings fetch failed', err); }
+        if (debug) console.debug('[notif] due notifications to enqueue:', due.length);
+        if (due.length) {
+          setNotifications(prev => [...due, ...prev].slice(0, 50));
+          setSeen(Array.from(seen));
+          // Persist to history per-user
+          try {
+            const hKey = `notifications_history_${user._id}`;
+            const existing = JSON.parse(localStorage.getItem(hKey) || '[]');
+            const updated = [...due, ...existing].slice(0, 200);
+            localStorage.setItem(hKey, JSON.stringify(updated));
+          } catch (e) { console.debug('history persist failed', e); }
+          // Sound/vibration cue only (no toasts)
+          try { if (navigator?.vibrate) navigator.vibrate(120); } catch (err) { console.debug('vibrate failed', err); }
+        }
+      } catch (e) { console.debug('processEvents failed', e); }
+    };
+
+    const ensurePermission = () => {
+      try {
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      } catch (e) { console.debug('Notification permission request failed', e); }
+    };
+
+    ensurePermission();
+    processEvents();
+    timer = setInterval(processEvents, 10000);
+
+    const connect = () => {
+      try {
+        unsubscribe = subscribeToEvents(
+          { userId: user._id },
+          () => { retryDelay = 2000; processEvents(); },
+          () => {
+            try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { console.debug('unsubscribe noop', err); }
+            if (retryTimer) clearTimeout(retryTimer);
+            retryTimer = setTimeout(connect, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+          }
+        );
+      } catch (e) {
+        console.debug('subscribeToEvents failed', e);
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    };
+    connect();
+
+    return () => {
+      if (timer) clearInterval(timer);
+      if (retryTimer) clearTimeout(retryTimer);
+      try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (e) { console.debug('unsubscribe failed', e); }
+    };
+  }, [user?._id]);
+
   return (
     <MuiAppBar 
       position="fixed"
@@ -100,6 +262,15 @@ const AppBar = ({ onMenuClick }) => {
         
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title="Notifications">
+              <IconButton color="inherit" onClick={handleNotificationMenuOpen} sx={{ mr: 1 }}>
+                {(() => { const c = notifications.filter(n => !n.read).length; const d = c > 9 ? '9+' : c; return (
+                <Badge badgeContent={d} color="error">
+                  <NotificationsIcon />
+                </Badge>
+                ); })()}
+              </IconButton>
+            </Tooltip>
             <Typography variant="subtitle2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
               {user.firstName} {user.lastName}
             </Typography>
@@ -198,6 +369,46 @@ const AppBar = ({ onMenuClick }) => {
             <Logout fontSize="small" />
           </ListItemIcon>
           <ListItemText>Logout</ListItemText>
+        </MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={notificationAnchorEl}
+        open={Boolean(notificationAnchorEl)}
+        onClose={handleNotificationMenuClose}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            overflow: 'auto',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))',
+            mt: 1.5,
+            minWidth: 320,
+            maxHeight: 400,
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {`Notifications (${notifications.filter(n => !n.read).length})`}
+          </Typography>
+        </Box>
+        {notifications.length === 0 ? (
+          <MenuItem disabled>
+            <ListItemText>No notifications</ListItemText>
+          </MenuItem>
+        ) : (
+          notifications.map(n => (
+            <MenuItem key={n.id} onClick={handleNotificationMenuClose} sx={{ alignItems: 'flex-start', whiteSpace: 'normal' }}>
+              <ListItemText primary={n.title} secondary={`${n.message} • ${n.time}`} />
+            </MenuItem>
+          ))
+        )}
+        <MenuItem onClick={() => { handleNotificationMenuClose(); navigate('/notifications'); }}>
+          <ListItemText sx={{ textAlign: 'center' }}>View all notifications</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleNotificationMenuClose}>
+          <ListItemText sx={{ textAlign: 'center' }}>Close</ListItemText>
         </MenuItem>
       </Menu>
       <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />

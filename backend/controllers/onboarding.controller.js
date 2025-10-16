@@ -4,6 +4,7 @@ import { sendMail } from '../utils/mailer.js';
 import cloudinary from '../utils/cloudinary.js';
 import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
 import { Onboarding, ONBOARDING_STATUS, USER_ROLES } from '../models/index.js';
+import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
 
 const REQUIRED_EMPLOYEE_DOCS = ['aadhar', 'photo', 'tenth', 'twelfth', 'diploma', 'passbook'];
 const HR_DOCUMENT_FIELDS = ['codeOfConduct', 'nda', 'employmentAgreement'];
@@ -11,6 +12,123 @@ const HR_DOCUMENT_FIELDS = ['codeOfConduct', 'nda', 'employmentAgreement'];
 const serializeOnboarding = (doc) => {
   if (!doc) return null;
   return doc.toObject({ virtuals: true });
+};
+
+// Generic HR documents
+export const addHRGenericDocument = async (req, res, next) => {
+  const doUpload = async () => {
+    const { userId } = req.params;
+    const { name, description } = req.body || {};
+    assertObjectId(userId);
+    if (!name || !req.file) {
+      const err = new Error('Name and file are required');
+      err.statusCode = 400;
+      throw err;
+    }
+    const onboarding = await ensureOnboardingRecord(userId);
+    const uploadedDocument = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: `onboarding/${userId}/hr/generic`,
+      public_id: `${Date.now()}-${(name || 'document').toString().slice(0, 40)}`,
+    });
+    const item = {
+      name: name.toString().trim(),
+      description: (description || '').toString(),
+      file: {
+        url: uploadedDocument.secure_url,
+        publicId: uploadedDocument.public_id,
+        uploadedAt: new Date(),
+        uploadedBy: req.user._id,
+      },
+    };
+    onboarding.hrDocumentsList = onboarding.hrDocumentsList || [];
+    onboarding.hrDocumentsList.push(item);
+    await onboarding.save();
+    return { onboarding, item };
+  };
+
+  try {
+    const { onboarding, item } = await doUpload();
+    return res.status(201).json({
+      message: 'Generic HR document uploaded',
+      document: item,
+      onboarding: serializeOnboarding(onboarding),
+    });
+  } catch (error) {
+    // Retry once if duplicate key (E11000) occurs due to race on first create
+    if ((error.code === 11000 || /E11000/.test(error.message || '')) && req?.params?.userId) {
+      // Special case: legacy bad unique index on employeeId causing dup nulls
+      // Attempt to drop it once if present, then retry
+      try {
+        const collection = Onboarding.collection;
+        const indexes = await collection.indexes();
+        const bad = indexes.find((i) => i.name === 'employeeId_1');
+        if (bad) {
+          try { await collection.dropIndex('employeeId_1'); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+      try {
+        await ensureOnboardingRecord(req.params.userId);
+        const { onboarding, item } = await doUpload();
+        return res.status(201).json({
+          message: 'Generic HR document uploaded',
+          document: item,
+          onboarding: serializeOnboarding(onboarding),
+        });
+      } catch (e2) {
+        return next(e2);
+      }
+    }
+    next(error);
+  }
+};
+
+export const getHRGenericDocuments = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    assertObjectId(userId);
+    const onboarding = await ensureOnboardingRecord(userId);
+    return res.status(200).json({
+      message: 'Generic HR documents retrieved',
+      documents: onboarding.hrDocumentsList || [],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Return current user's received HR generic documents
+export const getMyHRGenericDocuments = async (req, res, next) => {
+  try {
+    const onboarding = await ensureOnboardingRecord(req.user._id);
+    return res.status(200).json({
+      message: 'My HR documents retrieved',
+      documents: onboarding.hrDocumentsList || [],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteHRGenericDocument = async (req, res, next) => {
+  try {
+    const { userId, docId } = req.params;
+    assertObjectId(userId);
+
+    const onboarding = await ensureOnboardingRecord(userId);
+    const list = onboarding.hrDocumentsList || [];
+    const index = list.findIndex((d) => String(d._id) === String(docId));
+    if (index === -1) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    const doc = list[index];
+    await removeExistingAsset(doc.file);
+    list.splice(index, 1);
+    onboarding.hrDocumentsList = list;
+    await onboarding.save();
+    return res.status(200).json({ message: 'Document deleted' });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const deleteOnboardingDocument = async (req, res, next) => {
@@ -77,11 +195,12 @@ export const deleteOnboardingDocument = async (req, res, next) => {
 };
 
 const ensureOnboardingRecord = async (userId) => {
-  let onboarding = await Onboarding.findOne({ user: userId });
-  if (!onboarding) {
-    onboarding = new Onboarding({ user: userId });
-    await onboarding.save();
-  }
+  // Atomic upsert to avoid duplicate key race conditions on first creation
+  const onboarding = await Onboarding.findOneAndUpdate(
+    { user: userId },
+    { $setOnInsert: { user: userId } },
+    { new: true, upsert: true }
+  );
   return onboarding;
 };
 
@@ -230,7 +349,7 @@ export const uploadEmployeeDocuments = async (req, res, next) => {
 export const getHROnboardingList = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const filter = {};
+    const filter = { archived: false };
 
     if (status) {
       filter.status = status;
@@ -383,6 +502,82 @@ export const getOnboardingSummary = async (req, res, next) => {
       message: 'Onboarding summary retrieved',
       summary
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Archive helpers and endpoints
+const finalizeToArchiveInternal = async (onboarding) => {
+  if (!onboarding) return;
+  const userId = onboarding.user;
+  await EmployeeDocuments.findOneAndUpdate(
+    { user: userId },
+    {
+      user: userId,
+      employeeDetails: onboarding.employeeDetails || {},
+      employeeDocuments: onboarding.employeeDocuments || {},
+      hrDocuments: onboarding.hrDocuments || {},
+      hrDocumentsList: onboarding.hrDocumentsList || [],
+      finalizedAt: new Date(),
+    },
+    { upsert: true, new: true }
+  );
+  onboarding.archived = true;
+  await onboarding.save();
+};
+
+export const finalizeOnboardingToEmployeeDocs = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    assertObjectId(userId);
+    const onboarding = await ensureOnboardingRecord(userId);
+    if (onboarding.status !== ONBOARDING_STATUS.VERIFIED) {
+      return res.status(400).json({ message: 'Onboarding must be verified before finalizing' });
+    }
+    await finalizeToArchiveInternal(onboarding);
+    return res.status(200).json({ message: 'Onboarding finalized to employee archive' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listArchivedEmployeeDocuments = async (req, res, next) => {
+  try {
+    const list = await EmployeeDocuments.find().populate('user', 'firstName lastName email role isActive');
+    return res.status(200).json({ employees: list });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getArchivedEmployeeDocuments = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    assertObjectId(userId);
+    const doc = await EmployeeDocuments.findOne({ user: userId }).populate('user', 'firstName lastName email role isActive');
+    if (!doc) return res.status(404).json({ message: 'Archive not found' });
+    return res.status(200).json({ employee: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Archive all verified onboarding records that are not yet archived
+export const finalizeAllVerifiedOnboarding = async (req, res, next) => {
+  try {
+    const toArchive = await Onboarding.find({ status: ONBOARDING_STATUS.VERIFIED, archived: false });
+    let archivedCount = 0;
+    for (const ob of toArchive) {
+      try {
+        await finalizeToArchiveInternal(ob);
+        archivedCount += 1;
+      } catch (e) {
+        // continue archiving others
+        console.error('Failed to archive onboarding', String(ob?.user), e?.message || e);
+      }
+    }
+    return res.status(200).json({ message: 'Finalize complete', archivedCount });
   } catch (error) {
     next(error);
   }

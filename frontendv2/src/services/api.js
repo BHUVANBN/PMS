@@ -24,6 +24,10 @@ export const publicAPI = {
     apiRequest(`/public/onboarding/${id}/approve`, {
       method: 'POST',
     }),
+  deletePublicOnboarding: (id) =>
+    apiRequest(`/public/onboarding/${id}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Standup API (per-user daily standup)
@@ -342,6 +346,31 @@ export const hrAPI = {
     apiRequest(`/hr/onboarding/${userId}/documents/${scope}/${docKey}`, {
       method: 'DELETE',
     }),
+
+  // Generic HR documents (flexible)
+  addHRGenericDocument: (userId, { name, description, file }) => {
+    const formData = new FormData();
+    if (name) formData.append('name', name);
+    if (description) formData.append('description', description);
+    if (file) formData.append('file', file);
+    return apiRequest(`/hr/onboarding/${userId}/hr-docs`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  getHRGenericDocuments: (userId) =>
+    apiRequest(`/hr/onboarding/${userId}/hr-docs`),
+
+  deleteHRGenericDocument: (userId, docId) =>
+    apiRequest(`/hr/onboarding/${userId}/hr-docs/${docId}`, { method: 'DELETE' }),
+
+  // Finalize onboarding to employee documents archive
+  finalizeOnboarding: (userId) =>
+    apiRequest(`/hr/onboarding/${userId}/finalize`, { method: 'POST' }),
+
+  finalizeAllOnboarding: () =>
+    apiRequest('/hr/onboarding/finalize-all', { method: 'POST' }),
 };
 
 // Manager API
@@ -454,6 +483,18 @@ export const managerAPI = {
 
   getProjectBugs: (projectId, params = {}) =>
     apiRequest(`/bugs/project/${projectId}${buildQuery(params)}`),
+
+  // Send a document to all team members of a project
+  sendTeamDocument: (projectId, { name, description, file }) => {
+    const formData = new FormData();
+    if (name) formData.append('name', name);
+    if (description) formData.append('description', description);
+    if (file) formData.append('file', file);
+    return apiRequest(`/manager/project/${projectId}/team-docs`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 // Developer API
@@ -614,6 +655,10 @@ export const employeeAPI = {
       method: 'POST',
       body: formData,
     }),
+  
+  // Fetch current user's received HR generic documents
+  getMyHRDocs: () =>
+    apiRequest('/employee/hr-docs'),
 };
 
 // Sales API
@@ -973,6 +1018,13 @@ export const calendarAPI = {
   // Create a new calendar event (HR only)
   createEvent: (eventData) =>
     apiRequest('/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(eventData),
+    }),
+
+  // Create a personal calendar event (any role)
+  createPersonalEvent: (eventData) =>
+    apiRequest('/calendar/events/personal', {
       method: 'POST',
       body: JSON.stringify(eventData),
     }),

@@ -1,6 +1,7 @@
 // manager.route.js - Manager/Project Manager Routes
 import express from 'express';
 import { verifyToken, allowManagementTeam } from '../middleware/verifyToken.js';
+import { hrGenericUpload } from '../middleware/upload.js';
 import {
   // Project Oversight
   getMyProjects,
@@ -34,6 +35,7 @@ import {
   getManagerStats,
   getTeamManagement
 } from '../controllers/manager.controller.js';
+import { sendProjectTeamDocument } from '../controllers/manager.controller.js';
 
 const router = express.Router();
 
@@ -164,6 +166,13 @@ router.get('/stats', getManagerStats);
 
 // Get team management data (moved to avoid conflict with legacy route)
 router.get('/team-management', getTeamManagement);
+
+// ========================================
+// 7. DOCUMENT DISTRIBUTION
+// ========================================
+
+// Upload a document and distribute to all project team members
+router.post('/project/:projectId/team-docs', hrGenericUpload, sendProjectTeamDocument);
 
 // ========================================
 // LEGACY ROUTES (for compatibility)

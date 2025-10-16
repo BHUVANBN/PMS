@@ -18,7 +18,7 @@ const ROLE_OPTIONS = [
   { label: 'Intern', value: 'intern' },
 ];
 
-const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
+const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess, initialValues }) => {
   const [values, setValues] = useState({
     firstName: '',
     lastName: '',
@@ -31,6 +31,17 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  // Prefill on create using initialValues if provided
+  useEffect(() => {
+    if (mode === 'create' && initialValues) {
+      setValues((prev) => ({
+        ...prev,
+        ...initialValues,
+        role: initialValues.role || prev.role,
+      }));
+    }
+  }, [mode, initialValues]);
 
   useEffect(() => {
     if (mode === 'edit' && employeeId) {
@@ -77,7 +88,8 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess }) => {
         // Wait a moment to show success message, then redirect
         setTimeout(() => {
           if (onSuccess) {
-            onSuccess();
+            const newId = response?.employee?._id || response?.employee?.id || response?._id || response?.id || null;
+            onSuccess(newId);
           }
         }, 1000);
       } else {

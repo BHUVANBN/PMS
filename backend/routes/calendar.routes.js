@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createCalendarEvent,
+  createPersonalEvent,
   getCalendarEvents,
   getCalendarEventById,
   updateCalendarEvent,
@@ -22,6 +23,13 @@ const router = express.Router();
  * @access  Private (HR)
  */
 router.post('/events', verifyToken, hrOnly, createCalendarEvent);
+
+/**
+ * @route   POST /api/calendar/events/personal
+ * @desc    Create a personal calendar event (any role)
+ * @access  Private (Any authenticated user)
+ */
+router.post('/events/personal', verifyToken, createPersonalEvent);
 
 /**
  * @route   GET /api/calendar/events

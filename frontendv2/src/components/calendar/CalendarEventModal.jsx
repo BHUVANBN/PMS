@@ -24,6 +24,7 @@ export default function CalendarEventModal({
   onClose,
   event,
   onSubmitted,
+  currentUserRole,
 }) {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -47,6 +48,7 @@ export default function CalendarEventModal({
     scopeType: 'individual', // 'project' | 'team' | 'individual'
     scopeProjectId: '',
     scopeTeamMemberIds: [],
+    isPersonal: false,
   });
 
   const loadUsers = async () => {
@@ -132,6 +134,7 @@ export default function CalendarEventModal({
             scopeType: 'individual',
             scopeProjectId: '',
             scopeTeamMemberIds: [],
+            isPersonal: !!ev.isPersonal,
           });
         } else {
           setForm({
@@ -150,16 +153,17 @@ export default function CalendarEventModal({
             scopeType: 'individual',
             scopeProjectId: '',
             scopeTeamMemberIds: [],
+            isPersonal: currentUserRole && currentUserRole !== 'hr' && currentUserRole !== 'admin',
           });
         }
       })();
     }
-  }, [open, event]);
+  }, [open, event, currentUserRole]);
 
   // When scope project changes, load its team
   useEffect(() => {
     if (!open) return;
-    if (form.scopeType === 'project' || form.scopeType === 'team') {
+    if (form.scopeType === 'project') {
       loadProjectTeam(form.scopeProjectId);
     } else {
       setProjectTeam([]);
@@ -173,13 +177,15 @@ export default function CalendarEventModal({
     if (!form.endTime) return 'End time is required';
 
     if (form.startTime >= form.endTime) return 'Start time must be before end time';
-    // Validate based on scope
+    // If personal, skip attendee validation
+    if (form.isPersonal) {
+      return '';
+    }
+
+    // Validate based on scope for non-personal events
     if (form.scopeType === 'project') {
       if (!form.scopeProjectId) return 'Select a project for project-scoped event';
       if (!projectTeam || projectTeam.length === 0) return 'Selected project has no team members';
-    } else if (form.scopeType === 'team') {
-      if (!form.scopeProjectId) return 'Select a project for team-scoped event';
-      if (!form.scopeTeamMemberIds || form.scopeTeamMemberIds.length === 0) return 'Select at least one team member';
     } else {
       if (!form.attendeeIds || form.attendeeIds.length === 0) return 'Select at least one attendee';
     }
@@ -199,12 +205,13 @@ export default function CalendarEventModal({
       setLoading(true);
       setError('');
 
-      // Compute attendeeIds based on scope
-      let attendeeIds = form.attendeeIds || [];
-      if (form.scopeType === 'project') {
-        attendeeIds = projectTeam.map(u => u._id).filter(Boolean);
-      } else if (form.scopeType === 'team') {
-        attendeeIds = form.scopeTeamMemberIds;
+      // Compute attendeeIds based on scope (non-personal only)
+      let attendeeIds = [];
+      if (!form.isPersonal) {
+        attendeeIds = form.attendeeIds || [];
+        if (form.scopeType === 'project') {
+          attendeeIds = projectTeam.map(u => u._id).filter(Boolean);
+        }
       }
 
       const eventData = {
@@ -213,8 +220,8 @@ export default function CalendarEventModal({
         eventDate: form.eventDate,
         startTime: form.startTime,
         endTime: form.endTime,
-        meetLink: form.meetLink,
-        location: form.location,
+        meetLink: form.isPersonal ? '' : form.meetLink,
+        location: form.isPersonal ? '' : form.location,
         attendeeIds,
         eventType: form.eventType,
         isAllDay: form.isAllDay,
@@ -228,8 +235,13 @@ export default function CalendarEventModal({
         toast.success('Event updated successfully!');
       } else {
         // Create new event
-        await calendarAPI.createEvent(eventData);
-        toast.success('Event created successfully!');
+        if (form.isPersonal || (currentUserRole && currentUserRole !== 'hr' && currentUserRole !== 'admin')) {
+          await calendarAPI.createPersonalEvent(eventData);
+          toast.success('Personal task created successfully!');
+        } else {
+          await calendarAPI.createEvent(eventData);
+          toast.success('Event created successfully!');
+        }
       }
 
       onSubmitted && onSubmitted();
@@ -240,7 +252,7 @@ export default function CalendarEventModal({
     }
   };
 
-  // no attendee selection in standup-like form
+  // no attendee selection when personal
 
   if (!open) return null;
 
@@ -251,24 +263,39 @@ export default function CalendarEventModal({
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth size="medium">
-              <InputLabel id="scope-type-label">Scope</InputLabel>
-              <Select
-                labelId="scope-type-label"
-                label="Scope"
-                value={form.scopeType}
-                onChange={(e) => setForm(f => ({ ...f, scopeType: e.target.value, // reset selections on scope change
-                  scopeProjectId: '', scopeTeamMemberIds: [], attendeeIds: [] }))}
-              >
-                <MenuItem value="project">Specific Project</MenuItem>
-                <MenuItem value="team">Specific Team</MenuItem>
-                <MenuItem value="individual">Individual Employee</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          {/* Personal toggle for HR/admin; forced personal for others */}
+          {(currentUserRole === 'hr' || currentUserRole === 'admin') ? (
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={<Checkbox checked={form.isPersonal} onChange={(e) => setForm(f => ({ ...f, isPersonal: e.target.checked }))} />}
+                label="Personal (visible only to you)"
+              />
+            </Grid>
+          ) : (
+            <Grid item xs={12}>
+              <Alert severity="info">This will be added as your personal task (visible only to you).</Alert>
+            </Grid>
+          )}
 
-          {(form.scopeType === 'project' || form.scopeType === 'team') && (
+          {!form.isPersonal && (
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="medium">
+                <InputLabel id="scope-type-label">Scope</InputLabel>
+                <Select
+                  labelId="scope-type-label"
+                  label="Scope"
+                  value={form.scopeType}
+                  onChange={(e) => setForm(f => ({ ...f, scopeType: e.target.value, // reset selections on scope change
+                    scopeProjectId: '', scopeTeamMemberIds: [], attendeeIds: [] }))}
+                >
+                  <MenuItem value="project">Specific Project</MenuItem>
+                  <MenuItem value="individual">Individual Employee</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          {!form.isPersonal && (form.scopeType === 'project') && (
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="medium">
                 <InputLabel id="project-select-label">Project</InputLabel>
@@ -286,7 +313,7 @@ export default function CalendarEventModal({
             </Grid>
           )}
 
-          {form.scopeType === 'project' && (
+          {!form.isPersonal && form.scopeType === 'project' && (
             <Grid item xs={12}>
               <Alert severity={projectTeam.length ? 'info' : 'warning'}>
                 {form.scopeProjectId ? (
@@ -296,43 +323,8 @@ export default function CalendarEventModal({
             </Grid>
           )}
 
-          {form.scopeType === 'team' && (
-            <Grid item xs={12}>
-              <Autocomplete
-                multiple
-                options={projectTeam}
-                getOptionLabel={(u) => {
-                  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
-                  return name || u.email || '';
-                }}
-                isOptionEqualToValue={(o, v) => (o._id || o.id) === (v._id || v.id)}
-                value={projectTeam.filter(u => form.scopeTeamMemberIds.includes(u._id || u.id))}
-                onChange={(_, newVal) => setForm(f => ({ ...f, scopeTeamMemberIds: newVal.map(u => u._id || u.id) }))}
-                openOnFocus
-                disableCloseOnSelect
-                filterSelectedOptions
-                noOptionsText={form.scopeProjectId ? 'No team members found' : 'Select a project first'}
-                fullWidth
-                ListboxProps={{ sx: { maxHeight: 480, width: '100%' } }}
-                sx={{
-                  width: '100%',
-                  '& .MuiAutocomplete-inputRoot': { minHeight: 56 },
-                  '& .MuiChip-root': { maxWidth: 'none' },
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Team Members" placeholder="Type to search team members" size="medium" fullWidth />
-                )}
-                renderOption={(props, option) => (
-                  <li {...props} key={option._id || option.id}>
-                    {option.firstName} {option.lastName} ({option.email})
-                  </li>
-                )}
-                disabled={!form.scopeProjectId}
-              />
-            </Grid>
-          )}
 
-          {form.scopeType === 'individual' && (
+          {!form.isPersonal && form.scopeType === 'individual' && (
             <Grid item xs={12}>
               <Autocomplete
                 multiple
@@ -446,27 +438,31 @@ export default function CalendarEventModal({
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Location"
-              fullWidth
-              value={form.location}
-              onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))}
-              placeholder="Virtual or physical location"
-              size="medium"
-            />
-          </Grid>
+          {!form.isPersonal && (
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Location"
+                fullWidth
+                value={form.location}
+                onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))}
+                placeholder="Virtual or physical location"
+                size="medium"
+              />
+            </Grid>
+          )}
 
-          <Grid item xs={12}>
-            <TextField
-              label="Meet Link"
-              fullWidth
-              value={form.meetLink}
-              onChange={(e) => setForm(f => ({ ...f, meetLink: e.target.value }))}
-              placeholder="Google Meet, Zoom, etc."
-              size="medium"
-            />
-          </Grid>
+          {!form.isPersonal && (
+            <Grid item xs={12}>
+              <TextField
+                label="Meet Link"
+                fullWidth
+                value={form.meetLink}
+                onChange={(e) => setForm(f => ({ ...f, meetLink: e.target.value }))}
+                placeholder="Google Meet, Zoom, etc."
+                size="medium"
+              />
+            </Grid>
+          )}
 
           <Grid item xs={12} sm={4}>
             <FormControlLabel

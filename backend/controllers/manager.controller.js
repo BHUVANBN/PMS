@@ -5,6 +5,8 @@ import { Sprint } from '../models/index.js';
 import { KanbanBoard } from '../models/index.js';
 import { User } from '../models/index.js';
 import { Standup } from '../models/index.js';
+import { Onboarding } from '../models/index.js';
+import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
 
 // ========================================
 // 1. PROJECT OVERSIGHT
@@ -48,6 +50,96 @@ export const getMyProjects = async (req, res) => {
       success: false,
       error: 'Failed to fetch projects'
     });
+  }
+};
+
+// ========================================
+// 7. DOCUMENTS TO TEAM (MANAGER)
+// ========================================
+
+/**
+ * Upload a generic document (name/description/file) and send to all project team members.
+ * Stores under each member's onboarding.hrDocumentsList so it appears in their My Documents.
+ */
+export const sendProjectTeamDocument = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { name, description } = req.body || {};
+
+    if (!name || !req.file) {
+      return res.status(400).json({ message: 'Name and file are required' });
+    }
+
+    // Verify manager owns the project, admins can access any
+    const ownerFilter = req.user.role === 'admin'
+      ? { _id: projectId }
+      : { _id: projectId, projectManager: req.user._id };
+
+    const project = await Project.findOne(ownerFilter);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found or access denied' });
+    }
+
+    // Collect all unique team member IDs across project and modules
+    const memberSet = new Set();
+    (project.teamMembers || []).forEach((u) => memberSet.add(u.toString()));
+    (project.modules || []).forEach((m) => {
+      if (m?.moduleLead) memberSet.add(m.moduleLead.toString());
+      (m?.teamMembers || []).forEach((u) => memberSet.add(u.toString()));
+      // Also include users assigned on tickets to be thorough
+      (m?.tickets || []).forEach((t) => {
+        if (t?.assignedDeveloper) memberSet.add(t.assignedDeveloper.toString());
+        if (t?.tester) memberSet.add(t.tester.toString());
+      });
+    });
+
+    const memberIds = Array.from(memberSet);
+    if (memberIds.length === 0) {
+      return res.status(400).json({ message: 'No team members found to send the document' });
+    }
+
+    // Upload once to Cloudinary
+    const uploaded = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: `projects/${projectId}/manager/team-docs`,
+      public_id: `${Date.now()}-${String(name).slice(0, 40)}`,
+    });
+
+    const item = {
+      name: String(name).trim(),
+      description: (description || '').toString(),
+      file: {
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+        uploadedAt: new Date(),
+        uploadedBy: req.user._id,
+      },
+    };
+
+    // Helper to upsert onboarding and append item
+    const upsertAndAppend = async (userId) => {
+      const onboarding = await Onboarding.findOneAndUpdate(
+        { user: userId },
+        { $setOnInsert: { user: userId } },
+        { new: true, upsert: true }
+      );
+      onboarding.hrDocumentsList = onboarding.hrDocumentsList || [];
+      onboarding.hrDocumentsList.push(item);
+      await onboarding.save();
+    };
+
+    // Process members sequentially to avoid overwhelming DB (teams are typically small)
+    for (const uid of memberIds) {
+      await upsertAndAppend(uid);
+    }
+
+    return res.status(201).json({
+      message: 'Document sent to project team members',
+      sentTo: memberIds.length,
+      document: item,
+    });
+  } catch (error) {
+    console.error('Error sending project team document:', error);
+    return res.status(500).json({ message: 'Failed to send document to team', error: error.message });
   }
 };
 

@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, USER_ROLES, Leave, Standup } from '../models/index.js';
+import { User, USER_ROLES, Leave, Standup, Onboarding } from '../models/index.js';
+import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
+ 
 
 /**
  * Create a new employee account
@@ -28,7 +30,10 @@ export const createEmployee = async (req, res) => {
       USER_ROLES.INTERN
     ];
 
-    const selectedRole = role && allowedRolesForHR.includes(role) ? role : USER_ROLES.EMPLOYEE;
+    const requestedRole = (role || '').toString().trim().toLowerCase();
+    const selectedRole = requestedRole && allowedRolesForHR.includes(requestedRole)
+      ? requestedRole
+      : USER_ROLES.EMPLOYEE;
 
     // Check if username or email already exists
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
@@ -51,8 +56,12 @@ export const createEmployee = async (req, res) => {
       firstName,
       lastName,
       isActive: true,
-	  isVerifiedByHR: false
+      isVerifiedByHR: false
     });
+
+    // Keep onboarding record as-is; do not archive on employee creation
+
+    // Keep PublicOnboarding records intact; do not archive or delete here
 
     // Return employee data without password
     const employeeResponse = {

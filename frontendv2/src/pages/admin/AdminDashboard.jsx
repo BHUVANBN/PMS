@@ -41,6 +41,7 @@ import UserDialog from '../../components/admin/UserDialog';
 import ProjectDialog from '../../components/admin/ProjectDialog';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import TwoColumnRight from '../../components/layout/TwoColumnRight';
 import { Snackbar, Alert } from '@mui/material';
 
 export default function AdminDashboard() {
@@ -281,14 +282,7 @@ export default function AdminDashboard() {
     return status === 'active' ? 'success' : 'default';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -340,8 +334,14 @@ export default function AdminDashboard() {
     );
   }
 
+  const rightRail = (
+    <Box sx={{ p: 2 }}>
+      <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
+    </Box>
+  );
+
   return (
-    <Box>
+    <TwoColumnRight right={rightRail}>
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Admin Dashboard
       </Typography>
@@ -573,10 +573,6 @@ export default function AdminDashboard() {
           </Paper>
         </Grid>
 
-        {/* Recent Activity */}
-        <Grid item xs={12} lg={4}>
-          <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
-        </Grid>
       </Grid>
 
       {/* User Dialog */}
@@ -616,6 +612,6 @@ export default function AdminDashboard() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </TwoColumnRight>
   );
 }

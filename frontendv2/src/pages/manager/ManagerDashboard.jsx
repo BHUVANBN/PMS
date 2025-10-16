@@ -23,6 +23,7 @@ import TaskProgress from '../../components/dashboard/TaskProgress';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import QuickActions from '../../components/dashboard/QuickActions';
 import { managerAPI } from '../../services/api';
+import TwoColumnRight from '../../components/layout/TwoColumnRight';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ManagerDashboard = () => {
@@ -128,8 +129,17 @@ const ManagerDashboard = () => {
     );
   }
 
+  const rightRail = (
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <MyUpcomingEvents title="My Upcoming Events" days={14} />
+      </Box>
+      <TaskProgress tasks={tasks} />
+    </Box>
+  );
+
   return (
-    <Box>
+    <TwoColumnRight right={rightRail}>
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Manager Dashboard
       </Typography>
@@ -185,17 +195,11 @@ const ManagerDashboard = () => {
       </Grid>
 
       <Grid container spacing={3}>
-        <Grid item xs={9} sm={9} md={9} lg={9}>
+        <Grid item xs={12}>
           <ProjectOverview projects={projects} onRefresh={fetchDashboardData} />
         </Grid>
-        <Grid item xs={3} sm={3} md={3} lg={3}>
-          <Box sx={{ mb: 3 }}>
-            <MyUpcomingEvents title="My Upcoming Events" days={14} />
-          </Box>
-          <TaskProgress tasks={tasks} />
-        </Grid>
       </Grid>
-    </Box>
+    </TwoColumnRight>
   );
 };
 

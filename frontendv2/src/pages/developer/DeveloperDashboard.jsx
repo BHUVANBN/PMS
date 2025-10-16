@@ -29,6 +29,7 @@ import DashboardCard from '../../components/dashboard/DashboardCard';
 import Badge from '../../components/ui/Badge';
 import { developerAPI } from '../../services/api';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
+import TwoColumnRight from '../../components/layout/TwoColumnRight';
 
 const DeveloperDashboard = () => {
   const [stats, setStats] = useState([]);
@@ -153,8 +154,36 @@ const DeveloperDashboard = () => {
     );
   }
 
+  const rightRail = (
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <MyUpcomingEvents title="My Upcoming Events" days={14} />
+      </Box>
+      <DashboardCard title="Recent Standups" className="h-full">
+        <List dense>
+          {standups.length === 0 && (
+            <ListItem sx={{ px: 0 }}>
+              <ListItemText primary="No recent standups" />
+            </ListItem>
+          )}
+          {standups.map((s, index) => (
+            <ListItem key={index} sx={{ px: 0 }}>
+              <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
+                <PlayIcon className="h-4 w-4" />
+              </Avatar>
+              <ListItemText
+                primary={s.projectId?.name || 'Standup'}
+                secondary={new Date(s.date).toLocaleString()}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </DashboardCard>
+    </Box>
+  );
+
   return (
-    <Box>
+    <TwoColumnRight right={rightRail}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
         Developer Dashboard
       </Typography>
@@ -172,7 +201,7 @@ const DeveloperDashboard = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={8} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Grid item xs={12} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <DashboardCard title="My Active Tickets" className="h-full">
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
               {myTickets.map((ticket, index) => (
@@ -222,34 +251,6 @@ const DeveloperDashboard = () => {
             </Box>
           </DashboardCard>
         </Grid>
-
-        {/* Right column: Events + Standups */}
-        <Grid item xs={12} lg={4}>
-          <Box sx={{ mb: 3 }}>
-            <MyUpcomingEvents title="My Upcoming Events" days={14} />
-          </Box>
-          <DashboardCard title="Recent Standups" className="h-full">
-            <List dense>
-              {standups.length === 0 && (
-                <ListItem sx={{ px: 0 }}>
-                  <ListItemText primary="No recent standups" />
-                </ListItem>
-              )}
-              {standups.map((s, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
-                    <PlayIcon className="h-4 w-4" />
-                  </Avatar>
-                  <ListItemText
-                    primary={s.projectId?.name || 'Standup'}
-                    secondary={new Date(s.date).toLocaleString()}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </DashboardCard>
-        </Grid>
-
       </Grid>
 
       {/* Ticket Details Modal */}
@@ -300,7 +301,7 @@ const DeveloperDashboard = () => {
           <Button onClick={handleCloseModal}>Close</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </TwoColumnRight>
   );
 };
 

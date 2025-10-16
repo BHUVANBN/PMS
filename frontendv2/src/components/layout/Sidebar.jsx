@@ -30,32 +30,32 @@ import {
   Description as DescriptionIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import useViewportSize from '../../utils/useViewportSize';
+import GlassSearchBar from '../glass/GlassSearchBar';
 
 import { useAuth } from '../../contexts/AuthContext'; // Your auth context
 import { meetingAPI, calendarAPI, subscribeToEvents } from '../../services/api';
 
-const drawerWidth = 240;
-
-const StyledDrawer = styled(Drawer)(({ theme }) => ({
-  width: drawerWidth,
+const StyledDrawer = styled(Drawer)(() => ({
   flexShrink: 0,
   '& .MuiDrawer-paper': {
-    width: drawerWidth,
     boxSizing: 'border-box',
-    borderRight: `1px solid ${theme.palette.divider}`,
-    backgroundColor: theme.palette.background.paper,
+    borderRight: '1px solid rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.3)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
   },
 }));
 
 const ActiveListItem = styled(ListItem)(({ theme }) => ({
   '&.Mui-selected': {
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: 'rgba(99,102,241,0.1)',
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: 'rgba(99,102,241,0.12)',
     },
   },
   '&:hover': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: 'rgba(99,102,241,0.06)',
   },
   borderRadius: theme.shape.borderRadius,
   margin: theme.spacing(0.5, 2),
@@ -64,6 +64,7 @@ const ActiveListItem = styled(ListItem)(({ theme }) => ({
 
 const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   const theme = useTheme();
+  const { metrics } = useViewportSize();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
@@ -253,7 +254,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
   return (
     <Box
       component='nav'
-      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      sx={{ width: { sm: metrics.left }, flexShrink: { sm: 0 } }}
       aria-label='Navigation drawer'
     >
       <StyledDrawer
@@ -261,6 +262,10 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
         open={isMobile ? mobileOpen : true}
         onClose={onClose}
         ModalProps={{ keepMounted: true }}
+        sx={{
+          width: { sm: metrics.left },
+          '& .MuiDrawer-paper': { width: { sm: metrics.left } }
+        }}
       >
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', p: 1, width: '100%' }}>
@@ -269,6 +274,9 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
             </Typography>
           </Box>
         </Toolbar>
+        <Box sx={{ px: 2, pb: 2 }}>
+          <GlassSearchBar placeholder="Search..." />
+        </Box>
         <Divider />
         <List>
           {filteredItems.map((item) => {
@@ -291,8 +299,8 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
                 selected={isActive(item.path)}
                 onClick={() => handleNavigation(item.path)}
               >
-                <ListItemButton>
-                  <ListItemIcon sx={{ minWidth: 40 }}>
+                <ListItemButton sx={{ height: 48, py: 1, px: 2.5 }}>
+                  <ListItemIcon sx={{ minWidth: 28, '& .MuiSvgIcon-root': { width: 20, height: 20 } }}>
                     {badgeCount > 0 ? (
                       <Badge badgeContent={badgeCount} color={badgeColor}>
                         {React.cloneElement(item.icon, {
@@ -308,7 +316,8 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
                   <ListItemText
                     primary={item.text}
                     primaryTypographyProps={{
-                      fontWeight: isActive(item.path) ? 'medium' : 'normal',
+                      fontWeight: isActive(item.path) ? '600' : '500',
+                      fontSize: 14,
                     }}
                   />
                 </ListItemButton>

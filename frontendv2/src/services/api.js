@@ -116,11 +116,10 @@ const handleApiError = (error, url) => {
   }
   
   if (error.message.includes('401')) {
-    // Unauthorized - clear auth and redirect to login
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    window.location.href = '/login';
-    throw new Error('Session expired - please login again');
+    // Unauthorized - do NOT hard-redirect. Let callers handle and AuthContext manage state.
+    const err = new Error('Unauthorized');
+    err.status = 401;
+    throw err;
   }
   
   if (error.message.includes('403')) {
@@ -1003,9 +1002,8 @@ export const apiUtils = {
     
     // Handle specific error cases
     if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-      // Token expired or invalid
-      apiUtils.clearAuthToken();
-      window.location.href = '/login';
+      // Token expired or invalid - do not redirect here; allow UI/AuthContext to handle
+      return error;
     } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
       // Insufficient permissions
       console.error('Insufficient permissions');

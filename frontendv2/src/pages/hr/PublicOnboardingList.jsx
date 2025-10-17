@@ -212,18 +212,39 @@ export default function PublicOnboardingList() {
         )}
       </Paper>
 
-      <Dialog open={docsOpen} onClose={() => setDocsOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={docsOpen} onClose={() => setDocsOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Documents</DialogTitle>
         <DialogContent>
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
+          <Stack spacing={2} sx={{ mt: 1 }}>
             {docEntries.length === 0 && (
               <Alert severity="info">No documents uploaded.</Alert>
             )}
             {docEntries.map((d) => (
-              <Stack key={d.key} direction="row" alignItems="center" justifyContent="space-between">
-                <Typography>{d.label}</Typography>
-                <Button component="a" href={d.url} target="_blank" rel="noopener noreferrer" size="small">Open</Button>
-              </Stack>
+              <Box key={d.key}>
+                <Typography variant="h6" gutterBottom>{d.label}</Typography>
+                <Box sx={{ height: '600px', border: '1px solid #ddd', borderRadius: '4px' }}>
+                  {d.url.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                      src={`${d.url}#toolbar=1&navpanes=1&scrollbar=1`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 'none' }}
+                      title={`${d.label} PDF`}
+                    />
+                  ) : (
+                    <img
+                      src={d.url}
+                      alt={d.label}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  )}
+                </Box>
+                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                  <Button component="a" href={d.url} target="_blank" rel="noopener noreferrer" size="small">
+                    Open in New Tab
+                  </Button>
+                </Box>
+              </Box>
             ))}
           </Stack>
         </DialogContent>

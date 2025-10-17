@@ -13,7 +13,6 @@ const EmployeeCreate = () => {
     email: params.get('email') || '',
     username: params.get('username') || '',
     role: params.get('role') || 'employee',
-    department: params.get('department') || '',
   };
 
   const handleSuccess = async () => {

@@ -25,7 +25,6 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess, initia
     email: '',
     username: '',
     role: 'employee',
-    department: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
@@ -56,7 +55,6 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess, initia
             email: u.email || '',
             username: u.username || '',
             role: u.role || 'developer',
-            department: u.department || '',
             password: '',
           });
         } catch (e) {
@@ -230,14 +228,6 @@ const EmployeeForm = ({ mode = 'create', employeeId, onCancel, onSuccess, initia
                     ))}
                   </RadioGroup>
                 </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormInput
-                  label="Department"
-                  name="department"
-                  value={values.department}
-                  onChange={(e) => handleChange('department', e.target.value)}
-                />
               </Grid>
               {mode === 'create' && (
                 <Grid item xs={12} sm={6}>

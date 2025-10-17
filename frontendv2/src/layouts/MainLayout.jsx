@@ -63,7 +63,7 @@ const MainLayout = () => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
-      <AppBar onMenuClick={handleDrawerToggle} />
+      <AppBar onMenuClick={handleDrawerToggle} drawerWidth={drawerWidth} />
       <Sidebar 
         mobileOpen={mobileOpen} 
         onClose={handleDrawerToggle}

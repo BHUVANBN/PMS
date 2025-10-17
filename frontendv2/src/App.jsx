@@ -72,7 +72,19 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-          <div style={{ minHeight: '100vh' }}>
+          <div style={{ minHeight: '100vh', position: 'relative' }}>
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1,
+                pointerEvents: 'none',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 248, 255, 0.7) 40%, rgba(176, 224, 230, 0.6) 70%, rgba(135, 206, 250, 0.8) 100%)'
+              }}
+            />
             <Toaster position="top-right" gutter={8} />
             <Routes>
             {/* Public routes */}

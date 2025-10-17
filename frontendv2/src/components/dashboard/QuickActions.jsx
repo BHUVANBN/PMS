@@ -51,12 +51,14 @@ const QuickActions = ({ actions = [] }) => {
                 <Avatar
                   sx={{
                     bgcolor: `${action.color || 'primary'}.main`,
+                    color: '#fff',
+                    fontWeight: 700,
                     width: 48,
                     height: 48,
                     mb: 1
                   }}
                 >
-                  {action.icon}
+                  {action.icon || (action.title || '').charAt(0).toUpperCase()}
                 </Avatar>
                 <Typography
                   variant="body2"

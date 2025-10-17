@@ -14,26 +14,18 @@ import {
   Chip,
   Button,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Avatar,
+  Stack,
+  CircularProgress
 } from '@mui/material';
 import {
   People,
   Business,
-  Assessment,
-  Security,
   Add,
   Edit,
   Delete,
   Visibility,
-  Group
+  Refresh
 } from '@mui/icons-material';
 import StatsCard from '../../components/dashboard/StatsCard';
 import RecentActivity from '../../components/dashboard/RecentActivity';
@@ -41,7 +33,6 @@ import UserDialog from '../../components/admin/UserDialog';
 import ProjectDialog from '../../components/admin/ProjectDialog';
 import { adminAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import TwoColumnRight from '../../components/layout/TwoColumnRight';
 import { Snackbar, Alert } from '@mui/material';
 
 export default function AdminDashboard() {
@@ -67,7 +58,6 @@ export default function AdminDashboard() {
     if (!authLoading && isAuthenticated && user) {
       fetchDashboardData();
       
-      // Set up polling for real-time activity updates every 30 seconds
       const activityInterval = setInterval(() => {
         fetchActivities();
       }, 30000);
@@ -82,7 +72,6 @@ export default function AdminDashboard() {
     try {
       const activitiesResponse = await adminAPI.getActivityLogs();
       
-      // Normalize activities
       let realActivities = [];
       if (Array.isArray(activitiesResponse)) {
         realActivities = activitiesResponse;
@@ -111,13 +100,6 @@ export default function AdminDashboard() {
         adminAPI.getActivityLogs(),
       ]);
 
-      console.log('Users Response:', usersResponse);
-      console.log('Projects Response:', projectsResponse);
-      console.log('Stats Response:', statsResponse);
-      console.log('Health Response:', healthResponse);
-      console.log('Activities Response:', activitiesResponse);
-
-      // Normalize users - handle direct array response
       let realUsers = [];
       if (Array.isArray(usersResponse)) {
         realUsers = usersResponse;
@@ -132,6 +114,8 @@ export default function AdminDashboard() {
       const normalizedUsers = realUsers.map(u => ({
         id: u._id || u.id,
         username: u.username || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        firstName: u.firstName,
+        lastName: u.lastName,
         email: u.email,
         role: u.role,
         status: u.isActive === false ? 'inactive' : 'active',
@@ -139,11 +123,9 @@ export default function AdminDashboard() {
         createdAt: u.createdAt,
       }));
 
-      // Normalize stats
       const s = statsResponse || {};
       const h = healthResponse?.health || healthResponse || {};
 
-      // Normalize activities
       let realActivities = [];
       if (Array.isArray(activitiesResponse)) {
         realActivities = activitiesResponse;
@@ -153,12 +135,6 @@ export default function AdminDashboard() {
         realActivities = activitiesResponse.data.activities;
       }
 
-      console.log('Real activities found:', realActivities.length);
-      if (realActivities.length > 0) {
-        console.log('Sample activity:', realActivities[0]);
-      }
-
-      // Normalize projects
       let realProjects = [];
       if (Array.isArray(projectsResponse)) {
         realProjects = projectsResponse;
@@ -167,7 +143,6 @@ export default function AdminDashboard() {
       } else if (projectsResponse?.data?.projects) {
         realProjects = projectsResponse.data.projects;
       }
-
 
       setUsers(normalizedUsers);
       setProjects(realProjects);
@@ -193,12 +168,8 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        const response = await adminAPI.deleteUser(userId);
-        console.log('Delete response:', response);
-        
-        // Refresh the user list from the database
+        await adminAPI.deleteUser(userId);
         await fetchDashboardData();
-        
         setSnackbar({
           open: true,
           message: 'User deleted successfully',
@@ -217,15 +188,10 @@ export default function AdminDashboard() {
 
   const handleUpdateUser = async (userData) => {
     try {
-      const response = await adminAPI.updateUserRole(userData.id, userData);
-      console.log('Update response:', response);
-      
-      // Refresh the user list from the database
+      await adminAPI.updateUserRole(userData.id, userData);
       await fetchDashboardData();
-      
       setOpenDialog(false);
       setSelectedUser(null);
-      
       setSnackbar({
         open: true,
         message: 'User updated successfully',
@@ -243,15 +209,10 @@ export default function AdminDashboard() {
 
   const handleCreateUser = async (userData) => {
     try {
-      const response = await adminAPI.createUser(userData);
-      console.log('Create response:', response);
-      
-      // Refresh the user list from the database
+      await adminAPI.createUser(userData);
       await fetchDashboardData();
-      
       setOpenDialog(false);
       setSelectedUser(null);
-      
       setSnackbar({
         open: true,
         message: 'User created successfully',
@@ -268,12 +229,26 @@ export default function AdminDashboard() {
   };
 
   const getRoleColor = (role) => {
+    const colors = {
+      admin: '#f44336',
+      manager: '#2196f3',
+      developer: '#03a9f4',
+      tester: '#ff9800',
+      hr: '#4caf50',
+      sales: '#9c27b0',
+      marketing: '#e91e63',
+      intern: '#757575'
+    };
+    return colors[role] || '#9e9e9e';
+  };
+
+  const getRoleChipColor = (role) => {
     switch (role) {
       case 'admin': return 'error';
       case 'manager': return 'primary';
-      case 'developer': return 'success';
-      case 'tester': return 'info';
-      case 'hr': return 'secondary';
+      case 'developer': return 'info';
+      case 'tester': return 'warning';
+      case 'hr': return 'success';
       default: return 'default';
     }
   };
@@ -281,8 +256,6 @@ export default function AdminDashboard() {
   const getStatusColor = (status) => {
     return status === 'active' ? 'success' : 'default';
   };
-
-  
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -293,23 +266,16 @@ export default function AdminDashboard() {
   };
 
   const handleEditProject = (project) => {
-    console.log('Editing project:', project);
     setSelectedProject(project);
     setOpenProjectDialog(true);
   };
 
   const handleUpdateProject = async (projectData) => {
     try {
-      console.log('Sending project data for update:', projectData);
-      const response = await adminAPI.updateProject(projectData.id, projectData);
-      console.log('Update project response:', response);
-      
-      // Refresh the project list from the database
+      await adminAPI.updateProject(projectData.id, projectData);
       await fetchDashboardData();
-      
       setOpenProjectDialog(false);
       setSelectedProject(null);
-      
       setSnackbar({
         open: true,
         message: 'Project updated successfully',
@@ -317,7 +283,6 @@ export default function AdminDashboard() {
       });
     } catch (error) {
       console.error('Error updating project:', error);
-      console.error('Error details:', error.response?.data);
       setSnackbar({
         open: true,
         message: `Failed to update project: ${error.message}`,
@@ -326,65 +291,115 @@ export default function AdminDashboard() {
     }
   };
 
-  if (authLoading) {
+  const getManagerInitials = (manager) => {
+    if (!manager) return '?';
+    const firstName = manager.firstName || '';
+    const lastName = manager.lastName || '';
+    
+    if (firstName && lastName) {
+      return `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+    } else if (firstName) {
+      return firstName.charAt(0).toUpperCase();
+    } else if (lastName) {
+      return lastName.charAt(0).toUpperCase();
+    }
+    return '?';
+  };
+
+  if (authLoading || loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography>Verifying authentication...</Typography>
+        <CircularProgress size={60} />
       </Box>
     );
   }
 
-  const rightRail = (
-    <Box sx={{ p: 2 }}>
-      <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
-    </Box>
-  );
-
   return (
-    <TwoColumnRight right={rightRail}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
-        Admin Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Welcome back, {user?.username || 'Admin'}! Here's your system overview.
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box mb={4}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: 800, 
+            color: 'text.primary',
+            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+            letterSpacing: '-0.02em',
+            mb: 1.5
+          }}
+        >
+          Admin Dashboard
+        </Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'text.secondary',
+            fontWeight: 400,
+            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+            lineHeight: 1.6,
+            letterSpacing: '0.01em'
+          }}
+        >
+          Welcome back, {user?.username || 'Admin'}! Here's your system overview.
+        </Typography>
+        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchDashboardData}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Stack>
+      </Box>
 
       {error && (
-        <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'error.light' }}>
-          <Typography color="error">{error}</Typography>
-        </Paper>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={6}>
-          <StatsCard
-            title="Total Users"
-            value={stats.totalUsers}
-            change={`${stats.totalUsers} registered users`}
-            changeType="neutral"
-            icon={People}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={6}>
-          <StatsCard
-            title="Active Projects"
-            value={stats.activeProjects}
-            change={`${stats.activeProjects} projects`}
-            changeType="neutral"
-            icon={Business}
-            color="success"
-          />
-        </Grid>
-      </Grid>
+      {/* Main Layout */}
+      <Box sx={{ display: { lg: 'flex' }, gap: { lg: 3 }, alignItems: 'flex-start' }}>
+        {/* Main Content Column */}
+        <Box sx={{ flex: 1 }}>
+          {/* Stats Cards */}
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} sm={6}>
+              <StatsCard
+                title="Total Users"
+                value={stats.totalUsers}
+                change={`${stats.totalUsers} registered users`}
+                changeType="neutral"
+                icon={People}
+                color="primary"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <StatsCard
+                title="Active Projects"
+                value={stats.activeProjects}
+                change={`${stats.activeProjects} projects`}
+                changeType="neutral"
+                icon={Business}
+                color="success"
+              />
+            </Grid>
+          </Grid>
 
-      <Grid container spacing={3}>
-        {/* User Management */}
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3 }}>
+          {/* User Management */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            mb: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" fontWeight="bold">
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 User Management
               </Typography>
               <Button
@@ -410,58 +425,77 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {loading ? (
+                  {users.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4}>
-                        <Typography variant="body2" color="text.secondary">Loading users...</Typography>
+                        <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
+                          No users found.
+                        </Typography>
                       </TableCell>
                     </TableRow>
-                  ) : users.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4}>
-                        <Typography variant="body2" color="text.secondary">No users found.</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : users.slice(0, 5).map((user) => (
-                    <TableRow key={user.id}>
+                  ) : users.slice(0, 5).map((userItem) => (
+                    <TableRow key={userItem.id} hover>
                       <TableCell>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {user.username}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {user.email}
-                          </Typography>
+                        <Box display="flex" alignItems="center">
+                          <Avatar
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              mr: 2,
+                              bgcolor: getRoleColor(userItem.role),
+                              color: '#fff',
+                              fontSize: '1rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            {(() => {
+                              const nameSource = (userItem.firstName || userItem.username || userItem.email || '').toString().trim();
+                              return nameSource ? nameSource.charAt(0).toUpperCase() : '?';
+                            })()}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {userItem.username}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {userItem.email}
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.role}
+                          label={userItem.role}
                           size="small"
-                          color={getRoleColor(user.role)}
-                          variant="outlined"
+                          sx={{
+                            bgcolor: `${getRoleColor(userItem.role)}15`,
+                            color: getRoleColor(userItem.role),
+                            textTransform: 'capitalize',
+                            fontWeight: 600,
+                            border: `1px solid ${getRoleColor(userItem.role)}30`
+                          }}
                         />
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.status}
+                          label={userItem.status}
                           size="small"
-                          color={getStatusColor(user.status)}
-                          variant="filled"
+                          color={getStatusColor(userItem.status)}
+                          variant="outlined"
                         />
                       </TableCell>
                       <TableCell>
                         <Box display="flex" gap={0.5}>
                           <IconButton
                             size="small"
-                            onClick={() => handleEditUser(user)}
+                            onClick={() => handleEditUser(userItem)}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
                           <IconButton
                             size="small"
                             color="error"
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => handleDeleteUser(userItem.id)}
                           >
                             <Delete fontSize="small" />
                           </IconButton>
@@ -484,13 +518,18 @@ export default function AdminDashboard() {
               </Box>
             )}
           </Paper>
-        </Grid>
 
-        {/* Project Management */}
-        <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3 }}>
+          {/* Project Management */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" fontWeight="bold">
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Project Management
               </Typography>
               <Button
@@ -514,29 +553,44 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {loading ? (
+                  {projects.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4}>
-                        <Typography variant="body2" color="text.secondary">Loading projects...</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : projects.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4}>
-                        <Typography variant="body2" color="text.secondary">No projects found.</Typography>
+                        <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
+                          No projects found.
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   ) : projects.slice(0, 5).map((project) => (
-                    <TableRow key={project._id}>
+                    <TableRow key={project._id} hover>
                       <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
+                        <Typography variant="body2" fontWeight={600}>
                           {project.projectName || project.name || project.title || 'Unnamed Project'}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {project.projectManager?.firstName} {project.projectManager?.lastName}
-                        </Typography>
+                        <Box display="flex" alignItems="center">
+                          {project.projectManager && (
+                            <>
+                              <Avatar
+                                sx={{
+                                  width: 32,
+                                  height: 32,
+                                  mr: 1.5,
+                                  bgcolor: getRoleColor('manager'),
+                                  fontSize: '0.875rem',
+                                  fontWeight: 600,
+                                  color: '#fff'
+                                }}
+                              >
+                                {getManagerInitials(project.projectManager)}
+                              </Avatar>
+                              <Typography variant="body2">
+                                {project.projectManager?.firstName} {project.projectManager?.lastName}
+                              </Typography>
+                            </>
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -571,11 +625,30 @@ export default function AdminDashboard() {
               </Box>
             )}
           </Paper>
-        </Grid>
+        </Box>
 
-      </Grid>
+        {/* Right Sidebar */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: 360 },
+          flexShrink: 0,
+          mt: { xs: 3, lg: 0 }
+        }}>
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+            position: { lg: 'sticky' },
+            top: { lg: 24 }
+          }}>
+            <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
+          </Paper>
+        </Box>
+      </Box>
 
-      {/* User Dialog */}
+      {/* Dialogs */}
       <UserDialog
         open={openDialog}
         user={selectedUser}
@@ -586,7 +659,6 @@ export default function AdminDashboard() {
         onSave={selectedUser ? handleUpdateUser : handleCreateUser}
       />
 
-      {/* Project Dialog */}
       <ProjectDialog
         open={openProjectDialog}
         project={selectedProject}
@@ -597,7 +669,7 @@ export default function AdminDashboard() {
         onSave={handleUpdateProject}
       />
 
-      {/* Snackbar for notifications */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
@@ -612,6 +684,6 @@ export default function AdminDashboard() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </TwoColumnRight>
+    </Box>
   );
 }

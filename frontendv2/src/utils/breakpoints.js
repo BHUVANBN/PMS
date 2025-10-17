@@ -9,10 +9,10 @@ export const BREAKPOINTS = {
 };
 
 export const COLUMN_WIDTHS = {
-  xl: { left: 280, right: 380, gap: 24, padding: 32 },
-  lg: { left: 260, right: 360, gap: 24, padding: 28 },
-  md: { left: 240, right: 320, gap: 20, padding: 24 },
-  sm: { left: 220, right: 300, gap: 20, padding: 20 },
+  xl: { left: 264, right: 380, gap: 24, padding: 32 },
+  lg: { left: 244, right: 360, gap: 24, padding: 28 },
+  md: { left: 224, right: 320, gap: 20, padding: 24 },
+  sm: { left: 204, right: 300, gap: 20, padding: 20 },
 };
 
 export function getViewportTier(width) {

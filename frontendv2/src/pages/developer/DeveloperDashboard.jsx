@@ -184,8 +184,30 @@ const DeveloperDashboard = () => {
 
   return (
     <TwoColumnRight right={rightRail}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
+      <Typography 
+        variant="h3" 
+        sx={{ 
+          fontWeight: 800, 
+          color: 'text.primary',
+          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+          letterSpacing: '-0.02em',
+          mb: 1.5
+        }}
+      >
         Developer Dashboard
+      </Typography>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          color: 'text.secondary',
+          fontWeight: 400,
+          fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+          lineHeight: 1.6,
+          letterSpacing: '0.01em',
+          mb: 2
+        }}
+      >
+        Welcome back! Here's your development overview.
       </Typography>
       {error && (
         <Card sx={{ mb: 2 }}>

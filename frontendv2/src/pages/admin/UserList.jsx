@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, IconButton, Paper, Stack, Typography } from '@mui/material';
+import UserAvatarName from '../../components/shared/UserAvatarName';
 import { useNavigate } from 'react-router-dom';
 import { Add, Delete, Edit, Refresh } from '@mui/icons-material';
 import DataTable from '../../components/shared/DataTable';
@@ -83,7 +84,22 @@ const UserList = () => {
   };
 
   const columns = useMemo(() => [
-    { field: 'username', headerName: 'Username', sortable: true },
+    {
+      field: 'username',
+      headerName: 'Username',
+      sortable: true,
+      render: (row) => (
+        <UserAvatarName
+          name={row.username}
+          email={row.email}
+          role={row.role}
+          size={40}
+          fontSize={'1rem'}
+          fontWeight={600}
+          mr={2}
+        />
+      ),
+    },
     { field: 'email', headerName: 'Email', sortable: true },
     { field: 'role', headerName: 'Role', type: 'chip' },
     { field: 'isActive', headerName: 'Status', type: 'status' },

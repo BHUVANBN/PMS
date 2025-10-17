@@ -36,7 +36,7 @@ import logo from '../../assets/skillonx.png';
 import { useAuth } from '../../contexts/AuthContext';
 import { meetingAPI, calendarAPI, subscribeToEvents } from '../../services/api';
 
-const StyledDrawer = styled(Drawer)(({ theme }) => ({
+const StyledDrawer = styled(Drawer)(() => ({
   flexShrink: 0,
   '& .MuiDrawer-paper': {
     boxSizing: 'border-box',
@@ -80,7 +80,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     {
       text: 'Dashboard',
       icon: <DashboardIcon />,
-      path: `/${role}/dashboard`,
+      path: role ? `/${role}/dashboard` : '/dashboard',
       roles: ['admin', 'hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
     },
     {
@@ -142,6 +142,18 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       icon: <DescriptionIcon />,
       path: '/documents',
       roles: ['developer', 'tester', 'sales', 'marketing', 'intern'],
+    },
+    {
+      text: 'My Employee Details',
+      icon: <PeopleIcon />,
+      path: '/employee/details',
+      roles: ['manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    },
+    {
+      text: 'Employee Details',
+      icon: <PeopleIcon />,
+      path: '/hr/employee/details',
+      roles: ['admin', 'hr'],
     },
     {
       text: 'Analytics',

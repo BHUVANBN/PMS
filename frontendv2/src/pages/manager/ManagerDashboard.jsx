@@ -7,7 +7,8 @@ import {
   LinearProgress,
   Button,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import {
   Assignment,
@@ -257,7 +258,7 @@ const ManagerDashboard = () => {
         <Box sx={{ flex: 1 }}>
           {/* Stats Cards */}
           <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} sm={6} lg={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatsCard
                 title="Active Projects"
                 value={stats.activeProjects}
@@ -265,7 +266,7 @@ const ManagerDashboard = () => {
                 color="primary"
               />
             </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatsCard
                 title="Pending Tasks"
                 value={stats.pendingTasks}
@@ -273,7 +274,7 @@ const ManagerDashboard = () => {
                 color="warning"
               />
             </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatsCard
                 title="In Progress Tasks"
                 value={stats.inProgressTasks}
@@ -281,7 +282,7 @@ const ManagerDashboard = () => {
                 color="info"
               />
             </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
+            <Grid item xs={12} sm={6} md={3}>
               <StatsCard
                 title="Completed Tasks"
                 value={stats.completedTasks}
@@ -332,7 +333,9 @@ const ManagerDashboard = () => {
                       elevation={0}
                       sx={{
                         p: 3,
-                        height: '100%',
+                        height: 320,
+                        display: 'flex',
+                        flexDirection: 'column',
                         background: 'rgba(255, 255, 255, 0.3)',
                         backdropFilter: 'blur(10px)',
                         border: '1px solid rgba(255, 255, 255, 0.5)',
@@ -348,7 +351,7 @@ const ManagerDashboard = () => {
                       }}
                       onClick={() => navigate(`/projects/${project._id}`)}
                     >
-                      <Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Project Header */}
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                           <Typography 
@@ -357,7 +360,12 @@ const ManagerDashboard = () => {
                               fontWeight: 600,
                               fontSize: '1.1rem',
                               color: 'text.primary',
-                              lineHeight: 1.3
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
                             }}
                           >
                             {project.projectName || project.name || 'Unnamed Project'}
@@ -391,73 +399,82 @@ const ManagerDashboard = () => {
                         </Box>
 
                         {/* Project Description */}
-                        {project.description && (
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              mb: 2,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              fontSize: '0.875rem',
-                              lineHeight: 1.5
-                            }}
-                          >
-                            {project.description}
-                          </Typography>
-                        )}
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            mb: 2,
+                            flex: 1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            fontSize: '0.875rem',
+                            lineHeight: 1.5,
+                            minHeight: '63px'
+                          }}
+                        >
+                          {project.description || 'No description available'}
+                        </Typography>
 
-                        {/* Project Manager */}
-                        {project.projectManager && (
-                          <Box 
-                            display="flex" 
-                            alignItems="center" 
-                            mt={2}
-                            pt={2}
-                            borderTop="1px solid rgba(0, 0, 0, 0.08)"
-                          >
-                            <Box
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: '50%',
-                                bgcolor: '#2196f3',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                mr: 1.5
-                              }}
+                        {/* Bottom Section */}
+                        <Box sx={{ mt: 'auto' }}>
+                          {/* Project Manager */}
+                          {project.projectManager && (
+                            <Box 
+                              display="flex" 
+                              alignItems="center" 
+                              mb={1.5}
+                              pt={2}
+                              borderTop="1px solid rgba(0, 0, 0, 0.08)"
                             >
-                              <Typography
+                              <Box
                                 sx={{
-                                  color: 'white',
-                                  fontWeight: 600,
-                                  fontSize: '0.875rem'
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: '50%',
+                                  bgcolor: '#2196f3',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  mr: 1.5,
+                                  flexShrink: 0
                                 }}
                               >
-                                {(project.projectManager?.firstName?.[0] || '').toUpperCase()}
-                                {(project.projectManager?.lastName?.[0] || '').toUpperCase()}
-                              </Typography>
+                                <Typography
+                                  sx={{
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem'
+                                  }}
+                                >
+                                  {(project.projectManager?.firstName?.[0] || '').toUpperCase()}
+                                  {(project.projectManager?.lastName?.[0] || '').toUpperCase()}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  Project Manager
+                                </Typography>
+                                <Typography 
+                                  variant="body2" 
+                                  fontWeight={500}
+                                  sx={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {project.projectManager.firstName} {project.projectManager.lastName}
+                                </Typography>
+                              </Box>
                             </Box>
-                            <Box>
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                Project Manager
-                              </Typography>
-                              <Typography variant="body2" fontWeight={500}>
-                                {project.projectManager.firstName} {project.projectManager.lastName}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        )}
+                          )}
 
-                        {/* Team Size */}
-                        {project.team && project.team.length > 0 && (
+                          {/* Team Size */}
                           <Box 
                             display="flex" 
                             alignItems="center" 
-                            mt={2}
                             sx={{
                               p: 1.5,
                               borderRadius: '8px',
@@ -466,10 +483,10 @@ const ManagerDashboard = () => {
                           >
                             <Group sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
                             <Typography variant="body2" color="text.secondary">
-                              {project.team.length} team {project.team.length === 1 ? 'member' : 'members'}
+                              {project.team?.length || 0} team {(project.team?.length || 0) === 1 ? 'member' : 'members'}
                             </Typography>
                           </Box>
-                        )}
+                        </Box>
                       </Box>
                     </Paper>
                   </Grid>
@@ -496,7 +513,7 @@ const ManagerDashboard = () => {
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
           }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="subtitle1" fontWeight={600}>Today’s Standups</Typography>
+              <Typography variant="subtitle1" fontWeight={600}>Today's Standups</Typography>
               <Button size="small" variant="text" onClick={() => navigate('/manager/standups')}>View</Button>
             </Box>
             <CompactStandups />

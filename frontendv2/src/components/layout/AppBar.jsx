@@ -13,7 +13,9 @@ import {
   ListItemText,
   useTheme,
   Badge,
-  Tooltip
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -26,7 +28,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
-import { calendarAPI, meetingAPI, subscribeToEvents } from '../../services/api';
+import { calendarAPI, meetingAPI, employeeAPI, subscribeToEvents } from '../../services/api';
 import dayjs from 'dayjs';
 
 const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
@@ -39,6 +41,25 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   // sound is always enabled via vibration cue for new notifications
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
+
+  // Helper to show browser/system notification
+  const notifySystem = React.useCallback((title, body, path, tag) => {
+    try {
+      if (!('Notification' in window)) return;
+      if (Notification.permission !== 'granted') return;
+      const n = new Notification(title || 'Notification', {
+        body: body || '',
+        tag: tag || undefined,
+      });
+      n.onclick = () => {
+        try { window.focus?.(); } catch (err) { console.debug('window focus failed', err); }
+        try { if (path) window.location.href = path; } catch (err) { console.debug('redirect failed', err); }
+        try { n.close?.(); } catch (err) { console.debug('notification close failed', err); }
+      };
+    } catch (err) { console.debug('system notification failed', err); }
+  }, []);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -117,6 +138,7 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
     };
 
     let timer;
+    let docsTimer;
     let unsubscribe;
     let retryTimer;
     let retryDelay = 2000; // 2s -> 30s backoff
@@ -128,7 +150,8 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
         const seen = new Set(getSeen());
         const now = dayjs();
         if (debug) console.debug('[notif] fetched calendar events:', events.length);
-        const mine = events.filter(ev => {
+        // For HR, include org-wide events as returned by server. For others, filter to attendee/creator.
+        const mine = (user?.role === 'hr') ? events : events.filter(ev => {
           const isAttendee = (ev.attendees || []).some(a => (a?._id || a) === user._id);
           const isCreator = (ev.createdBy?._id || ev.createdBy) === user._id;
           return isAttendee || isCreator;
@@ -137,7 +160,11 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
         const due = [];
         for (const ev of mine) {
           if (ev.reminder === false) continue;
-          const remindMins = Number(ev.reminderTime || 15);
+          let remindMins = Number(ev.reminderTime || 15);
+          // Enforce 5-minute reminders for meeting and personal events
+          if ((ev.eventType || ev.type) === 'meeting' || ev.isPersonal === true) {
+            remindMins = 5;
+          }
           const start = parseDateTime(ev);
           const remindAt = start.subtract(remindMins, 'minute');
           if (now.isAfter(remindAt) && now.isBefore(start.add(1, 'hour'))) {
@@ -149,19 +176,51 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
                 message: `${ev.title || 'Event'} in ${Math.max(0, Math.round(start.diff(now, 'minute', true)))} min`,
                 time: now.format('HH:mm'),
                 read: false,
+                path: '/calendar',
               });
               seen.add(key);
             }
           }
         }
-        // Meetings support: default 10-minute reminder
+
+        // New review events notification (not time-based reminder, but creation awareness)
+        try {
+          const reviewKey = `seen_review_events_${user._id}`;
+          const getSeenReviews = () => { try { return JSON.parse(localStorage.getItem(reviewKey) || '[]'); } catch { return []; } };
+          const setSeenReviews = (ids) => { try { localStorage.setItem(reviewKey, JSON.stringify(ids.slice(-500))); } catch (err) { console.debug('setSeenReviews failed', err); }
+          };
+          const seenReviews = new Set(getSeenReviews());
+          const reviews = events.filter(ev => (ev.eventType || ev.type) === 'review');
+          for (const ev of reviews) {
+            // Only notify relevant users (unless HR sees all)
+            if (user?.role !== 'hr') {
+              const isAttendee = (ev.attendees || []).some(a => (a?._id || a) === user._id);
+              const isCreator = (ev.createdBy?._id || ev.createdBy) === user._id;
+              if (!isAttendee && !isCreator) continue;
+            }
+            const key = `rev_${ev._id}`;
+            if (!seenReviews.has(key)) {
+              due.push({
+                id: key,
+                title: 'New review scheduled',
+                message: `${ev.title || 'Review'} on ${dayjs(ev.eventDate).format('MMM D')} at ${ev.startTime || ''}`,
+                time: now.format('HH:mm'),
+                read: false,
+                path: '/calendar',
+              });
+              seenReviews.add(key);
+            }
+          }
+          setSeenReviews(Array.from(seenReviews));
+        } catch (err) { console.debug('reviews notify failed', err); }
+        // Meetings support: default 5-minute reminder
         try {
           const mres = await meetingAPI.getUserMeetings();
           const meetings = Array.isArray(mres?.meetings) ? mres.meetings : (Array.isArray(mres?.data) ? mres.data : []);
           if (debug) console.debug('[notif] fetched user meetings:', meetings.length);
           for (const mt of meetings) {
             const start = dayjs(mt.startTime);
-            const remindMins = 10;
+            const remindMins = 5;
             const remindAt = start.subtract(remindMins, 'minute');
             if (now.isAfter(remindAt) && now.isBefore(start.add(1, 'hour'))) {
               const key = `meet_${mt._id}_${remindMins}`;
@@ -172,6 +231,7 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
                   message: `${mt.title || 'Meeting'} in ${Math.max(0, Math.round(start.diff(now, 'minute', true)))} min`,
                   time: now.format('HH:mm'),
                   read: false,
+                  path: '/meetings',
                 });
                 seen.add(key);
               }
@@ -191,8 +251,67 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
           } catch (e) { console.debug('history persist failed', e); }
           // Sound/vibration cue only (no toasts)
           try { if (navigator?.vibrate) navigator.vibrate(120); } catch (err) { console.debug('vibrate failed', err); }
+          try {
+            const first = due[0];
+            if (first) {
+              setSnackbarMsg(`${first.title}: ${first.message}`);
+              setSnackbarOpen(true);
+              // Browser/system notification with click-through
+              notifySystem(first.title, first.message, first.path || '/calendar', first.id);
+            }
+          } catch (err) { console.debug('snackbar set failed', err); }
         }
       } catch (e) { console.debug('processEvents failed', e); }
+    };
+
+    // Process HR/Manager/Admin uploaded documents for current employee (My HR Docs)
+    const processDocs = async () => {
+      try {
+        const dres = await employeeAPI.getMyHRDocs();
+        const list = Array.isArray(dres?.data) ? dres.data : (Array.isArray(dres) ? dres : []);
+        const now = dayjs();
+        const dkey = `seen_hr_docs_${user._id}`;
+        const getSeenDocs = () => { try { return JSON.parse(localStorage.getItem(dkey) || '[]'); } catch { return []; } };
+        const setSeenDocs = (ids) => { try { localStorage.setItem(dkey, JSON.stringify(ids.slice(-500))); } catch (err) { console.debug('setSeenDocs failed', err); }
+        };
+        const seenDocs = new Set(getSeenDocs());
+        const incoming = [];
+        for (const doc of list) {
+          const pid = doc?.file?.publicId || doc?.file?.url || doc?.name || JSON.stringify(doc);
+          const key = `doc_${pid}`;
+          if (!seenDocs.has(key)) {
+            incoming.push({
+              id: key,
+              title: 'New document',
+              message: `${doc?.name || 'File'} uploaded by HR/Manager/Admin`,
+              time: now.format('HH:mm'),
+              read: false,
+              path: '/documents',
+            });
+            seenDocs.add(key);
+          }
+        }
+        if (incoming.length) {
+          setNotifications(prev => [...incoming, ...prev].slice(0, 50));
+          try {
+            const hKey = `notifications_history_${user._id}`;
+            const existing = JSON.parse(localStorage.getItem(hKey) || '[]');
+            const updated = [...incoming, ...existing].slice(0, 200);
+            localStorage.setItem(hKey, JSON.stringify(updated));
+          } catch (err) { console.debug('docs history persist failed', err); }
+          try { if (navigator?.vibrate) navigator.vibrate(120); } catch (err) { console.debug('vibrate failed', err); }
+          try {
+            const first = incoming[0];
+            if (first) {
+              setSnackbarMsg(`${first.title}: ${first.message}`);
+              setSnackbarOpen(true);
+              // Browser/system notification with click-through to documents
+              notifySystem(first.title, first.message, first.path || '/documents', first.id);
+            }
+          } catch (err) { console.debug('snackbar set failed', err); }
+        }
+        setSeenDocs(Array.from(seenDocs));
+      } catch (err) { console.debug('processDocs failed', err); }
     };
 
     const ensurePermission = () => {
@@ -204,14 +323,53 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
     };
 
     ensurePermission();
+    // Preload from persisted history so bell shows items immediately
+    try {
+      const hKey = `notifications_history_${user._id}`;
+      const existing = JSON.parse(localStorage.getItem(hKey) || '[]');
+      if (Array.isArray(existing) && existing.length) {
+        setNotifications(existing.slice(0, 50));
+      }
+    } catch (e) { console.debug('preload history failed', e); }
+
     processEvents();
+    processDocs();
     timer = setInterval(processEvents, 10000);
+    docsTimer = setInterval(processDocs, 30000);
 
     const connect = () => {
       try {
         unsubscribe = subscribeToEvents(
           { userId: user._id },
-          () => { retryDelay = 2000; processEvents(); },
+          (payload) => {
+            try {
+              retryDelay = 2000;
+              const type = payload?.type || '';
+              // For any calendar-related updates, refresh timers
+              if (type.startsWith('calendar.')) {
+                processEvents();
+                return;
+              }
+              // Standup-related notifications
+              if (type.startsWith('standup.')) {
+                const now = dayjs();
+                const title = type === 'standup.commented' ? 'Standup comment' : type === 'standup.attachment_added' ? 'Standup attachment' : 'Standup update';
+                const msg = payload?.data?.by ? `${title} by ${payload.data.by}` : title;
+                const path = (user?.role === 'hr' || user?.role === 'admin' || user?.role === 'manager') ? '/hr/standups' : '/notifications';
+                const item = { id: `${type}_${now.valueOf()}`, title, message: msg, time: now.format('HH:mm'), read: false, path };
+                setNotifications(prev => [item, ...prev].slice(0, 50));
+                try {
+                  const hKey = `notifications_history_${user._id}`;
+                  const existing = JSON.parse(localStorage.getItem(hKey) || '[]');
+                  const updated = [item, ...existing].slice(0, 200);
+                  localStorage.setItem(hKey, JSON.stringify(updated));
+                } catch (e) { console.debug('history persist failed', e); }
+                try { if (navigator?.vibrate) navigator.vibrate(120); } catch (err) { console.debug('vibrate failed', err); }
+                notifySystem(item.title, item.message, item.path, item.id);
+                return;
+              }
+            } catch (e) { console.debug('sse onmessage handling failed', e); }
+          },
           () => {
             try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { console.debug('unsubscribe noop', err); }
             if (retryTimer) clearTimeout(retryTimer);
@@ -230,10 +388,11 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
 
     return () => {
       if (timer) clearInterval(timer);
+      if (docsTimer) clearInterval(docsTimer);
       if (retryTimer) clearTimeout(retryTimer);
       try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (e) { console.debug('unsubscribe failed', e); }
     };
-  }, [user?._id]);
+  }, [user?._id, user?.role, notifySystem]);
 
   return (
     <MuiAppBar 
@@ -405,7 +564,7 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
           </MenuItem>
         ) : (
           notifications.map(n => (
-            <MenuItem key={n.id} onClick={handleNotificationMenuClose} sx={{ alignItems: 'flex-start', whiteSpace: 'normal' }}>
+            <MenuItem key={n.id} onClick={() => { handleNotificationMenuClose(); navigate(n.path || '/calendar'); }} sx={{ alignItems: 'flex-start', whiteSpace: 'normal' }}>
               <ListItemText primary={n.title} secondary={`${n.message} • ${n.time}`} />
             </MenuItem>
           ))
@@ -418,6 +577,16 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
         </MenuItem>
       </Menu>
       <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity="info" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
+          {snackbarMsg}
+        </Alert>
+      </Snackbar>
     </MuiAppBar>
   );
 };

@@ -10,6 +10,7 @@ export default function StandupModal({
   const [loading, setLoading] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [file, setFile] = useState(null);
 
   const now = useMemo(() => new Date(), []);
   const name = user?.firstName || user?.lastName ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim() : (user?.name || user?.username || '');
@@ -69,7 +70,16 @@ export default function StandupModal({
     try {
       setLoading(true);
       setError('');
-      await standupAPI.submit({ ...form, working_hours: Number(form.working_hours) });
+      const res = await standupAPI.submit({ ...form, working_hours: Number(form.working_hours) });
+      const standupId = res?.standup?._id || res?.data?.standup?._id;
+      if (standupId && file) {
+        try {
+          await standupAPI.addAttachment(standupId, { file, name: file.name });
+        } catch (err) {
+          // Don't block logout flow if attachment fails; surface error inline
+          console.error('Attachment upload failed:', err);
+        }
+      }
       onSubmitted && onSubmitted();
     } catch (e) {
       setError(e.message || 'Submission failed');
@@ -168,6 +178,11 @@ export default function StandupModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700">Next Steps</label>
                 <textarea className="mt-1 block w-full rounded-md border-gray-300" rows={2} value={form.next_steps} onChange={(e)=>setForm(f=>({...f,next_steps:e.target.value}))} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Attachment (optional)</label>
+                <input type="file" className="mt-1 block w-full" onChange={(e)=>setFile(e.target.files?.[0] || null)} />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

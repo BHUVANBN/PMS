@@ -23,6 +23,7 @@ import EmployeeList from './pages/hr/EmployeeList';
 import EmployeeCreate from './pages/hr/EmployeeCreate';
 import EmployeeEdit from './pages/hr/EmployeeEdit';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
+import ManagerStandups from './pages/manager/ManagerStandups.jsx';
 import Projects from './pages/manager/Projects';
 import TeamManagement from './pages/manager/TeamManagement';
 import Kanban from './pages/manager/Kanban';
@@ -132,6 +133,7 @@ function App() {
               <Route path="manager/documents" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDocuments /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
+              <Route path="manager/standups" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerStandups /></ProtectedRoute>} />
               <Route path="manager/projects" element={<ProtectedRoute requiredRoles={["manager","admin"]}><Projects /></ProtectedRoute>} />
               <Route path="manager/projects/new" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ProjectCreate /></ProtectedRoute>} />
               <Route path="manager/projects/:id/edit" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ProjectEdit /></ProtectedRoute>} />

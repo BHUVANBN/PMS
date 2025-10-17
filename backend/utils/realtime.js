@@ -106,3 +106,9 @@ export function emitTesterKanbanUpdate({ projectId, testerId, ticketId, bug }) {
     data: { ticketId, bug }
   });
 }
+
+// Standup notifications
+export function emitStandupEvent({ userId, type, data }) {
+  if (userId) eventBus.emit('user', { userId, type, data });
+  eventBus.emit('broadcast', { type, data });
+}

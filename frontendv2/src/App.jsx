@@ -59,6 +59,7 @@ import AllStandups from './pages/standup/AllStandups.jsx';
 import PublicOnboardingList from './pages/hr/PublicOnboardingList.jsx';
 import OnboardingSuccess from './pages/OnboardingSuccess.jsx';
 import OnboardingPage from './pages/employee/OnboardingPage.jsx';
+import EmployeeDetails from './pages/employee/EmployeeDetails.jsx';
 import HRDocuments from './pages/hr/HRDocuments.jsx';
 import MyDocuments from './pages/MyDocuments.jsx';
 import UserDocuments from './pages/UserDocuments.jsx';
@@ -165,6 +166,10 @@ function App() {
               <Route path="help" element={<HelpPage />} />
               <Route path="meetings" element={<Meeting/>}/>
               <Route path="documents" element={<ProtectedRoute><MyDocuments /></ProtectedRoute>} />
+              <Route path="hr/employee/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
+              <Route path="employee/details" element={<ProtectedRoute requiredRoles={["manager","developer","tester","sales","marketing","intern"]}><EmployeeDetails /></ProtectedRoute>} />
+              <Route path="hr/employees/:id/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
+              <Route path="admin/:id/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
               <Route path="notifications" element={<NotificationsPage />} />
 
               {/* Role-based user documents viewing (Admin/HR/Manager only) */}

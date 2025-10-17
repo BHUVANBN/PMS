@@ -20,7 +20,8 @@ export default function OnboardingModal({ open, onClose, user }) {
   }, [user]);
 
   const [form, setForm] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     aadhar: null,
     photo: null,
@@ -37,6 +38,40 @@ export default function OnboardingModal({ open, onClose, user }) {
     bankAccountNumber: '',
     ifsc: '',
   });
+
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!form.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!form.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!form.email) newErrors.email = 'Email is required';
+    if (!form.mobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!/^\d{10}$/.test(form.mobile)) {
+      newErrors.mobile = 'Mobile number must be 10 digits';
+    }
+    if (!form.emergencyContactPhone) {
+      newErrors.emergencyContactPhone = 'Emergency contact is required';
+    } else if (!/^\d{10}$/.test(form.emergencyContactPhone)) {
+      newErrors.emergencyContactPhone = 'Must be 10 digits';
+    }
+    if (!form.aadhar) newErrors.aadhar = 'Aadhar card is required';
+    if (!form.photo) newErrors.photo = 'Passport photo is required';
+    if (!form.tenth) newErrors.tenth = '10th marks card is required';
+    if (!form.twelfth) newErrors.twelfth = '12th marks card is required';
+    if (!form.passbook) newErrors.passbook = 'Passbook photo is required';
+    if (!form.address) newErrors.address = 'Address is required';
+    if (!form.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
+    if (!form.pan) newErrors.pan = 'PAN is required';
+    if (!form.emergencyContactName) newErrors.emergencyContactName = 'Emergency contact name is required';
+    if (!form.bankAccountNumber) newErrors.bankAccountNumber = 'Bank account number is required';
+    if (!form.ifsc) newErrors.ifsc = 'IFSC code is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const loadStatus = async () => {
     try {
@@ -66,51 +101,167 @@ export default function OnboardingModal({ open, onClose, user }) {
   }, [open, isAuthenticated]);
 
   const handleFileChange = (key, file) => {
-    setForm((f) => ({ ...f, [key]: file }));
+    setForm((f) => ({
+      ...f,
+      [key]: file || null
+    }));
+    
+    // Clear error for this field when a file is selected
+    if (file) {
+      setErrors(prev => ({
+        ...prev,
+        [key]: undefined
+      }));
+    }
+  };
+
+  const validateFile = (file, allowedTypes, maxSizeMB = 5) => {
+    if (!file) return { valid: false, error: 'File is required' };
+    
+    // Check file type
+    const fileType = file.type;
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    if (allowedTypes.includes('pdf') && fileType !== 'application/pdf' && fileExt !== 'pdf') {
+      return { valid: false, error: 'Only PDF files are allowed' };
+    }
+    
+    if (allowedTypes.includes('image') && !fileType.startsWith('image/')) {
+      return { valid: false, error: 'Only image files are allowed' };
+    }
+    
+    // Check file size (5MB default)
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      return { valid: false, error: `File size must be less than ${maxSizeMB}MB` };
+    }
+    
+    return { valid: true };
   };
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
-    if (!form.aadhar && !form.photo && !form.tenth && !form.twelfth && !form.diploma && !form.passbook) {
-      setError('Please select at least one document to upload');
+    
+    // Validate all form fields
+    if (!validateForm()) {
+      setError('Please fill in all required fields correctly');
       return;
     }
+
+    // File validations
+    const fileValidations = [
+      { 
+        key: 'aadhar', 
+        file: form.aadhar, 
+        types: ['pdf'],
+        required: true,
+        label: 'Aadhar Card'
+      },
+      { 
+        key: 'photo', 
+        file: form.photo, 
+        types: ['image'],
+        required: true,
+        label: 'Passport Photo'
+      },
+      { 
+        key: 'tenth', 
+        file: form.tenth, 
+        types: ['pdf'],
+        required: true,
+        label: '10th Marks Card'
+      },
+      { 
+        key: 'twelfth', 
+        file: form.twelfth, 
+        types: ['pdf'],
+        required: true,
+        label: '12th Marks Card'
+      },
+      { 
+        key: 'diploma', 
+        file: form.diploma, 
+        types: ['pdf'],
+        required: false,
+        label: 'Diploma Certificate'
+      },
+      { 
+        key: 'passbook', 
+        file: form.passbook, 
+        types: ['pdf'],
+        required: true,
+        label: 'Passbook Photo'
+      },
+    ];
+
+    // Validate files
+    const newErrors = { ...errors };
+    let hasFileErrors = false;
+
+    for (const { key, file, types, required, label } of fileValidations) {
+      if (required && !file) {
+        newErrors[key] = `${label} is required`;
+        hasFileErrors = true;
+      } else if (file) {
+        const { valid, error } = validateFile(file, types);
+        if (!valid) {
+          newErrors[key] = error;
+          hasFileErrors = true;
+        }
+      }
+    }
+
+    if (hasFileErrors) {
+      setErrors(newErrors);
+      setError('Please correct the file upload errors');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
       setSuccess('');
+      
       const fd = new FormData();
-      if (form.aadhar) fd.append('aadhar', form.aadhar);
-      if (form.photo) fd.append('photo', form.photo);
-      if (form.tenth) fd.append('tenth', form.tenth);
-      if (form.twelfth) fd.append('twelfth', form.twelfth);
+      
+      // Append all document files
+      fd.append('aadhar', form.aadhar);
+      fd.append('photo', form.photo);
+      fd.append('tenth', form.tenth);
+      fd.append('twelfth', form.twelfth);
       if (form.diploma) fd.append('diploma', form.diploma);
-      if (form.passbook) fd.append('passbook', form.passbook);
-      // Basic details
-      if (form.mobile) fd.append('mobile', form.mobile);
-      if (form.address) fd.append('address', form.address);
-      if (form.dateOfBirth) fd.append('dateOfBirth', form.dateOfBirth);
-      if (form.pan) fd.append('pan', form.pan);
-      if (form.emergencyContactName) fd.append('emergencyContactName', form.emergencyContactName);
-      if (form.emergencyContactPhone) fd.append('emergencyContactPhone', form.emergencyContactPhone);
-      if (form.bankAccountNumber) fd.append('bankAccountNumber', form.bankAccountNumber);
-      if (form.ifsc) fd.append('ifsc', form.ifsc);
+      fd.append('passbook', form.passbook);
+      
+      // Append all form data
+      if (!isAuthenticated) {
+        // Combine first and last name for backend
+        const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`.trim();
+        fd.append('fullName', fullName);
+        fd.append('email', form.email);
+      }
+      
+      fd.append('mobile', form.mobile);
+      fd.append('address', form.address);
+      fd.append('dateOfBirth', form.dateOfBirth);
+      fd.append('pan', form.pan);
+      fd.append('emergencyContactName', form.emergencyContactName);
+      fd.append('emergencyContactPhone', form.emergencyContactPhone);
+      fd.append('bankAccountNumber', form.bankAccountNumber);
+      fd.append('ifsc', form.ifsc);
 
       let res;
       if (isAuthenticated) {
         res = await employeeAPI.uploadOnboardingDocuments(fd);
       } else {
-        // For public submission include fullName and email
-        if (form.fullName) fd.append('fullName', form.fullName);
-        if (form.email) fd.append('email', form.email);
         res = await publicAPI.submitOnboarding(fd);
       }
+      
       setOnboarding(res.onboarding);
       setStatus(res.onboarding?.status || status);
       setSuccess('Documents uploaded successfully');
       navigate('/onboarding-success', { replace: true });
     } catch (e) {
-      setError(e.message || 'Failed to upload documents');
+      setError(e.message || 'Failed to upload documents. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -178,34 +329,74 @@ export default function OnboardingModal({ open, onClose, user }) {
               ) : (
                 <>
                   <div className="field">
-                    <label>Full Name</label>
+                    <label className="required-field">First Name</label>
                     <input
-                      className="input"
-                      value={form.fullName}
-                      onChange={(e)=>setForm(f=>({...f, fullName:e.target.value}))}
-                      placeholder="Your full name"
+                      className={`input ${errors.firstName ? 'input-error' : ''}`}
+                      value={form.firstName}
+                      onChange={(e) => {
+                        setForm(f => ({ ...f, firstName: e.target.value }));
+                        if (errors.firstName) {
+                          setErrors(prev => ({ ...prev, firstName: '' }));
+                        }
+                      }}
+                      placeholder="First name"
+                      required
                     />
+                    {errors.firstName && <div className="error-message">{errors.firstName}</div>}
                   </div>
                   <div className="field">
-                    <label>Email</label>
+                    <label className="required-field">Last Name</label>
+                    <input
+                      className={`input ${errors.lastName ? 'input-error' : ''}`}
+                      value={form.lastName}
+                      onChange={(e) => {
+                        setForm(f => ({ ...f, lastName: e.target.value }));
+                        if (errors.lastName) {
+                          setErrors(prev => ({ ...prev, lastName: '' }));
+                        }
+                      }}
+                      placeholder="Last name"
+                      required
+                    />
+                    {errors.lastName && <div className="error-message">{errors.lastName}</div>}
+                  </div>
+                  <div className="field">
+                    <label className="required-field">Email</label>
                     <input
                       type="email"
-                      className="input"
+                      className={`input ${errors.email ? 'input-error' : ''}`}
                       value={form.email}
-                      onChange={(e)=>setForm(f=>({...f, email:e.target.value}))}
+                      onChange={(e) => {
+                        setForm(f => ({ ...f, email: e.target.value }));
+                        if (errors.email) {
+                          setErrors(prev => ({ ...prev, email: '' }));
+                        }
+                      }}
                       placeholder="you@example.com"
+                      required
                     />
+                    {errors.email && <div className="error-message">{errors.email}</div>}
                   </div>
                 </>
               )}
               <div className="field">
-                <label>Mobile Number</label>
+                <label className="required-field">Mobile Number</label>
                 <input
-                  className="input"
+                  type="tel"
+                  className={`input ${errors.mobile ? 'input-error' : ''}`}
                   value={form.mobile}
-                  onChange={(e)=>setForm(f=>({...f, mobile:e.target.value}))}
-                  placeholder="Optional"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm(f => ({ ...f, mobile: value }));
+                    if (errors.mobile) {
+                      setErrors(prev => ({ ...prev, mobile: '' }));
+                    }
+                  }}
+                  placeholder="10-digit mobile number"
+                  required
                 />
+                {errors.mobile && <div className="error-message">{errors.mobile}</div>}
+                <div className="file-hint">Must be 10 digits</div>
               </div>
             </div>
 
@@ -238,21 +429,39 @@ export default function OnboardingModal({ open, onClose, user }) {
                 />
               </div>
               <div className="field">
-                <label>Emergency Contact Name</label>
+                <label className="required-field">Emergency Contact Name</label>
                 <input
-                  className="input"
+                  className={`input ${errors.emergencyContactName ? 'input-error' : ''}`}
                   value={form.emergencyContactName}
-                  onChange={(e)=>setForm(f=>({...f, emergencyContactName:e.target.value}))}
+                  onChange={(e) => {
+                    setForm(f => ({ ...f, emergencyContactName: e.target.value }));
+                    if (errors.emergencyContactName) {
+                      setErrors(prev => ({ ...prev, emergencyContactName: '' }));
+                    }
+                  }}
+                  placeholder="Contact person's name"
+                  required
                 />
+                {errors.emergencyContactName && <div className="error-message">{errors.emergencyContactName}</div>}
               </div>
               <div className="field">
-                <label>Emergency Contact Phone</label>
+                <label className="required-field">Emergency Contact Phone</label>
                 <input
-                  className="input"
+                  type="tel"
+                  className={`input ${errors.emergencyContactPhone ? 'input-error' : ''}`}
                   value={form.emergencyContactPhone}
-                  onChange={(e)=>setForm(f=>({...f, emergencyContactPhone:e.target.value}))}
-                  placeholder="10-digit"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm(f => ({ ...f, emergencyContactPhone: value }));
+                    if (errors.emergencyContactPhone) {
+                      setErrors(prev => ({ ...prev, emergencyContactPhone: '' }));
+                    }
+                  }}
+                  placeholder="10-digit emergency number"
+                  required
                 />
+                {errors.emergencyContactPhone && <div className="error-message">{errors.emergencyContactPhone}</div>}
+                <div className="file-hint">Must be 10 digits</div>
               </div>
               <div className="field">
                 <label>Bank Account Number</label>
@@ -275,34 +484,77 @@ export default function OnboardingModal({ open, onClose, user }) {
 
             <div className="form-grid two-col" style={{ marginTop: 16 }}>
               <div className="field">
-                <label>Aadhar Card</label>
-                <input type="file" accept="image/*,.pdf" className="file-input"
-                  onChange={(e)=>handleFileChange('aadhar', e.target.files?.[0] || null)} />
+                <label className="required-field">Aadhar Card <span className="file-hint">(PDF only)</span></label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className={`file-input ${errors.aadhar ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('aadhar', e.target.files?.[0] || null)} 
+                  required
+                />
+                {errors.aadhar && <div className="error-message">{errors.aadhar}</div>}
+                <div className="file-hint">Upload Aadhar card in PDF format</div>
               </div>
+
               <div className="field">
-                <label>Passport-size Photo</label>
-                <input type="file" accept="image/*,.jpeg,.png,.jpg" className="file-input"
-                  onChange={(e)=>handleFileChange('photo', e.target.files?.[0] || null)} />
+                <label className="required-field">Passport-size Photo <span className="file-hint">(Image only)</span></label>
+                <input 
+                  type="file" 
+                  accept="image/jpeg,image/png,image/jpg" 
+                  className={`file-input ${errors.photo ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('photo', e.target.files?.[0] || null)} 
+                  required
+                />
+                {errors.photo && <div className="error-message">{errors.photo}</div>}
+                <div className="file-hint">Max size: 5MB, JPG/PNG only</div>
               </div>
+
               <div className="field">
-                <label>Passbook Photo</label>
-                <input type="file" accept="image/*,.jpeg,.png,.jpg,.pdf" className="file-input"
-                  onChange={(e)=>handleFileChange('passbook', e.target.files?.[0] || null)} />
+                <label className="required-field">Passbook Photo <span className="file-hint">(PDF only)</span></label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className={`file-input ${errors.passbook ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('passbook', e.target.files?.[0] || null)} 
+                  required
+                />
+                {errors.passbook && <div className="error-message">{errors.passbook}</div>}
+                <div className="file-hint">Upload bank passbook or statement in PDF format</div>
               </div>
+
               <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>10th Marks Card</label>
-                <input type="file" accept="image/*,.pdf" className="file-input"
-                  onChange={(e)=>handleFileChange('tenth', e.target.files?.[0] || null)} />
+                <label className="required-field">10th Marks Card <span className="file-hint">(PDF only)</span></label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className={`file-input ${errors.tenth ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('tenth', e.target.files?.[0] || null)} 
+                  required
+                />
+                {errors.tenth && <div className="error-message">{errors.tenth}</div>}
               </div>
+
               <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>12th Marks Card</label>
-                <input type="file" accept="image/*,.pdf" className="file-input"
-                  onChange={(e)=>handleFileChange('twelfth', e.target.files?.[0] || null)} />
+                <label className="required-field">12th Marks Card <span className="file-hint">(PDF only)</span></label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className={`file-input ${errors.twelfth ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('twelfth', e.target.files?.[0] || null)} 
+                  required
+                />
+                {errors.twelfth && <div className="error-message">{errors.twelfth}</div>}
               </div>
+
               <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>Diploma Certificate (if applicable)</label>
-                <input type="file" accept="image/*,.pdf" className="file-input"
-                  onChange={(e)=>handleFileChange('diploma', e.target.files?.[0] || null)} />
+                <label>Diploma Certificate <span className="file-hint">(PDF only, if applicable)</span></label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className={`file-input ${errors.diploma ? 'file-input-error' : ''}`}
+                  onChange={(e) => handleFileChange('diploma', e.target.files?.[0] || null)} 
+                />
+                {errors.diploma && <div className="error-message">{errors.diploma}</div>}
               </div>
             </div>
 

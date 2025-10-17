@@ -18,6 +18,19 @@ const dailyStandupSchema = new mongoose.Schema({
   blockers: { type: String, default: '' },
   collaboration: { type: String, default: '' },
   next_steps: { type: String, default: '' },
+  attachments: [{
+    url: { type: String },
+    publicId: { type: String },
+    uploadedAt: { type: Date },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    name: { type: String, default: '' }
+  }],
+  comments: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    name: { type: String },
+    comment: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }],
 }, { timestamps: true });
 
 // Enforce one record per user per day

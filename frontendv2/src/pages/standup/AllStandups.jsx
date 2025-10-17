@@ -23,6 +23,10 @@ import {
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { standupAPI } from '../../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 
 const truncate = (s, n = 80) => {
   if (!s) return '-';
@@ -43,6 +47,17 @@ export default function AllStandups() {
   const [q, setQ] = useState('');
   const [from, setFrom] = useState(null);
   const [to, setTo] = useState(null);
+
+  // Comment dialog
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [commentSaving, setCommentSaving] = useState(false);
+
+  // Upload dialog
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadSaving, setUploadSaving] = useState(false);
 
   const fetchList = async () => {
     try {
@@ -74,6 +89,46 @@ export default function AllStandups() {
     e.preventDefault();
     setPage(1);
     fetchList();
+  };
+
+  const openComment = (row) => {
+    setSelected(row);
+    setCommentText('');
+    setCommentOpen(true);
+  };
+
+  const saveComment = async () => {
+    if (!selected?._id || !commentText.trim()) return;
+    try {
+      setCommentSaving(true);
+      await standupAPI.addComment(selected._id, commentText.trim());
+      setCommentOpen(false);
+      fetchList();
+    } catch (e) {
+      setError(e.message || 'Failed to add comment');
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const openUpload = (row) => {
+    setSelected(row);
+    setUploadFile(null);
+    setUploadOpen(true);
+  };
+
+  const saveUpload = async () => {
+    if (!selected?._id || !uploadFile) return;
+    try {
+      setUploadSaving(true);
+      await standupAPI.addAttachment(selected._id, { file: uploadFile, name: uploadFile.name });
+      setUploadOpen(false);
+      fetchList();
+    } catch (e) {
+      setError(e.message || 'Failed to upload attachment');
+    } finally {
+      setUploadSaving(false);
+    }
   };
 
   return (
@@ -136,6 +191,7 @@ export default function AllStandups() {
                     <TableCell>Tasks</TableCell>
                     <TableCell>Progress</TableCell>
                     <TableCell>Links</TableCell>
+                    <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -153,6 +209,12 @@ export default function AllStandups() {
                       <TableCell title={r.tasks_done || ''}>{truncate(r.tasks_done, 60)}</TableCell>
                       <TableCell title={r.progress || ''}>{truncate(r.progress, 40)}</TableCell>
                       <TableCell title={r.links || ''}>{truncate(r.links, 30)}</TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button size="small" variant="outlined" onClick={() => openComment(r)}>Comment</Button>
+                          <Button size="small" variant="text" onClick={() => openUpload(r)}>Upload</Button>
+                        </Stack>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {rows.length === 0 && (
@@ -184,6 +246,45 @@ export default function AllStandups() {
           </>
         )}
       </Paper>
+
+      {/* Comment dialog */}
+      <Dialog open={commentOpen} onClose={() => setCommentOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Comment</DialogTitle>
+        <DialogContent dividers>
+          <TextField
+            label="Comment"
+            value={commentText}
+            onChange={(e)=>setCommentText(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCommentOpen(false)} disabled={commentSaving}>Cancel</Button>
+          <Button variant="contained" onClick={saveComment} disabled={commentSaving || !commentText.trim()}>
+            {commentSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upload dialog */}
+      <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Upload Attachment</DialogTitle>
+        <DialogContent dividers>
+          <Button variant="outlined" component="label">
+            Choose File
+            <input type="file" hidden onChange={(e)=>setUploadFile(e.target.files?.[0] || null)} />
+          </Button>
+          <Typography variant="body2" sx={{ ml: 2, display: 'inline-block' }}>{uploadFile?.name || 'No file selected'}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUploadOpen(false)} disabled={uploadSaving}>Cancel</Button>
+          <Button variant="contained" onClick={saveUpload} disabled={uploadSaving || !uploadFile}>
+            {uploadSaving ? 'Uploading...' : 'Upload'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -22,6 +22,7 @@ import TaskProgress from '../../components/dashboard/TaskProgress';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import QuickActions from '../../components/dashboard/QuickActions';
 import { managerAPI } from '../../services/api';
+import { standupAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -135,6 +136,67 @@ const ManagerDashboard = () => {
       planning: '#9c27b0'
     };
     return colors[status] || '#757575';
+  };
+
+  const CompactStandups = () => {
+    const [rows, setRows] = React.useState([]);
+    const [loading, setLoading] = React.useState(false);
+
+    const fetchToday = async () => {
+      try {
+        setLoading(true);
+        const res = await standupAPI.todayAll();
+        const items = res?.items || res?.data?.items || [];
+        setRows(Array.isArray(items) ? items.slice(0, 5) : []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    React.useEffect(() => { fetchToday(); }, []);
+
+    if (loading) return <LinearProgress />;
+    if (!rows.length) return <Typography variant="body2" color="text.secondary">No standups yet today</Typography>;
+
+    return (
+      <Stack spacing={1}>
+        {rows.map(r => (
+          <Box key={r._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body2" sx={{ mr: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {(r.name || 'User')} — {(r.tasks_done || '').slice(0, 40)}{(r.tasks_done || '').length > 40 ? '…' : ''}
+            </Typography>
+            <Chip size="small" label={r.status || '-'} variant="outlined" />
+          </Box>
+        ))}
+      </Stack>
+    );
+  };
+
+  const downloadTodaySummary = async () => {
+    const today = new Date();
+    const from = new Date(today); from.setHours(0,0,0,0);
+    const to = new Date(today); to.setHours(23,59,59,999);
+    try {
+      const res = await standupAPI.summary({ from: from.toISOString(), to: to.toISOString() });
+      const { summary } = res?.data || res || {};
+      const csv = [
+        'Metric,Value',
+        `Total,${summary?.total ?? 0}`,
+        `TotalHours,${summary?.totalHours ?? 0}`,
+        ...Object.entries(summary?.byStatus || {}).map(([k,v]) => `Status:${k},${v}`),
+        ...Object.entries(summary?.byPriority || {}).map(([k,v]) => `Priority:${k},${v}`),
+      ].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'standup-summary-today.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // Swallow errors, widget is auxiliary
+      console.error('Summary download failed', e);
+    }
   };
 
   return (
@@ -423,6 +485,26 @@ const ManagerDashboard = () => {
           flexShrink: 0,
           mt: { xs: 3, lg: 0 }
         }}>
+          {/* Today's Standups (compact) */}
+          <Paper elevation={0} sx={{ 
+            p: 3,
+            mb: 3,
+            background: 'rgba(255, 255, 255, 0.4)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+          }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+              <Typography variant="subtitle1" fontWeight={600}>Today’s Standups</Typography>
+              <Button size="small" variant="text" onClick={() => navigate('/manager/standups')}>View</Button>
+            </Box>
+            <CompactStandups />
+            <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
+              <Button size="small" variant="outlined" onClick={downloadTodaySummary}>Download Summary</Button>
+            </Stack>
+          </Paper>
+
           {/* My Upcoming Events */}
           <Box sx={{ mb: 3 }}>
             <MyUpcomingEvents title="My Upcoming Events" days={14} />

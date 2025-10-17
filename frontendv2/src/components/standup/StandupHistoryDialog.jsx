@@ -81,6 +81,42 @@ export default function StandupHistoryDialog({ open, onClose }) {
                   <Field label="Collaboration" value={s.collaboration} />
                   <Field label="Next Steps" value={s.next_steps} />
                 </Box>
+
+                {(Array.isArray(s.comments) && s.comments.length > 0) && (
+                  <>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Reviews</Typography>
+                    <Stack spacing={1}>
+                      {s.comments.map((c, idx) => (
+                        <Box key={idx} sx={{ p: 1.5, border: '1px dashed', borderColor: 'divider', borderRadius: 1.5 }}>
+                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.name || 'Manager/HR'}</Typography>
+                            <Typography variant="caption" color="text.secondary">{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</Typography>
+                          </Stack>
+                          <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>{c.comment}</Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </>
+                )}
+
+                {(Array.isArray(s.attachments) && s.attachments.length > 0) && (
+                  <>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Attachments</Typography>
+                    <Stack spacing={1}>
+                      {s.attachments.map((a, idx) => (
+                        <Stack key={idx} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                          <Typography variant="body2" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name || a.url}</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            {a.uploadedAt && <Chip size="small" label={new Date(a.uploadedAt).toLocaleDateString()} />}
+                            <Button size="small" href={a.url} target="_blank" rel="noreferrer">Open</Button>
+                          </Stack>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </>
+                )}
               </Box>
             ))}
           </Stack>

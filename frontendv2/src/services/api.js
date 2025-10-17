@@ -51,6 +51,34 @@ export const standupAPI = {
     const suffix = query ? `?${query}` : '';
     return apiRequest(`/standup/list${suffix}`);
   },
+
+  // Manager/Admin/HR: today's standups scoped to role
+  todayAll: () => apiRequest('/standup/today/all'),
+
+  // Manager/Admin/HR: add comment to a standup
+  addComment: (standupId, comment) =>
+    apiRequest(`/standup/${standupId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    }),
+
+  // Upload attachment to a standup (owner or privileged)
+  addAttachment: (standupId, { file, name }) => {
+    const formData = new FormData();
+    if (file) formData.append('file', file);
+    if (name) formData.append('name', name);
+    return apiRequest(`/standup/${standupId}/attachments`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  // Summary report for range/project
+  summary: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return apiRequest(`/standup/summary${suffix}`);
+  },
 };
 
 // Helper to build query string from params

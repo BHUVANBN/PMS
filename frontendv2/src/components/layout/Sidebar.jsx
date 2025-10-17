@@ -98,7 +98,15 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     {
       text: 'Tickets',
       icon: <ListIcon />,
-      path: role ? (role === 'manager' ? '/manager/kanban' : '/tickets') : '/tickets',
+      path: role
+        ? (role === 'manager'
+            ? '/manager/kanban'
+            : role === 'developer'
+              ? '/developer/kanban'
+              : role === 'tester'
+                ? '/tester/kanban'
+                : '/tickets')
+        : '/tickets',
       roles: ['manager', 'developer', 'tester'],
     },
     {

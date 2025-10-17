@@ -44,7 +44,6 @@ export const getDeveloperKanbanBoard = async (req, res) => {
     }
 
     const projectQuery = {
-      status: { $in: ['active', 'planning'] },
       $or: [
         { teamMembers: userId },
         { 'modules.tickets.assignedDeveloper': userId }
@@ -116,14 +115,15 @@ export const getDeveloperKanbanBoard = async (req, res) => {
       ticket.hasOpenBugs = openBugCount > 0;
     });
 
-    // Group tickets by status for kanban columns
-    const todoTickets = personalTickets.filter(t => t.status === 'open');
-    const inProgressTickets = personalTickets.filter(t => t.status === 'in_progress');
-    const reviewTickets = personalTickets.filter(t => t.status === 'code_review');
+    // Group tickets by status for kanban columns (include common aliases)
+    const statusOf = (s) => (s || '').toLowerCase();
+    const todoTickets = personalTickets.filter(t => ['open', 'new', 'assigned', 'todo'].includes(statusOf(t.status)));
+    const inProgressTickets = personalTickets.filter(t => ['in_progress', 'in-progress', 'development', 'coding'].includes(statusOf(t.status)));
+    const reviewTickets = personalTickets.filter(t => ['code_review', 'code-review', 'review', 'in_review', 'in-review'].includes(statusOf(t.status)));
     const testingTickets = personalTickets.filter(t =>
-      t.status === 'testing' || (t.status === 'done' && t.hasOpenBugs)
+      ['testing', 'qa', 'ready_for_testing', 'ready-for-testing'].includes(statusOf(t.status)) || (statusOf(t.status) === 'done' && t.hasOpenBugs)
     );
-    const doneTickets = personalTickets.filter(t => t.status === 'done' && !t.hasOpenBugs);
+    const doneTickets = personalTickets.filter(t => statusOf(t.status) === 'done' && !t.hasOpenBugs);
 
     const kanbanData = {
       columns: {
@@ -286,8 +286,11 @@ export const getTesterKanbanBoard = async (req, res) => {
     }
 
     const testerProjectQuery = {
-      teamMembers: userId,
-      status: { $in: ['active', 'planning'] }
+      status: { $in: ['active', 'planning'] },
+      $or: [
+        { teamMembers: userId },
+        { 'modules.tickets.tester': userId }
+      ]
     };
     if (testerProjectId) {
       testerProjectQuery._id = new mongoose.Types.ObjectId(testerProjectId);
@@ -303,7 +306,7 @@ export const getTesterKanbanBoard = async (req, res) => {
       });
     }
 
-    // Extract tickets assigned to this tester or awaiting assignment (testing status without tester)
+    // Extract tickets assigned to this tester or awaiting assignment (ready for testing / testing without tester)
     const testerTickets = [];
     const needsAssignment = [];
     projects.forEach(project => {
@@ -317,12 +320,16 @@ export const getTesterKanbanBoard = async (req, res) => {
             moduleName: module.name
           };
 
-          if (ticket.tester && ticket.tester.toString() === userId.toString()) {
+          const stat = (ticket.status || '').toLowerCase();
+          const isTesterMe = ticket.tester && ticket.tester.toString() === userId.toString();
+          const isTestingPhase = ['testing', 'code_review', 'ready_for_testing', 'in_review'].includes(stat);
+
+          if (isTesterMe) {
             testerTickets.push({
               ...ticketPayload,
               assignedTester: true
             });
-          } else if (!ticket.tester && ticket.status === 'testing') {
+          } else if (!ticket.tester && isTestingPhase) {
             needsAssignment.push({
               ...ticketPayload,
               assignedTester: false
@@ -350,17 +357,17 @@ export const getTesterKanbanBoard = async (req, res) => {
         const isResolved = status === 'resolved' || status === 'closed';
 
         if (!bugMap.has(key)) bugMap.set(key, []);
-        if (!isResolved) {
-          bugMap.get(key).push({
-            _id: bugDoc._id,
-            bugNumber: bugDoc.bugNumber,
-            title: bugDoc.title,
-            severity: bugDoc.severity,
-            status: bugDoc.status,
-            createdAt: bugDoc.createdAt
-          });
-        }
+        // Always push bug to show full history
+        bugMap.get(key).push({
+          _id: bugDoc._id,
+          bugNumber: bugDoc.bugNumber,
+          title: bugDoc.title,
+          severity: bugDoc.severity,
+          status: bugDoc.status,
+          createdAt: bugDoc.createdAt
+        });
 
+        // Track unresolved count for badges
         if (!isResolved) {
           unresolvedCounts.set(key, (unresolvedCounts.get(key) || 0) + 1);
         }
@@ -402,7 +409,10 @@ export const getTesterKanbanBoard = async (req, res) => {
           title: 'Testing Queue',
           tickets: [
             ...needsAssignmentWithBugs,
-            ...testerTicketsWithBugs.filter(t => ['code_review', 'testing'].includes(t.status))
+            ...testerTicketsWithBugs.filter(t => {
+              const s = (t.status || '').toLowerCase();
+              return ['code_review', 'testing', 'ready_for_testing', 'in_review'].includes(s);
+            })
           ]
         },
         done: {

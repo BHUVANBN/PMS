@@ -676,7 +676,7 @@ export const createBugFromTicket = async (req, res) => {
       ticket.bugTrackerIds = [];
     }
     ticket.bugTrackerIds.push(bug._id);
-    ticket.status = 'open';
+    ticket.status = 'code_review';
     ticket.comments.push({
       userId: testerId,
       comment: `Bug created from testing: ${bug.bugNumber}`,
@@ -687,7 +687,11 @@ export const createBugFromTicket = async (req, res) => {
 
     emitTicketEvent({
       projectId: projectId.toString(),
-      userIds: [developerId, testerId.toString()].filter(Boolean),
+      userIds: [
+        developerId,
+        testerId.toString(),
+        project.projectManager?.toString()
+      ].filter(Boolean),
       type: 'ticket.bug_reported',
       data: {
         ticketId: ticket._id.toString(),

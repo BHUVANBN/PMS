@@ -54,7 +54,8 @@ export const getDeveloperKanbanBoard = async (req, res) => {
     }
 
     const projects = await Project.find(projectQuery)
-      .populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+      .populate('modules.tickets.assignedDeveloper', 'firstName lastName username email')
+      .populate('modules.tickets.tester', 'firstName lastName username email');
 
     if (filterProjectId && !projects.length) {
       return res.status(404).json({
@@ -195,7 +196,9 @@ export const getDeveloperKanbanBoardById = async (req, res) => {
         { teamMembers: developerId },
         { 'modules.tickets.assignedDeveloper': developerId }
       ]
-    }).populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+    })
+      .populate('modules.tickets.assignedDeveloper', 'firstName lastName')
+      .populate('modules.tickets.tester', 'firstName lastName');
 
     const personalTickets = [];
     projects.forEach(project => {
@@ -297,7 +300,8 @@ export const getTesterKanbanBoard = async (req, res) => {
     }
 
     const projects = await Project.find(testerProjectQuery)
-      .populate('modules.tickets.assignedDeveloper', 'firstName lastName');
+      .populate('modules.tickets.assignedDeveloper', 'firstName lastName username email')
+      .populate('modules.tickets.tester', 'firstName lastName username email');
 
     if (testerProjectId && !projects.length) {
       return res.status(404).json({
@@ -322,7 +326,8 @@ export const getTesterKanbanBoard = async (req, res) => {
 
           const stat = (ticket.status || '').toLowerCase();
           const isTesterMe = ticket.tester && ticket.tester.toString() === userId.toString();
-          const isTestingPhase = ['testing', 'code_review', 'ready_for_testing', 'in_review'].includes(stat);
+          // Exclude 'code_review' from tester testing phase so tickets with review status do not appear on tester board
+          const isTestingPhase = ['testing', 'ready_for_testing', 'in_review'].includes(stat);
 
           if (isTesterMe) {
             testerTickets.push({
@@ -411,7 +416,7 @@ export const getTesterKanbanBoard = async (req, res) => {
             ...needsAssignmentWithBugs,
             ...testerTicketsWithBugs.filter(t => {
               const s = (t.status || '').toLowerCase();
-              return ['code_review', 'testing', 'ready_for_testing', 'in_review'].includes(s);
+              return ['testing', 'ready_for_testing', 'in_review'].includes(s);
             })
           ]
         },
@@ -423,7 +428,7 @@ export const getTesterKanbanBoard = async (req, res) => {
       },
       totalTickets: testerTickets.length + needsAssignment.length,
       activeTickets: [
-        ...testerTicketsWithBugs.filter(t => ['code_review', 'testing'].includes(t.status)),
+        ...testerTicketsWithBugs.filter(t => ['testing'].includes((t.status || '').toLowerCase())),
         ...needsAssignmentWithBugs
       ].length,
       projectId: testerProjectId ? testerProjectId.toString() : '',

@@ -8,6 +8,10 @@ const TicketCard = ({ ticket, draggable = true, onDragStart }) => {
   const priority = ticket.priority;
   const type = ticket.type;
   const assignee = ticket.assignedDeveloper || ticket.assignee || ticket.assignedTo;
+  const testerObj = typeof ticket.tester === 'object' ? ticket.tester : null;
+  const testerName = testerObj
+    ? `${(testerObj.firstName || testerObj.username || testerObj.email || '').toString().trim()}${testerObj.lastName ? ` ${testerObj.lastName}` : ''}`.trim()
+    : '';
 
   const priorityColor = (p) => {
     const v = (p || '').toString().toLowerCase();
@@ -42,13 +46,24 @@ const TicketCard = ({ ticket, draggable = true, onDragStart }) => {
             {type && <Chip size="small" color="default" label={type} sx={{ height: 20 }} />}
           </Stack>
         </Stack>
-        {assignee && (
-          <Tooltip title={`${assignee.firstName || ''} ${assignee.lastName || ''}`.trim()}>
-            <Avatar sx={{ width: 20, height: 20 }}>
-              {(assignee.firstName || assignee.name || '?')[0]}
-            </Avatar>
-          </Tooltip>
-        )}
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          {assignee && (
+            <Tooltip title={`${assignee.firstName || ''} ${assignee.lastName || ''}`.trim() || 'Developer'}>
+              <Avatar sx={{ width: 20, height: 20, bgcolor: 'primary.main' }}>
+                {(assignee.firstName || assignee.name || assignee.username || '?')[0]}
+              </Avatar>
+            </Tooltip>
+          )}
+          {ticket.tester && (
+            <Tooltip title={testerName || undefined}>
+              <Avatar sx={{ width: 20, height: 20, bgcolor: 'secondary.main' }}>
+                {testerObj
+                  ? ((testerObj.firstName || testerObj.name || testerObj.username || testerObj.email || 'T')[0])
+                  : 'T'}
+              </Avatar>
+            </Tooltip>
+          )}
+        </Stack>
       </Stack>
     </Paper>
   );

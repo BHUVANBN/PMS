@@ -450,6 +450,21 @@ export const managerAPI = {
   getAllTickets: () =>
     apiRequest('/manager/tickets'),
 
+  // Ticket CRUD via centralized tickets routes (project-scoped)
+  getTicketById: (projectId, ticketId) =>
+    apiRequest(`/tickets/${projectId}/${ticketId}`),
+
+  updateTicket: (projectId, ticketId, ticketData) =>
+    apiRequest(`/tickets/${projectId}/${ticketId}`, {
+      method: 'PUT',
+      body: JSON.stringify(ticketData),
+    }),
+
+  deleteTicket: (projectId, ticketId) =>
+    apiRequest(`/tickets/${projectId}/${ticketId}`, {
+      method: 'DELETE',
+    }),
+
   // Get all employees for assignment
   getEmployees: (params) => {
     const query = params?.role ? `?role=${params.role}` : '';
@@ -735,6 +750,19 @@ export const ticketsAPI = {
     apiRequest(`/tickets/${projectId}/${ticketId}`, {
       method: 'PUT',
       body: JSON.stringify(ticketData),
+    }),
+
+  // Create a ticket within a specific module of a project (uses project routes)
+  createTicket: (projectId, moduleId, ticketData) =>
+    apiRequest(`/projects/${projectId}/modules/${moduleId}/tickets`, {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    }),
+
+  // Delete a ticket (centralized tickets route)
+  deleteTicket: (projectId, ticketId) =>
+    apiRequest(`/tickets/${projectId}/${ticketId}`, {
+      method: 'DELETE',
     }),
 
   addComment: (projectId, ticketId, comment) => 

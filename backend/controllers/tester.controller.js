@@ -635,17 +635,8 @@ export const createBugFromTicket = async (req, res) => {
       });
     }
 
-    const existingBug = await BugTracker.findOne({
-      projectId,
-      ticketId,
-      title: { $regex: new RegExp(`^${title}$`, 'i') }
-    });
-    if (existingBug) {
-      return res.status(409).json({
-        success: false,
-        error: 'A bug with this title already exists for this ticket'
-      });
-    }
+    // Note: We intentionally allow duplicate titles per ticket to preserve full bug history across cycles.
+    // No duplicate-title check here; each submission creates a new bug record.
 
     // Create bug report
     const developerId = ticket.assignedDeveloper ? ticket.assignedDeveloper.toString() : null;

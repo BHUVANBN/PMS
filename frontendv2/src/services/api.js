@@ -499,6 +499,11 @@ export const managerAPI = {
   getManagerStats: () =>
     apiRequest('/manager/stats'),
 
+  getTicketLogs: (projectId, ticketId) => {
+    const query = ticketId ? `?ticketId=${ticketId}` : '';
+    return apiRequest(`/manager/projects/${projectId}/ticket-logs${query}`);
+  },
+
   // Permanently delete a project owned by current manager
   deleteProjectHard: (projectId) =>
     apiRequest(`/manager/project/${projectId}/hard`, { method: 'DELETE' }),

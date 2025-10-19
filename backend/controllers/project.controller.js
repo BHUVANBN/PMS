@@ -1,5 +1,5 @@
 // project.controller.js - Project Management Controller
-import { Project, User, ActivityLog, PROJECT_STATUS, TICKET_STATUS, TICKET_PRIORITIES, ENTITY_TYPES, ACTIONS, ACTION_CATEGORIES } from '../models/index.js';
+import { Project, User, ActivityLog, PROJECT_STATUS, TICKET_STATUS, TICKET_PRIORITIES, ENTITY_TYPES, ACTIONS, ACTION_CATEGORIES, CHANGE_TYPES } from '../models/index.js';
 import mongoose from 'mongoose';
 
 // Create a new project
@@ -645,6 +645,33 @@ export const updateTicket = async (req, res) => {
 
     await project.save();
 
+    // Log status change with description if provided
+    if (updates.status && oldValues.status !== updates.status) {
+      const statusDescription = (updates.moveDescription || updates.statusDescription || updates.statusNote || updates.comment || updates.reason || updates.description || '').trim();
+      await ActivityLog.create({
+        projectId,
+        entityType: ENTITY_TYPES.TICKET,
+        entityId: ticketId,
+        userId: req.user._id,
+        action: ACTIONS.STATUS_CHANGED,
+        actionCategory: ACTION_CATEGORIES.TICKET_MANAGEMENT,
+        description: statusDescription || `Ticket status updated from ${oldValues.status || 'N/A'} to ${updates.status}`,
+        metadata: {
+          ticketNumber: ticket.ticketNumber,
+          fromStatus: oldValues.status,
+          toStatus: updates.status
+        },
+        changes: [
+          {
+            field: 'status',
+            oldValue: oldValues.status,
+            newValue: updates.status,
+            changeType: CHANGE_TYPES.MODIFIED
+          }
+        ]
+      });
+    }
+
     // Log activity
     await ActivityLog.create({
       projectId,
@@ -901,5 +928,28 @@ export const deleteProject = async (req, res) => {
       message: 'Error deleting project',
       error: error.message
     });
+  }
+};
+
+export const getTicketLogs = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { ticketId } = req.query;
+
+    const project = await Project.findById(projectId);
+    if (!project || project.projectManager.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only the project manager can view these logs' });
+    }
+
+    const filter = { projectId, entityType: ENTITY_TYPES.TICKET };
+    if (ticketId) filter.entityId = ticketId;
+
+    const logs = await ActivityLog.find(filter)
+      .populate('userId', 'firstName lastName')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: logs });
+  } catch (error) {
+    next(error);
   }
 };

@@ -9,7 +9,10 @@ import {
   Divider,
   IconButton,
   Stack,
+  TextField,
   Typography,
+  DialogActions,
+  Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import BugReportIcon from '@mui/icons-material/BugReport';
@@ -23,6 +26,12 @@ const DevKanban = () => {
 
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveDescription, setMoveDescription] = useState('');
+  const [ticketToMove, setTicketToMove] = useState(null);
+  const [moveError, setMoveError] = useState('');
+  const [moveSubmitting, setMoveSubmitting] = useState(false);
+  const [boardRefreshKey, setBoardRefreshKey] = useState(0);
 
   const loadProjects = async () => {
     const res = await developerAPI.getProjects();
@@ -38,10 +47,47 @@ const DevKanban = () => {
     return developerAPI.getKanbanBoard(projectId);
   };
 
+  const handleMoveCancel = () => {
+    setMoveDialogOpen(false);
+    setMoveDescription('');
+    setTicketToMove(null);
+    setMoveError('');
+    setMoveSubmitting(false);
+  };
+
+  const handleMoveConfirm = async () => {
+    if (!ticketToMove) return;
+    const description = moveDescription.trim();
+    if (!description) {
+      setMoveError('Please describe the work done or reason for this move.');
+      return;
+    }
+
+    try {
+      setMoveSubmitting(true);
+      setMoveError('');
+      const { projectId, ticketId, newStatus } = ticketToMove;
+      await kanbanAPI.updateTicketStatus(projectId, ticketId, {
+        status: newStatus,
+        description,
+      });
+      setMoveDialogOpen(false);
+      setTicketToMove(null);
+      setMoveDescription('');
+      setBoardRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      setMoveError(error?.message || 'Failed to update ticket status.');
+    } finally {
+      setMoveSubmitting(false);
+    }
+  };
+
   const moveTicket = async ({ ticket, toKey, statusMap }) => {
     const newStatus = statusMap[toKey];
     if (newStatus && ticket.projectId) {
-      await kanbanAPI.updateTicketStatus(ticket.projectId, ticket._id || ticket.id, { status: newStatus });
+      setTicketToMove({ ticket, newStatus, projectId: ticket.projectId, ticketId: ticket._id || ticket.id });
+      setMoveDescription('');
+      setMoveDialogOpen(true);
     }
   };
 
@@ -155,6 +201,7 @@ const DevKanban = () => {
         columnsOrder={['todo', 'inProgress', 'review', 'testing']}
         showProjectSelector
         renderTicket={renderTicket}
+        refreshKey={boardRefreshKey}
         sseParams={(projectId) => {
           if (!(user?._id || user?.id)) return undefined;
           const params = { userId: user._id || user.id, role: 'developer' };
@@ -281,6 +328,56 @@ const DevKanban = () => {
             </Stack>
           )}
         </DialogContent>
+      </Dialog>
+      <Dialog open={moveDialogOpen} onClose={handleMoveCancel} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pr: 6 }}>
+          Ticket Status Update
+          <IconButton
+            aria-label="close"
+            onClick={handleMoveCancel}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {ticketToMove?.ticket?.title && (
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              {ticketToMove.ticket.title}
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please describe what was completed and why this ticket is moving to the next stage. This note will be stored in the activity log.
+          </Typography>
+          <TextField
+            label="Move description"
+            value={moveDescription}
+            onChange={(e) => setMoveDescription(e.target.value)}
+            placeholder="Explain the work done, validation performed, or reason for the move"
+            multiline
+            minRows={3}
+            fullWidth
+            autoFocus
+            disabled={moveSubmitting}
+          />
+          {moveError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {moveError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleMoveCancel} disabled={moveSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleMoveConfirm}
+            disabled={moveSubmitting}
+          >
+            {moveSubmitting ? 'Saving…' : 'Confirm Move'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );

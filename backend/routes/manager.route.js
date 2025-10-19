@@ -36,6 +36,7 @@ import {
   getTeamManagement
 } from '../controllers/manager.controller.js';
 import { sendProjectTeamDocument } from '../controllers/manager.controller.js';
+import { getTicketLogs } from '../controllers/project.controller.js';
 
 const router = express.Router();
 
@@ -102,6 +103,9 @@ router.patch('/ticket/:projectId/:moduleId/:ticketId/status', updateTicketStatus
 
 // Generate ticket reports
 router.get('/tickets/reports', getTicketReports);
+
+// View ticket lifecycle logs
+router.get('/projects/:projectId/ticket-logs', getTicketLogs);
 
 // ========================================
 // 4. TEAM & RESOURCE MANAGEMENT

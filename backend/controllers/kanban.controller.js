@@ -11,7 +11,11 @@ import {
   MODULE_STATUS,
   USER_ROLES,
   BUG_STATUS, BUG_SEVERITY, BUG_TYPES,
-  KANBAN_BOARD_TYPES, DEFAULT_KANBAN_COLUMNS
+  KANBAN_BOARD_TYPES, DEFAULT_KANBAN_COLUMNS,
+  ENTITY_TYPES,
+  ACTIONS,
+  ACTION_CATEGORIES,
+  CHANGE_TYPES
 } from '../models/index.js';
 import { emitTicketEvent } from '../utils/realtime.js';
 
@@ -784,7 +788,7 @@ export const moveTicket = async (req, res) => {
 export const updateTicketStatus = async (req, res) => {
   try {
     const { projectId, ticketId } = req.params;
-    const { status, comment } = req.body;
+    const { status, description, comment } = req.body;
 
     if (!status) {
       return res.status(400).json({
@@ -792,6 +796,8 @@ export const updateTicketStatus = async (req, res) => {
         message: 'Status is required'
       });
     }
+
+    const moveDescription = (description || comment || '').trim();
 
     const project = await Project.findById(projectId);
     if (!project) {
@@ -833,6 +839,13 @@ export const updateTicketStatus = async (req, res) => {
 
     const oldStatus = ticket.status;
     const statusChanged = status !== oldStatus;
+
+    if (statusChanged && !moveDescription) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description is required when changing ticket status'
+      });
+    }
 
     const isAssignedDeveloper = ticket.assignedDeveloper?.toString() === req.user._id.toString();
     const isAssignedTester = ticket.tester?.toString() === req.user._id.toString();
@@ -980,6 +993,31 @@ export const updateTicketStatus = async (req, res) => {
     }
 
     await project.save();
+
+    if (statusChanged) {
+      await ActivityLog.create({
+        projectId,
+        entityType: ENTITY_TYPES.TICKET,
+        entityId: ticketId,
+        userId: req.user._id,
+        action: ACTIONS.STATUS_CHANGED,
+        actionCategory: ACTION_CATEGORIES.TICKET_MANAGEMENT,
+        description: moveDescription || `Ticket status updated from ${oldStatus || 'N/A'} to ${status}`,
+        metadata: {
+          ticketNumber: ticket.ticketNumber,
+          fromStatus: oldStatus,
+          toStatus: status
+        },
+        changes: [
+          {
+            field: 'status',
+            oldValue: oldStatus,
+            newValue: status,
+            changeType: CHANGE_TYPES.MODIFIED
+          }
+        ]
+      });
+    }
 
     res.json({
       success: true,

@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { Stack, Button } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import {
+  Stack,
+  Button,
+  Paper,
+  Typography,
+  Box,
+  CircularProgress,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
 import KanbanBoard from '../../components/kanban/KanbanBoard';
 import { managerAPI, kanbanAPI } from '../../services/api';
 import AddTicketModal from '../../components/kanban/AddTicketModal';
@@ -10,8 +21,36 @@ const Kanban = () => {
   const [showAddTicket, setShowAddTicket] = useState(false);
   const [showAddModule, setShowAddModule] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ticketLogs, setTicketLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState('');
 
   const bumpRefresh = () => setRefreshKey((k) => k + 1);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      if (!projectId) {
+        setTicketLogs([]);
+        setLogsError('');
+        return;
+      }
+
+      try {
+        setLogsLoading(true);
+        setLogsError('');
+        const response = await managerAPI.getTicketLogs(projectId);
+        const logs = response?.data || response?.logs || response || [];
+        setTicketLogs(Array.isArray(logs) ? logs : []);
+      } catch (error) {
+        setLogsError(error?.message || 'Unable to load ticket logs');
+        setTicketLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, [projectId, refreshKey]);
 
   const loadProjects = async () => {
     const res = await managerAPI.getAllProjects();
@@ -84,6 +123,73 @@ const Kanban = () => {
         projectId={projectId}
         onCreated={() => bumpRefresh()}
       />
+
+      <Paper sx={{ mt: 4, p: 2, borderRadius: 3 }} variant="outlined">
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+          <Typography variant="h6" fontWeight={700}>
+            Ticket Movement Timeline
+          </Typography>
+          {logsLoading && <CircularProgress size={20} />}
+        </Stack>
+        <Divider sx={{ mb: 2 }} />
+
+        {!projectId && (
+          <Typography color="text.secondary">
+            Select a project to view ticket movement history.
+          </Typography>
+        )}
+
+        {projectId && logsError && (
+          <Typography color="error.main">{logsError}</Typography>
+        )}
+
+        {projectId && !logsError && !logsLoading && ticketLogs.length === 0 && (
+          <Typography color="text.secondary">
+            No ticket movement logs recorded yet for this project.
+          </Typography>
+        )}
+
+        {projectId && !logsError && ticketLogs.length > 0 && (
+          <List disablePadding>
+            {ticketLogs.map((log) => {
+              const ticketLabel = log?.metadata?.ticketNumber
+                ? `Ticket #${log.metadata.ticketNumber}`
+                : `Ticket ID: ${log.entityId}`;
+              const movedAt = log?.createdAt ? new Date(log.createdAt).toLocaleString() : 'Unknown time';
+              const userName = log?.userId
+                ? `${log.userId.firstName || ''} ${log.userId.lastName || ''}`.trim() || 'Team member'
+                : 'Team member';
+
+              return (
+                <ListItem key={log._id} disableGutters divider>
+                  <ListItemText
+                    primary={
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Typography fontWeight={600}>{ticketLabel}</Typography>
+                        {log?.metadata?.fromStatus && log?.metadata?.toStatus && (
+                          <Typography variant="body2" color="text.secondary">
+                            {`${log.metadata.fromStatus} → ${log.metadata.toStatus}`}
+                          </Typography>
+                        )}
+                      </Stack>
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="body2" color="text.primary" sx={{ mb: 0.5 }}>
+                          {log.description || 'Status updated'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {`${movedAt} • ${userName}`}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </ListItem>
+              );
+            })}
+          </List>
+        )}
+      </Paper>
     </>
   );
 };

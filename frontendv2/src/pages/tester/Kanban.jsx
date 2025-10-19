@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { Box, Stack, Button, Chip, Typography, Alert } from '@mui/material';
+import { Box, Stack, Button, Chip, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, TextField } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import KanbanBoard from '../../components/kanban/KanbanBoard';
 import TicketCard from '../../components/kanban/TicketCard';
@@ -17,6 +18,11 @@ const TesterKanban = () => {
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [clearedTickets, setClearedTickets] = useState(() => new Set());
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveDescription, setMoveDescription] = useState('');
+  const [moveError, setMoveError] = useState('');
+  const [moveSubmitting, setMoveSubmitting] = useState(false);
+  const [ticketToMove, setTicketToMove] = useState(null);
 
   useEffect(() => {
     setClearedTickets(new Set());
@@ -42,11 +48,54 @@ const TesterKanban = () => {
     return kanbanAPI.getTesterPersonalBoard(projectId);
   };
 
+  const handleMoveCancel = () => {
+    setMoveDialogOpen(false);
+    setMoveDescription('');
+    setMoveError('');
+    setMoveSubmitting(false);
+    setTicketToMove(null);
+  };
+
+  const handleMoveConfirm = async () => {
+    if (!ticketToMove) return;
+    const description = moveDescription.trim();
+    if (!description) {
+      setMoveError('Please describe the testing work performed or the reason for moving this ticket.');
+      return;
+    }
+
+    try {
+      setMoveSubmitting(true);
+      setMoveError('');
+      const { projectId, ticketId, newStatus } = ticketToMove;
+      await kanbanAPI.updateTicketStatus(projectId, ticketId, {
+        status: newStatus,
+        description,
+      });
+      setMoveDialogOpen(false);
+      setTicketToMove(null);
+      setMoveDescription('');
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      setMoveError(err?.message || 'Failed to update ticket status.');
+    } finally {
+      setMoveSubmitting(false);
+    }
+  };
+
   const moveTicket = async ({ ticket, toKey }) => {
     const statusMap = { testing: 'testing', done: 'done' };
     const newStatus = statusMap[toKey];
     if (newStatus && ticket.projectId) {
-      await kanbanAPI.updateTicketStatus(ticket.projectId, ticket._id || ticket.id, { status: newStatus });
+      setTicketToMove({
+        ticket,
+        projectId: ticket.projectId,
+        ticketId: ticket._id || ticket.id,
+        newStatus,
+      });
+      setMoveDescription('');
+      setMoveError('');
+      setMoveDialogOpen(true);
     }
   };
 
@@ -232,6 +281,57 @@ const TesterKanban = () => {
         ticket={selectedTicket}
         submitting={submitting}
       />
+
+      <Dialog open={moveDialogOpen} onClose={handleMoveCancel} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pr: 6 }}>
+          Ticket Status Update
+          <IconButton
+            aria-label="close"
+            onClick={handleMoveCancel}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {ticketToMove?.ticket?.title && (
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              {ticketToMove.ticket.title}
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Provide testing notes explaining what you verified or why the ticket is advancing. This will appear in the ticket activity log.
+          </Typography>
+          <TextField
+            label="Testing notes"
+            value={moveDescription}
+            onChange={(e) => setMoveDescription(e.target.value)}
+            placeholder="Describe the validation steps, results, or reason for moving"
+            multiline
+            minRows={3}
+            fullWidth
+            autoFocus
+            disabled={moveSubmitting}
+          />
+          {moveError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {moveError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleMoveCancel} disabled={moveSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleMoveConfirm}
+            disabled={moveSubmitting}
+          >
+            {moveSubmitting ? 'Saving…' : 'Confirm Move'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

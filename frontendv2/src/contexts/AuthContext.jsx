@@ -262,13 +262,32 @@ const login = async (credentials) => {
     return permissions.includes('*') || permissions.includes(permission);
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      await authAPI.forgotPassword({ email });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const resetPassword = async ({ token, password }) => {
+    try {
+      await authAPI.resetPassword({ token, password });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     ...state,
     login,
-    register,
     logout,
-    updateUser,
     clearError,
+    updateUser,
+    forgotPassword,
+    resetPassword,
     hasRole,
     hasAnyRole,
     hasPermission,

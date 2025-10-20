@@ -219,6 +219,20 @@ export const authAPI = {
     apiRequest('/auth/refresh', {
       method: 'POST',
     }),
+
+  forgotPassword: ({ email }) =>
+    apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      includeAuth: false,
+    }),
+
+  resetPassword: ({ token, password }) =>
+    apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+      includeAuth: false,
+    }),
 };
 
 // Admin API

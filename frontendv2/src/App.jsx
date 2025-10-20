@@ -7,6 +7,8 @@ import { Toaster } from 'react-hot-toast';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx';
 // import RegisterPage from './pages/auth/RegisterPage';
 import Onboard from './pages/Onboard';
 
@@ -91,6 +93,8 @@ function App() {
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             {/* Signup disabled: only HR creates credentials */}
             {/* <Route path="/register" element={<RegisterPage />} /> */}
             {/* Onboarding route (public UI; uploads require auth) */}

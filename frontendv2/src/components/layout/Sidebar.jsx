@@ -121,12 +121,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       path: '/meetings',
       roles: ['admin', 'hr', 'manager', 'developer', 'tester', 'intern'],
     },
-    {
-      text: 'Sprints',
-      icon: <GroupWorkIcon />,
-      path: '/sprints',
-      roles: ['developer', 'tester'],
-    },
+    // {
+    //   text: 'Sprints',
+    //   icon: <GroupWorkIcon />,
+    //   path: '/sprints',
+    //   roles: ['developer', 'tester'],
+    // },
     {
       text: 'Bug Tracker',
       icon: <BugReportIcon />,

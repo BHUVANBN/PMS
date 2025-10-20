@@ -23,6 +23,89 @@ import {
 } from '@mui/material';
 import { publicAPI } from '../../services/api';
 
+const PDFPreview = ({ url, label }) => {
+  const [src, setSrc] = useState('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = '';
+
+    const fetchPdf = async () => {
+      try {
+        setError(false);
+        setSrc('');
+        const token = localStorage.getItem('token');
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF: ${response.status}`);
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      } catch (err) {
+        console.error('PDF preview error:', err);
+        setError(true);
+      }
+    };
+
+    fetchPdf();
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [url]);
+
+  if (error) {
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 2,
+        }}
+      >
+        <Alert severity="info" sx={{ width: '100%' }}>
+          PDF preview unavailable. Use "Open in New Tab" to view or download the document.
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!src) {
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
+
+  return (
+    <iframe
+      src={src}
+      width="100%"
+      height="100%"
+      style={{ border: 'none' }}
+      title={`${label} PDF`}
+    />
+  );
+};
+
 export default function PublicOnboardingList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,8 +204,17 @@ export default function PublicOnboardingList() {
       ['diploma', 'Diploma'],
     ];
     return order
-      .map(([key, label]) => ({ key, label, url: map?.[key]?.url }))
-      .filter((d) => !!d.url);
+      .map(([key, label]) => {
+        const originalUrl = map?.[key]?.url;
+        const hasDoc = originalUrl;
+        if (!hasDoc) return null;
+        const streamUrl = publicAPI.getOnboardingDocumentUrl(r._id, key);
+        const downloadUrl = publicAPI.getOnboardingDocumentUrl(r._id, key, { download: 1 });
+        const lowerUrl = (originalUrl || '').toLowerCase();
+        const isPdf = lowerUrl.includes('.pdf');
+        return { key, label, streamUrl, downloadUrl, isPdf };
+      })
+      .filter(Boolean);
   }, [docsRecord]);
 
   return (
@@ -223,24 +315,18 @@ export default function PublicOnboardingList() {
               <Box key={d.key}>
                 <Typography variant="h6" gutterBottom>{d.label}</Typography>
                 <Box sx={{ height: '600px', border: '1px solid #ddd', borderRadius: '4px' }}>
-                  {d.url.toLowerCase().endsWith('.pdf') ? (
-                    <iframe
-                      src={`${d.url}#toolbar=1&navpanes=1&scrollbar=1`}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 'none' }}
-                      title={`${d.label} PDF`}
-                    />
+                  {d.isPdf ? (
+                    <PDFPreview url={d.streamUrl} label={d.label} />
                   ) : (
                     <img
-                      src={d.url}
+                      src={d.streamUrl}
                       alt={d.label}
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   )}
                 </Box>
                 <Box sx={{ mt: 1, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                  <Button component="a" href={d.url} target="_blank" rel="noopener noreferrer" size="small">
+                  <Button component="a" href={d.downloadUrl} target="_blank" rel="noopener noreferrer" size="small">
                     Open in New Tab
                   </Button>
                 </Box>

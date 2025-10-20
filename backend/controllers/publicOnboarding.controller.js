@@ -1,5 +1,8 @@
+import mongoose from 'mongoose';
+import fetch from 'node-fetch';
 import { PublicOnboarding } from '../models/publicOnboarding.models.js';
 import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
+import cloudinary from '../utils/cloudinary.js';
 
 export const submitPublicOnboarding = async (req, res, next) => {
   try {
@@ -83,7 +86,8 @@ export const submitPublicOnboarding = async (req, res, next) => {
 // HR: List all public onboarding submissions
 export const listPublicOnboarding = async (req, res, next) => {
   try {
-    const list = await PublicOnboarding.find().sort({ createdAt: -1 });
+    const filter = { status: { $ne: 'converted' } };
+    const list = await PublicOnboarding.find(filter).sort({ createdAt: -1 });
     res.json({ onboarding: list });
   } catch (err) {
     next(err);
@@ -121,6 +125,83 @@ export const deletePublicOnboarding = async (req, res, next) => {
 
     await PublicOnboarding.findByIdAndDelete(id);
     return res.status(200).json({ message: 'Public onboarding deleted' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const streamPublicOnboardingDocument = async (req, res, next) => {
+  try {
+    const { id, docKey } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid onboarding id' });
+    }
+
+    const record = await PublicOnboarding.findById(id);
+    if (!record) {
+      return res.status(404).json({ message: 'Public onboarding record not found' });
+    }
+
+    const document = record.employeeDocuments?.[docKey];
+    if (!document?.url) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const resolveCloudinaryUrl = () => {
+      const rawUrl = document.url || '';
+      const lowerUrl = rawUrl.toLowerCase();
+
+      const match = lowerUrl.match(/res\.cloudinary\.com\/[^/]+\/(raw|image|video)\/([^/]+)\//);
+      const resourceType = match ? match[1] : 'raw';
+      const deliveryType = match ? match[2] : 'upload';
+
+      const extMatch = lowerUrl.match(/\.([a-z0-9]+)(?:\?|$)/);
+      const ext = extMatch ? extMatch[1] : undefined;
+
+      const options = {
+        secure: true,
+        resource_type: resourceType,
+        type: deliveryType,
+        sign_url: true,
+        expires_at: Math.floor(Date.now() / 1000) + 300,
+      };
+
+      if (ext && !document.publicId.toLowerCase().endsWith(`.${ext}`)) {
+        options.format = ext;
+      }
+
+      if (!document.publicId) {
+        return rawUrl;
+      }
+
+      const format = options.format;
+      const signedDownloadUrl = cloudinary.utils?.private_download_url
+        ? cloudinary.utils.private_download_url(document.publicId, format, options)
+        : null;
+
+      if (signedDownloadUrl) {
+        return signedDownloadUrl;
+      }
+
+      return cloudinary.url(document.publicId, options);
+    };
+
+    const sourceUrl = resolveCloudinaryUrl();
+
+    const remoteResponse = await fetch(sourceUrl);
+    if (!remoteResponse.ok) {
+      console.error('PublicOnboarding document fetch failed:', sourceUrl, remoteResponse.status, remoteResponse.statusText);
+      return res.status(502).json({ message: 'Failed to retrieve document from storage' });
+    }
+
+    const buffer = Buffer.from(await remoteResponse.arrayBuffer());
+    const contentType = remoteResponse.headers.get('content-type') || 'application/octet-stream';
+    const filename = document.url.split('/').pop() || `${docKey}`;
+    const dispositionType = req.query.download === '1' ? 'attachment' : 'inline';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `${dispositionType}; filename="${filename}"`);
+    res.status(200).send(buffer);
   } catch (err) {
     next(err);
   }

@@ -1,6 +1,6 @@
 // API Configuration
 // Prefer environment variable (Vite), then window override, then localhost fallback
-const API_BASE_URL =
+export const API_BASE_URL =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
   || (typeof window !== 'undefined' && window.__API_BASE_URL__)
   || 'http://localhost:5000/api';
@@ -28,6 +28,11 @@ export const publicAPI = {
     apiRequest(`/public/onboarding/${id}`, {
       method: 'DELETE',
     }),
+  getOnboardingDocumentUrl: (id, docKey, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return `${API_BASE_URL}/public/onboarding/${id}/documents/${docKey}${suffix}`;
+  },
 };
 
 // Standup API (per-user daily standup)

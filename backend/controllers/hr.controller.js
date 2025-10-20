@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { User, USER_ROLES, Leave, Standup, Onboarding } from '../models/index.js';
 import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
+import { PublicOnboarding } from '../models/publicOnboarding.models.js';
  
 
 /**
@@ -10,7 +11,7 @@ import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
  */
 export const createEmployee = async (req, res) => {
   try {
-    const { username, email, password, role, firstName, lastName } = req.body;
+    const { username, email, password, role, firstName, lastName, publicId } = req.body;
 
     // Validate required fields
     if (!username || !email || !password || !firstName || !lastName) {
@@ -59,9 +60,17 @@ export const createEmployee = async (req, res) => {
       isVerifiedByHR: false
     });
 
-    // Keep onboarding record as-is; do not archive on employee creation
-
-    // Keep PublicOnboarding records intact; do not archive or delete here
+    if (publicId && mongoose.Types.ObjectId.isValid(publicId)) {
+      try {
+        const publicRecord = await PublicOnboarding.findById(publicId);
+        if (publicRecord) {
+          publicRecord.status = 'converted';
+          await publicRecord.save();
+        }
+      } catch (error) {
+        console.warn('Failed to mark public onboarding as converted:', error.message);
+      }
+    }
 
     // Return employee data without password
     const employeeResponse = {

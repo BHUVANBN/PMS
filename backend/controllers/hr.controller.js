@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { User, USER_ROLES, Leave, Standup, Onboarding } from '../models/index.js';
+import { User, USER_ROLES, Leave, Standup, Onboarding, ONBOARDING_STATUS } from '../models/index.js';
 import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
 import { PublicOnboarding } from '../models/publicOnboarding.models.js';
  
@@ -66,6 +66,47 @@ export const createEmployee = async (req, res) => {
         if (publicRecord) {
           publicRecord.status = 'converted';
           await publicRecord.save();
+
+          const existingOnboarding = await Onboarding.findOne({ user: newEmployee._id });
+          if (!existingOnboarding) {
+            const details = {
+              mobile: publicRecord.mobile || '',
+              address: publicRecord.address || '',
+              dateOfBirth: publicRecord.dateOfBirth || null,
+              pan: publicRecord.pan || '',
+              emergencyContactName: publicRecord.emergencyContactName || '',
+              emergencyContactPhone: publicRecord.emergencyContactPhone || '',
+              bankAccountNumber: publicRecord.bankAccountNumber || '',
+              ifsc: publicRecord.ifsc || '',
+            };
+
+            const docKeys = ['aadhar', 'photo', 'tenth', 'twelfth', 'diploma', 'passbook'];
+            const mappedDocs = {};
+            let uploadedCount = 0;
+            for (const key of docKeys) {
+              const doc = publicRecord.employeeDocuments?.[key];
+              if (doc?.url && doc?.publicId) {
+                mappedDocs[key] = {
+                  url: doc.url,
+                  publicId: doc.publicId,
+                  uploadedAt: doc.uploadedAt || new Date(),
+                  uploadedBy: newEmployee._id,
+                };
+                uploadedCount += 1;
+              } else {
+                mappedDocs[key] = null;
+              }
+            }
+
+            const hasAllDocs = docKeys.every((key) => mappedDocs[key]);
+
+            await Onboarding.create({
+              user: newEmployee._id,
+              employeeDetails: details,
+              employeeDocuments: mappedDocs,
+              status: hasAllDocs ? ONBOARDING_STATUS.PENDING_VERIFICATION : ONBOARDING_STATUS.PENDING_DOCUMENTS,
+            });
+          }
         }
       } catch (error) {
         console.warn('Failed to mark public onboarding as converted:', error.message);

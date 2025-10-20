@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { sendMail } from '../utils/mailer.js';
 import cloudinary from '../utils/cloudinary.js';
 import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
+import fetch from 'node-fetch';
 import { Onboarding, ONBOARDING_STATUS, USER_ROLES } from '../models/index.js';
 import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
 
@@ -558,6 +559,82 @@ export const getArchivedEmployeeDocuments = async (req, res, next) => {
     const doc = await EmployeeDocuments.findOne({ user: userId }).populate('user', 'firstName lastName email role isActive');
     if (!doc) return res.status(404).json({ message: 'Archive not found' });
     return res.status(200).json({ employee: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const streamHROnboardingDocument = async (req, res, next) => {
+  try {
+    const { userId, scope, docKey } = req.params;
+    assertObjectId(userId);
+
+    const onboarding = await ensureOnboardingRecord(userId);
+    if (!onboarding) {
+      return res.status(404).json({ message: 'Onboarding record not found' });
+    }
+
+    let sourceDoc = null;
+    if (scope === 'employee') {
+      sourceDoc = onboarding.employeeDocuments?.[docKey] || null;
+    } else if (scope === 'hr') {
+      sourceDoc = onboarding.hrDocuments?.[docKey] || null;
+    } else if (scope === 'generic') {
+      const genericDoc = onboarding.hrDocumentsList?.find?.((d) => String(d._id) === docKey);
+      sourceDoc = genericDoc || null;
+    } else {
+      return res.status(400).json({ message: 'Invalid scope' });
+    }
+
+    const document = sourceDoc?.url ? sourceDoc : sourceDoc?.file || null;
+
+    if (!document?.url) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const rawUrl = document.url || '';
+    const lowerUrl = rawUrl.toLowerCase();
+    const match = lowerUrl.match(/res\.cloudinary\.com\/[^/]+\/(raw|image|video)\/([^/]+)\//);
+    const resourceType = match ? match[1] : 'raw';
+    const deliveryType = match ? match[2] : 'upload';
+    const extMatch = lowerUrl.match(/\.([a-z0-9]+)(?:\?|$)/);
+    const ext = extMatch ? extMatch[1] : undefined;
+
+    const options = {
+      secure: true,
+      resource_type: resourceType,
+      type: deliveryType,
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 300,
+    };
+
+    if (ext && !document.publicId?.toLowerCase().endsWith(`.${ext}`)) {
+      options.format = ext;
+    }
+
+    let sourceUrl = rawUrl;
+    if (document.publicId) {
+      const format = options.format;
+      const signed = cloudinary.utils?.private_download_url
+        ? cloudinary.utils.private_download_url(document.publicId, format, options)
+        : null;
+      sourceUrl = signed || cloudinary.url(document.publicId, options);
+    }
+
+    const remoteResponse = await fetch(sourceUrl);
+    if (!remoteResponse.ok) {
+      console.error('HR onboarding document fetch failed:', sourceUrl, remoteResponse.status, remoteResponse.statusText);
+      return res.status(502).json({ message: 'Failed to retrieve document from storage' });
+    }
+
+    const buffer = Buffer.from(await remoteResponse.arrayBuffer());
+    const contentType = remoteResponse.headers.get('content-type') || 'application/octet-stream';
+    const filename = document.url.split('/').pop() || `${docKey}`;
+    const dispositionType = req.query.download === '1' ? 'attachment' : 'inline';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `${dispositionType}; filename="${filename}"`);
+    res.status(200).send(buffer);
   } catch (error) {
     next(error);
   }

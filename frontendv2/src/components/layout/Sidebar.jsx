@@ -163,12 +163,12 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       path: '/employee/details',
       roles: ['manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
     },
-    {
-      text: 'Employee Details',
-      icon: <PeopleIcon />,
-      path: '/hr/employee/details',
-      roles: ['admin', 'hr'],
-    },
+    // {
+    //   text: 'Employee Details',
+    //   icon: <PeopleIcon />,
+    //   path: '/hr/employee/details',
+    //   roles: ['admin', 'hr'],
+    // },
     {
       text: 'Analytics',
       icon: <BarChartIcon />,

@@ -367,6 +367,12 @@ export const hrAPI = {
   getEmployeeStandups: (employeeId) => 
     apiRequest(`/hr/standups/${employeeId}`),
 
+  getOnboardingDocumentUrl: (userId, scope, docKey, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const suffix = query ? `?${query}` : '';
+    return `${API_BASE_URL}/hr/onboarding/${userId}/documents/${scope}/${docKey}${suffix}`;
+  },
+
   getOnboardingList: (params) =>
     apiRequest(`/hr/onboarding${buildQuery(params)}`),
 

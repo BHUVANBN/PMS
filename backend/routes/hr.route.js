@@ -30,6 +30,7 @@ import {
 	listArchivedEmployeeDocuments,
 	getArchivedEmployeeDocuments,
 	finalizeAllVerifiedOnboarding,
+	streamHROnboardingDocument,
 } from '../controllers/onboarding.controller.js';
 import { hrOnboardingUpload, hrGenericUpload } from '../middleware/upload.js';
 
@@ -90,6 +91,7 @@ router.post('/onboarding/:userId/finalize', allowHRAndAbove, finalizeOnboardingT
 router.post('/onboarding/finalize-all', allowHRAndAbove, finalizeAllVerifiedOnboarding);
 router.get('/employee-documents', allowHRAndAbove, listArchivedEmployeeDocuments);
 router.get('/employee-documents/:userId', allowHRAndAbove, getArchivedEmployeeDocuments);
+router.get('/onboarding/:userId/documents/:scope/:docKey', allowHRAndAbove, streamHROnboardingDocument);
 
 // Generic HR documents (flexible uploads with name/description)
 // Allow Admin/HR/Manager for these endpoints

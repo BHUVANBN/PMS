@@ -1,8 +1,59 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { employeeAPI, publicAPI } from '../../services/api';
+import { employeeAPI, publicAPI, hrAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import './OnboardingModal.css';
+
+const REQUIRED_DOC_ORDER = [
+  ['aadhar', 'Aadhar Card'],
+  ['photo', 'Passport-size Photo'],
+  ['passbook', 'Passbook Photo'],
+  ['tenth', '10th Marks Card'],
+  ['twelfth', '12th Marks Card'],
+  ['diploma', 'Diploma Certificate'],
+];
+
+const PDFPreview = ({ url, label }) => {
+  const [src, setSrc] = useState('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = '';
+    const fetchPdf = async () => {
+      try {
+        setError(false);
+        setSrc('');
+        const token = localStorage.getItem('token');
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch PDF');
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      } catch {
+        setError(true);
+      }
+    };
+    fetchPdf();
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+
+  if (error) {
+    return <div className="preview-error">Failed to preview {label}</div>;
+  }
+
+  if (!src) {
+    return <div className="preview-loading">Loading {label}...</div>;
+  }
+
+  return <iframe title={label} src={src} className="preview-frame" />;
+};
 
 export default function OnboardingModal({ open, onClose, user }) {
   const { isAuthenticated } = useAuth();
@@ -12,6 +63,8 @@ export default function OnboardingModal({ open, onClose, user }) {
   const [success, setSuccess] = useState('');
   const [status, setStatus] = useState(null);
   const [onboarding, setOnboarding] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const authenticatedName = useMemo(() => {
     return user?.firstName || user?.lastName
@@ -269,6 +322,38 @@ export default function OnboardingModal({ open, onClose, user }) {
 
   if (!open) return null;
 
+  const formattedDate = (value) => {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '';
+  };
+
+  const documentEntries = useMemo(() => {
+    if (!onboarding?.employeeDocuments) return [];
+    const onboardingUserId = onboarding.user?._id || onboarding.user || '';
+    return REQUIRED_DOC_ORDER.map(([key, label]) => {
+      const doc = onboarding.employeeDocuments?.[key];
+      if (!doc?.url) {
+        return { key, label, hasDoc: false };
+      }
+      let previewUrl = doc.url;
+      let downloadUrl = doc.url;
+      if (onboardingUserId) {
+        previewUrl = hrAPI.getOnboardingDocumentUrl(onboardingUserId, 'employee', key);
+        downloadUrl = hrAPI.getOnboardingDocumentUrl(onboardingUserId, 'employee', key, { download: 1 });
+      }
+      const isPdf = doc.url.toLowerCase().includes('.pdf');
+      return {
+        key,
+        label,
+        hasDoc: true,
+        previewUrl,
+        downloadUrl,
+        isPdf,
+        uploadedAt: formattedDate(doc.uploadedAt),
+      };
+    });
+  }, [onboarding]);
+
   return (
     <div className="modal-overlay" onClick={() => { /* prevent backdrop close like standup */ }}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -294,28 +379,46 @@ export default function OnboardingModal({ open, onClose, user }) {
             <div className="status-block">
               <h4 className="status-title">Current Onboarding Status</h4>
               <p className="status-text">{onboarding.status}</p>
-              {onboarding.employeeDocuments?.aadhar && (
-                <p className="status-text">Aadhar Card: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-              )}
-              {onboarding.employeeDocuments?.photo && (
-                <p className="status-text">Passport-size Photo: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-              )}
-              {onboarding.employeeDocuments?.passbook && (
-                <p className="status-text">Passbook Photo: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-              )}
-              {(onboarding.employeeDocuments?.tenth || onboarding.employeeDocuments?.twelfth || onboarding.employeeDocuments?.diploma) && (
-                <>
-                  {onboarding.employeeDocuments?.tenth && (
-                    <p className="status-text">10th Marks Card: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-                  )}
-                  {onboarding.employeeDocuments?.twelfth && (
-                    <p className="status-text">12th Marks Card: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-                  )}
-                  {onboarding.employeeDocuments?.diploma && (
-                    <p className="status-text">Diploma Certificate: <strong style={{ color: '#047857' }}>Uploaded</strong></p>
-                  )}
-                </>
-              )}
+              <div className="status-doc-grid">
+                {documentEntries.map((doc) => (
+                  <div key={doc.key} className="status-doc-row">
+                    <div className="status-doc-meta">
+                      <span className="status-doc-label">{doc.label}</span>
+                      {doc.uploadedAt && (
+                        <span className="status-doc-date">Uploaded {doc.uploadedAt}</span>
+                      )}
+                      {!doc.hasDoc && (
+                        <span className="status-doc-missing">Not uploaded</span>
+                      )}
+                    </div>
+                    <div className="status-doc-actions">
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={!doc.hasDoc}
+                        onClick={() => {
+                          if (!doc.hasDoc) return;
+                          setPreviewDoc(doc);
+                          setPreviewOpen(true);
+                        }}
+                      >
+                        Preview
+                      </button>
+                      <a
+                        className={`btn btn-primary ${!doc.hasDoc ? 'btn-disabled' : ''}`}
+                        href={doc.hasDoc ? doc.downloadUrl : undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (!doc.hasDoc) e.preventDefault();
+                        }}
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -559,13 +662,34 @@ export default function OnboardingModal({ open, onClose, user }) {
             </div>
 
             <div className="modal-footer">
-              <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>Close</button>
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Uploading...' : 'Submit Documents'}
+                {loading ? 'Submitting...' : 'Submit Onboarding'}
               </button>
             </div>
           </form>
         </div>
+        {previewOpen && previewDoc && (
+          <div className="preview-modal" onClick={() => setPreviewOpen(false)}>
+            <div className="preview-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="preview-modal-header">
+                <h4>{previewDoc.label}</h4>
+                <button type="button" className="preview-close" onClick={() => setPreviewOpen(false)}>×</button>
+              </div>
+              <div className="preview-modal-body">
+                {previewDoc.isPdf ? (
+                  <PDFPreview url={previewDoc.previewUrl} label={previewDoc.label} />
+                ) : (
+                  <img src={previewDoc.previewUrl} alt={previewDoc.label} className="preview-image" />
+                )}
+              </div>
+              <div className="preview-modal-footer">
+                <a className="btn btn-primary" href={previewDoc.downloadUrl} target="_blank" rel="noopener noreferrer">Open in New Tab</a>
+                <button type="button" className="btn btn-secondary" onClick={() => setPreviewOpen(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       text: 'Documents',
       icon: <DescriptionIcon />,
       path: role === 'manager' ? '/manager/documents' : (role === 'hr' || role === 'admin' ? '/hr/documents' : '/documents'),
-      roles: ['admin', 'hr', 'manager'],
+      roles: ['admin', 'manager'],
     },
     {
       text: 'My Documents',

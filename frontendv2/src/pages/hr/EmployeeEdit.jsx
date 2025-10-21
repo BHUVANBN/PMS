@@ -77,6 +77,8 @@ const EmployeeEdit = () => {
   const [error, setError] = useState('');
   const [docsOpen, setDocsOpen] = useState(false);
   const [modalFilter, setModalFilter] = useState({ type: 'all', key: null });
+  const [uploadingKey, setUploadingKey] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -96,6 +98,15 @@ const EmployeeEdit = () => {
       load();
     }
   }, [id]);
+
+  const refreshOnboarding = async () => {
+    try {
+      const response = await hrAPI.getOnboardingDetails(id);
+      setOnboarding(response?.onboarding || null);
+    } catch {
+      // ignore refresh error, primary load handles errors
+    }
+  };
 
   const employeeDetailsEntries = useMemo(() => {
     const details = onboarding?.employeeDetails || {};
@@ -132,8 +143,8 @@ const EmployeeEdit = () => {
       if (!doc?.url) {
         return { key, label, hasDoc: false, type: 'employee' };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(id, 'employee', key);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(id, 'employee', key, { download: 1 });
+      const previewUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'employee', key) : doc.url;
+      const downloadUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'employee', key, { download: 1 }) : doc.url;
       const isPdf = doc.url.toLowerCase().includes('.pdf');
       return {
         id: `employee-${key}`,
@@ -161,8 +172,8 @@ const EmployeeEdit = () => {
       if (!doc?.url) {
         return { key, label, hasDoc: false, type: 'hr' };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(id, 'hr', key);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(id, 'hr', key, { download: 1 });
+      const previewUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'hr', key) : doc.url;
+      const downloadUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'hr', key, { download: 1 }) : doc.url;
       const isPdf = doc.url.toLowerCase().includes('.pdf');
       return {
         id: `hr-${key}`,
@@ -184,8 +195,8 @@ const EmployeeEdit = () => {
       if (!doc?.file?.url) {
         return { ...doc, hasDoc: false, type: 'generic', id: `generic-${doc._id}` };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(id, 'generic', doc._id);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(id, 'generic', doc._id, { download: 1 });
+      const previewUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'generic', doc._id) : doc.file.url;
+      const downloadUrl = id ? hrAPI.getOnboardingDocumentUrl(id, 'generic', doc._id, { download: 1 }) : doc.file.url;
       const isPdf = doc.file.url.toLowerCase().includes('.pdf');
       return {
         ...doc,
@@ -356,19 +367,41 @@ const EmployeeEdit = () => {
                       {!doc.hasDoc && (
                         <Typography variant="body2" color="text.secondary">Document not uploaded.</Typography>
                       )}
+                      {uploadError && uploadingKey === doc.key && (
+                        <Typography variant="caption" color="error">{uploadError}</Typography>
+                      )}
                     </Stack>
                     <Stack direction="row" spacing={1}>
                       <Button
                         size="small"
                         variant="outlined"
-                        disabled={!doc.hasDoc}
-                        onClick={() => {
-                          if (!doc.hasDoc) return;
-                          setModalFilter({ type: 'hr', key: doc.key });
-                          setDocsOpen(true);
-                        }}
+                        component="label"
+                        disabled={!!uploadingKey}
                       >
-                        Preview
+                        {uploadingKey === doc.key ? 'Uploading...' : (doc.hasDoc ? 'Replace' : 'Upload')}
+                        <input
+                          type="file"
+                          hidden
+                          accept="application/pdf,image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadError('');
+                            setUploadingKey(doc.key);
+                            try {
+                              const formData = new FormData();
+                              formData.append(doc.key, file);
+                              await hrAPI.uploadOnboardingDocuments(id, formData);
+                              await refreshOnboarding();
+                            } catch (err) {
+                              setUploadError(err?.message || 'Failed to upload');
+                            } finally {
+                              setUploadingKey('');
+                              // reset the input so same file can be re-selected if needed
+                              e.target.value = '';
+                            }
+                          }}
+                        />
                       </Button>
                       <Button
                         size="small"
@@ -449,7 +482,22 @@ const EmployeeEdit = () => {
                     <img src={entry.previewUrl} alt={entry.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   )}
                 </Box>
-                <Button href={entry.downloadUrl} target="_blank" rel="noopener noreferrer" sx={{ mt: 1 }} size="small">Open in New Tab</Button>
+                <Button onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(entry.downloadUrl, {
+                      credentials: 'include',
+                      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                    });
+                    if (!res.ok) throw new Error('Failed to fetch file');
+                    const blob = await res.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    window.open(objectUrl, '_blank', 'noopener,noreferrer');
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+                  } catch (e) {
+                    console.error('Open with auth failed:', e?.message || e);
+                  }
+                }} sx={{ mt: 1 }} size="small">Open in New Tab</Button>
               </Box>
             ))}
             {modalEntriesFiltered.length === 0 && (

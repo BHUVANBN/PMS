@@ -39,6 +39,24 @@ const router = express.Router();
 // All HR routes require authentication
 router.use(verifyToken);
 
+// Allow Admin/HR/Manager or the employee (self) to view specific onboarding documents
+const allowDocView = (req, res, next) => {
+  try {
+    const role = (req.user?.role || '').toString().toLowerCase();
+    let userId = req.params?.userId;
+    if (role === 'admin' || role === 'hr' || role === 'manager') return next();
+    // If employee and userId missing/undefined, default to self
+    if ((userId === undefined || userId === null || String(userId) === 'undefined' || String(userId).trim() === '') && role === 'employee') {
+      req.params.userId = String(req.user?._id || '');
+      userId = req.params.userId;
+    }
+    if (userId && String(req.user?._id) === String(userId)) return next();
+    return res.status(403).json({ message: 'Forbidden: insufficient role' });
+  } catch (e) {
+    return res.status(403).json({ message: 'Forbidden: insufficient role' });
+  }
+};
+
 // Get current HR user info
 router.get('/me', (req, res) => {
 	return res.json({ message: 'HR route', user: req.user });
@@ -91,13 +109,14 @@ router.post('/onboarding/:userId/finalize', allowHRAndAbove, finalizeOnboardingT
 router.post('/onboarding/finalize-all', allowHRAndAbove, finalizeAllVerifiedOnboarding);
 router.get('/employee-documents', allowHRAndAbove, listArchivedEmployeeDocuments);
 router.get('/employee-documents/:userId', allowHRAndAbove, getArchivedEmployeeDocuments);
-router.get('/onboarding/:userId/documents/:scope/:docKey', allowHRAndAbove, streamHROnboardingDocument);
+router.get('/onboarding/:userId/documents/:scope/:docKey', allowDocView, streamHROnboardingDocument);
 
 // Generic HR documents (flexible uploads with name/description)
 // Allow Admin/HR/Manager for these endpoints
 const allowAdminHrManager = allowRoles('admin', 'hr', 'manager');
 router.post('/onboarding/:userId/hr-docs', allowAdminHrManager, hrGenericUpload, addHRGenericDocument);
-router.get('/onboarding/:userId/hr-docs', allowAdminHrManager, getHRGenericDocuments);
+// Allow employees to view their own generic HR docs
+router.get('/onboarding/:userId/hr-docs', allowDocView, getHRGenericDocuments);
 router.delete('/onboarding/:userId/hr-docs/:docId', allowAdminHrManager, deleteHRGenericDocument);
 
 export default router;

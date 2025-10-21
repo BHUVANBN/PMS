@@ -418,6 +418,24 @@ export const uploadHRDocuments = async (req, res, next) => {
     await onboarding.save();
     await onboarding.populate('user', 'firstName lastName email role');
 
+    // Sync latest onboarding snapshot to employee archive profile without finalizing
+    try {
+      await EmployeeDocuments.findOneAndUpdate(
+        { user: userId },
+        {
+          user: userId,
+          employeeDetails: onboarding.employeeDetails || {},
+          employeeDocuments: onboarding.employeeDocuments || {},
+          hrDocuments: onboarding.hrDocuments || {},
+          hrDocumentsList: onboarding.hrDocumentsList || [],
+        },
+        { upsert: true, new: true }
+      );
+    } catch (e) {
+      // Non-fatal: log and continue response
+      console.error('EmployeeDocuments sync failed for HR upload:', String(userId), e?.message || e);
+    }
+
     return res.status(200).json({
       message: 'HR documents uploaded successfully',
       onboarding: serializeOnboarding(onboarding)

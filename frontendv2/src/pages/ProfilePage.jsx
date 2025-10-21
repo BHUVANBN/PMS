@@ -22,18 +22,22 @@ const PDFPreview = ({ url, label }) => {
 
   useEffect(() => {
     let objectUrl = '';
-    const fetchPdf = async () => {
+    const load = async () => {
       try {
         setError(false);
         setSrc('');
+        const isExternal = /^https?:\/\//i.test(url) && !url.includes('/api/');
+        if (isExternal) {
+          // Direct external URL (e.g., Cloudinary) - avoid fetch+blob to bypass CORS
+          setSrc(url);
+          return;
+        }
         const token = localStorage.getItem('token');
         const response = await fetch(url, {
           credentials: 'include',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch PDF');
-        }
+        if (!response.ok) throw new Error('Failed to fetch PDF');
         const blob = await response.blob();
         objectUrl = URL.createObjectURL(blob);
         setSrc(objectUrl);
@@ -41,10 +45,8 @@ const PDFPreview = ({ url, label }) => {
         setError(true);
       }
     };
-    fetchPdf();
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
+    load();
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [url]);
 
   if (error) {
@@ -75,6 +77,25 @@ const ProfilePage = () => {
   const [error, setError] = useState('');
   const [docsOpen, setDocsOpen] = useState(false);
   const [modalFilter, setModalFilter] = useState({ type: 'all', key: null });
+
+  const openWithAuth = async (url) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) throw new Error('Failed to fetch file');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      // Revoke after a delay to allow the new window to read it
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (e) {
+      // Optional: surface error somewhere
+      console.error('Open with auth failed:', e?.message || e);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -126,8 +147,9 @@ const ProfilePage = () => {
       if (!doc?.url) {
         return { key, label, hasDoc: false };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'employee', key);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'employee', key, { download: 1 });
+      const userId = user?._id;
+      const previewUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'employee', key) : doc.url;
+      const downloadUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'employee', key, { download: 1 }) : doc.url;
       const isPdf = doc.url.toLowerCase().includes('.pdf');
       return {
         key,
@@ -139,7 +161,7 @@ const ProfilePage = () => {
         uploadedAt: doc.uploadedAt || '',
       };
     });
-  }, [user?._id, onboarding]);
+  }, [onboarding]);
 
   const hrDocEntries = useMemo(() => {
     if (!onboarding?.hrDocuments) return [];
@@ -153,9 +175,10 @@ const ProfilePage = () => {
       if (!doc?.url) {
         return { key, label, hasDoc: false };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'hr', key);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'hr', key, { download: 1 });
-      const isPdf = doc.url.toLowerCase().includes('.pdf');
+      const userId = user?._id;
+      const previewUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'hr', key) : doc.url;
+      const downloadUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'hr', key, { download: 1 }) : doc.url;
+      const isPdf = true; // HR docs are PDFs
       return {
         key,
         label,
@@ -166,7 +189,7 @@ const ProfilePage = () => {
         uploadedAt: doc.uploadedAt || '',
       };
     });
-  }, [user?._id, onboarding]);
+  }, [onboarding, user?._id]);
 
   const genericDocs = useMemo(() => {
     if (!Array.isArray(onboarding?.hrDocumentsList)) return [];
@@ -174,9 +197,11 @@ const ProfilePage = () => {
       if (!doc?.file?.url) {
         return { ...doc, hasDoc: false };
       }
-      const previewUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'generic', doc._id);
-      const downloadUrl = hrAPI.getOnboardingDocumentUrl(user?._id, 'generic', doc._id, { download: 1 });
-      const isPdf = doc.file.url.toLowerCase().includes('.pdf');
+      const userId = user?._id;
+      const previewUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'generic', doc._id) : doc.file.url;
+      const downloadUrl = userId ? hrAPI.getOnboardingDocumentUrl(userId, 'generic', doc._id, { download: 1 }) : doc.file.url;
+      const lower = (doc.file.url || '').toLowerCase();
+      const isPdf = /\.pdf(?:\?|$)/.test(lower) || /\/raw\//.test(lower);
       return {
         ...doc,
         hasDoc: true,
@@ -185,7 +210,7 @@ const ProfilePage = () => {
         isPdf,
       };
     });
-  }, [user?._id, onboarding]);
+  }, [onboarding, user?._id]);
 
   const hasDocuments = employeeDocEntries.some((d) => d.hasDoc) || hrDocEntries.some((d) => d.hasDoc) || genericDocs.some((d) => d?.hasDoc);
 
@@ -459,7 +484,7 @@ const ProfilePage = () => {
                     <img src={entry.previewUrl} alt={entry.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   )}
                 </Box>
-                <Button href={entry.downloadUrl} target="_blank" rel="noopener noreferrer" sx={{ mt: 1 }} size="small">Open in New Tab</Button>
+                <Button onClick={() => openWithAuth(entry.downloadUrl)} sx={{ mt: 1 }} size="small">Open in New Tab</Button>
               </Box>
             ))}
             {modalEntriesFiltered.length === 0 && (

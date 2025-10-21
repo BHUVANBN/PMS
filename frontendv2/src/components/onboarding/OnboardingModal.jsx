@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { employeeAPI, publicAPI, hrAPI } from '../../services/api';
+import { employeeAPI, publicAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import './OnboardingModal.css';
 
@@ -320,8 +320,6 @@ export default function OnboardingModal({ open, onClose, user }) {
     }
   };
 
-  if (!open) return null;
-
   const formattedDate = (value) => {
     const date = value ? new Date(value) : null;
     return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '';
@@ -329,18 +327,13 @@ export default function OnboardingModal({ open, onClose, user }) {
 
   const documentEntries = useMemo(() => {
     if (!onboarding?.employeeDocuments) return [];
-    const onboardingUserId = onboarding.user?._id || onboarding.user || '';
     return REQUIRED_DOC_ORDER.map(([key, label]) => {
       const doc = onboarding.employeeDocuments?.[key];
       if (!doc?.url) {
         return { key, label, hasDoc: false };
       }
-      let previewUrl = doc.url;
-      let downloadUrl = doc.url;
-      if (onboardingUserId) {
-        previewUrl = hrAPI.getOnboardingDocumentUrl(onboardingUserId, 'employee', key);
-        downloadUrl = hrAPI.getOnboardingDocumentUrl(onboardingUserId, 'employee', key, { download: 1 });
-      }
+      const previewUrl = doc.url; // use direct URL for employee self-view
+      const downloadUrl = doc.url;
       const isPdf = doc.url.toLowerCase().includes('.pdf');
       return {
         key,
@@ -353,6 +346,8 @@ export default function OnboardingModal({ open, onClose, user }) {
       };
     });
   }, [onboarding]);
+
+  if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={() => { /* prevent backdrop close like standup */ }}>

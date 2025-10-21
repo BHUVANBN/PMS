@@ -133,7 +133,7 @@ function App() {
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
               <Route path="hr/standups" element={<ProtectedRoute requiredRoles={["hr","admin"]}><AllStandups /></ProtectedRoute>} />
               <Route path="hr/onboarding-public" element={<ProtectedRoute requiredRoles={["hr","admin"]}><PublicOnboardingList /></ProtectedRoute>} />
-              <Route path="hr/documents" element={<ProtectedRoute requiredRoles={["hr","admin","manager"]}><HRDocuments /></ProtectedRoute>} />
+              <Route path="hr/documents" element={<ProtectedRoute requiredRoles={["admin","manager"]}><HRDocuments /></ProtectedRoute>} />
               <Route path="manager/documents" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDocuments /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />

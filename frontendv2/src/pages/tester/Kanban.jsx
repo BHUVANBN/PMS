@@ -17,7 +17,6 @@ const TesterKanban = () => {
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [clearedTickets, setClearedTickets] = useState(() => new Set());
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveDescription, setMoveDescription] = useState('');
   const [moveError, setMoveError] = useState('');
@@ -25,7 +24,7 @@ const TesterKanban = () => {
   const [ticketToMove, setTicketToMove] = useState(null);
 
   useEffect(() => {
-    setClearedTickets(new Set());
+    // Component mounted or refresh triggered
   }, [refreshKey]);
 
   const normalizeTicketId = useCallback((ticket) => {
@@ -145,18 +144,11 @@ const TesterKanban = () => {
     try {
       await testerAPI.resolveTicketBugs(projectId, moduleId, ticketId);
 
-      setClearedTickets((prev) => {
-        const next = new Set(prev);
-        if (normalizedId) {
-          next.add(normalizedId);
-        }
-        return next;
-      });
-
+      // Refresh the kanban board to get updated ticket data
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
       console.error('Error resolving ticket bugs:', err);
-      setError(err.message || 'Failed to resolve linked bugs');
+      setError(err?.message || 'Failed to resolve linked bugs');
     } finally {
       setResolvingTicketId(null);
     }
@@ -179,9 +171,7 @@ const TesterKanban = () => {
   const renderTicket = useCallback(({ key, ticket, columnKey, onDragStart }) => {
     const ticketId = normalizeTicketId(ticket);
     const bugs = ticket?.bugs || [];
-    const isCleared = ticketId && clearedTickets.has(ticketId);
-    const visibleBugs = isCleared ? [] : bugs;
-    const bugCount = visibleBugs.length;
+    const bugCount = bugs.length;
 
     return (
       <Box key={key} sx={{ p: 1, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 0.5 }}>
@@ -203,7 +193,7 @@ const TesterKanban = () => {
               />
               {bugCount > 0 && (
                 <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  {visibleBugs.slice(0, 3).map((bug) => (
+                  {bugs.slice(0, 3).map((bug) => (
                     <Chip
                       key={bug._id}
                       size="small"
@@ -223,10 +213,10 @@ const TesterKanban = () => {
               <Button
                 size="small"
                 variant="outlined"
-                disabled={!bugs.length || resolvingTicketId === ticketId}
+                disabled={bugCount === 0 || resolvingTicketId === ticketId}
                 onClick={() => handleResolveBugs(ticket)}
               >
-                {isCleared ? 'Cleared' : resolvingTicketId === ticketId ? 'Resolving…' : 'Resolve Bugs'}
+                {resolvingTicketId === ticketId ? 'Resolving…' : 'Resolve Bugs'}
               </Button>
               <Button
                 size="small"
@@ -244,7 +234,7 @@ const TesterKanban = () => {
         </Stack>
       </Box>
     );
-  }, [openDialog, severityColor, clearedTickets, resolvingTicketId, handleResolveBugs, normalizeTicketId]);
+  }, [openDialog, severityColor, resolvingTicketId, handleResolveBugs, normalizeTicketId]);
 
   return (
     <Box>
@@ -265,6 +255,7 @@ const TesterKanban = () => {
         onProjectChange={setActiveProjectId}
         refreshKey={refreshKey}
         renderTicket={renderTicket}
+        dragDropEnabled={true}
         sseParams={(projectId) => {
           if (!(user?._id || user?.id)) return undefined;
           const params = { userId: user._id || user.id, role: 'tester' };

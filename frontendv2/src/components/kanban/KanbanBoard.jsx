@@ -43,6 +43,8 @@ const KanbanBoard = ({
   refreshKey,
   renderTicket,
   onTicketUpdated,
+  // Permissions
+  dragDropEnabled = true, // New prop to control drag and drop
 }) => {
   const { user } = useAuth();
   const isManager = user?.role === 'manager';
@@ -179,14 +181,13 @@ const KanbanBoard = ({
   }, [board, columnsOrder]);
 
   const onDragStart = (e, ctx) => {
-    if (isManager) {
-      // Disable drag and drop for managers
+    if (!dragDropEnabled) {
       return;
     }
     setDragCtx(ctx);
   };
   const onDrop = async (e, to) => {
-    if (isManager) return; // Disable drag and drop for managers
+    if (!dragDropEnabled) return;
 
     e.preventDefault();
     if (!dragCtx) return;

@@ -177,12 +177,6 @@ const DevKanban = () => {
               </Button>
             )}
           </Stack>
-
-          {openBugCount > 0 && (
-            <Typography variant="caption" color="error.main">
-              {openBugCount} unresolved bug{openBugCount === 1 ? '' : 's'} require action.
-            </Typography>
-          )}
         </Stack>
       </Box>
     );

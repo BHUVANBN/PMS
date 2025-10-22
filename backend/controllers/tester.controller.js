@@ -1332,7 +1332,9 @@ export const resolveTicketBugs = async (req, res) => {
       });
     }
 
-    if (ticket.tester && ticket.tester.toString() !== testerId.toString()) {
+    // Allow testers to resolve bugs on any ticket in testing phase
+    // This enables better workflow - any tester can help resolve bugs
+    if (ticket.tester && ticket.tester.toString() !== testerId.toString() && ticket.assignedDeveloper) {
       return res.status(403).json({
         success: false,
         error: 'Access denied to this ticket'

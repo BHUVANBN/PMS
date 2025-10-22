@@ -315,8 +315,11 @@ export const getTesterKanbanBoard = async (req, res) => {
     }
 
     // Extract tickets assigned to this tester or awaiting assignment (ready for testing / testing without tester)
+    // Also include tickets in testing phase that are assigned to developers (need testing)
     const testerTickets = [];
     const needsAssignment = [];
+    const developerTestingTickets = [];
+
     projects.forEach(project => {
       project.modules.forEach(module => {
         module.tickets.forEach(ticket => {
@@ -330,7 +333,6 @@ export const getTesterKanbanBoard = async (req, res) => {
 
           const stat = (ticket.status || '').toLowerCase();
           const isTesterMe = ticket.tester && ticket.tester.toString() === userId.toString();
-          // Exclude 'code_review' from tester testing phase so tickets with review status do not appear on tester board
           const isTestingPhase = ['testing', 'ready_for_testing', 'in_review'].includes(stat);
 
           if (isTesterMe) {
@@ -343,6 +345,13 @@ export const getTesterKanbanBoard = async (req, res) => {
               ...ticketPayload,
               assignedTester: false
             });
+          } else if (ticket.assignedDeveloper && isTestingPhase) {
+            // Include tickets assigned to developers that are in testing phase
+            developerTestingTickets.push({
+              ...ticketPayload,
+              assignedTester: false,
+              fromDeveloper: true
+            });
           }
         });
       });
@@ -350,7 +359,8 @@ export const getTesterKanbanBoard = async (req, res) => {
 
     const allTicketIds = [
       ...testerTickets.map(t => t._id?.toString()).filter(Boolean),
-      ...needsAssignment.map(t => t._id?.toString()).filter(Boolean)
+      ...needsAssignment.map(t => t._id?.toString()).filter(Boolean),
+      ...developerTestingTickets.map(t => t._id?.toString()).filter(Boolean)
     ];
 
     let bugMap = new Map();
@@ -411,6 +421,16 @@ export const getTesterKanbanBoard = async (req, res) => {
       };
     });
 
+    const developerTestingTicketsWithBugs = developerTestingTickets.map((ticket) => {
+      const enriched = attachBugs(ticket);
+      const key = enriched?._id?.toString();
+      return {
+        ...enriched,
+        openBugCount: unresolvedCounts.get(key) || 0,
+        hasOpenBugs: (unresolvedCounts.get(key) || 0) > 0
+      };
+    });
+
     const kanbanData = {
       columns: {
         testing: {
@@ -418,6 +438,7 @@ export const getTesterKanbanBoard = async (req, res) => {
           title: 'Testing Queue',
           tickets: [
             ...needsAssignmentWithBugs,
+            ...developerTestingTicketsWithBugs,
             ...testerTicketsWithBugs.filter(t => {
               const s = (t.status || '').toLowerCase();
               return ['testing', 'ready_for_testing', 'in_review'].includes(s);
@@ -430,10 +451,11 @@ export const getTesterKanbanBoard = async (req, res) => {
           tickets: testerTicketsWithBugs.filter(t => t.status === 'done')
         }
       },
-      totalTickets: testerTickets.length + needsAssignment.length,
+      totalTickets: testerTickets.length + needsAssignment.length + developerTestingTickets.length,
       activeTickets: [
-        ...testerTicketsWithBugs.filter(t => ['testing'].includes((t.status || '').toLowerCase())),
-        ...needsAssignmentWithBugs
+        ...testerTicketsWithBugs.filter(t => ['testing', 'ready_for_testing', 'in_review'].includes((t.status || '').toLowerCase())),
+        ...needsAssignmentWithBugs,
+        ...developerTestingTicketsWithBugs
       ].length,
       projectId: testerProjectId ? testerProjectId.toString() : '',
       availableProjects: projects.map(project => ({
@@ -915,39 +937,51 @@ export const updateTicketStatus = async (req, res) => {
 
         const testerLoad = availableTesters.map(tester => {
           const testerIdStr = tester._id.toString();
-          const moduleAssignments = module.tickets.filter(t => t.tester?.toString() === testerIdStr).length;
-          const projectAssignments = project.modules.reduce((acc, mod) => {
+
+          // Count tickets currently assigned to this tester across all projects
+          const globalAssignments = project.modules.reduce((acc, mod) => {
             return acc + mod.tickets.filter(t => t.tester?.toString() === testerIdStr).length;
+          }, 0);
+
+          // Count tickets in testing phase assigned to this tester
+          const testingAssignments = project.modules.reduce((acc, mod) => {
+            return acc + mod.tickets.filter(t =>
+              t.tester?.toString() === testerIdStr &&
+              ['testing', 'ready_for_testing'].includes((t.status || '').toLowerCase())
+            ).length;
           }, 0);
 
           return {
             tester,
-            moduleAssignments,
-            projectAssignments,
-            isModuleMember: moduleTesterIds.has(testerIdStr)
+            globalAssignments,
+            testingAssignments,
+            isModuleMember: moduleTesterIds.has(testerIdStr),
+            // Prioritize testers with fewer active testing assignments
+            priorityScore: testingAssignments * 2 + globalAssignments
           };
         });
 
+        // Sort by priority score (lower is better) and module membership
         testerLoad.sort((a, b) => {
           if (a.isModuleMember !== b.isModuleMember) return a.isModuleMember ? -1 : 1;
-          if (a.moduleAssignments !== b.moduleAssignments) return a.moduleAssignments - b.moduleAssignments;
-          return a.projectAssignments - b.projectAssignments;
+          return a.priorityScore - b.priorityScore;
         });
 
-        const selectedTester = testerLoad[0].tester;
-        newlyAssignedTester = selectedTester;
-        ticket.tester = selectedTester._id;
+        const selectedTester = testerLoad[0]?.tester;
+        if (selectedTester) {
+          newlyAssignedTester = selectedTester;
+          ticket.tester = selectedTester._id;
 
-        const testerDisplayName = selectedTester.firstName
-          ? `${selectedTester.firstName} ${selectedTester.lastName || ''}`.trim()
-          : selectedTester.username || selectedTester.email || 'tester';
+          const testerDisplayName = selectedTester.firstName
+            ? `${selectedTester.firstName} ${selectedTester.lastName || ''}`.trim()
+            : selectedTester.username || selectedTester.email || 'tester';
 
-        ticket.comments.push({
-          userId: req.user._id,
-          comment: `[System] Auto-assigned tester ${testerDisplayName} when ticket entered testing`,
-          createdAt: new Date()
-        });
-
+          ticket.comments.push({
+            userId: req.user._id,
+            comment: `[System] Auto-assigned tester ${testerDisplayName} when ticket entered testing (workload: ${testerLoad[0].testingAssignments} active testing tickets)`,
+            createdAt: new Date()
+          });
+        }
       }
 
       const testerUserIds = availableTesters.map(tester => tester._id.toString());
@@ -1030,13 +1064,8 @@ export const updateTicketStatus = async (req, res) => {
       }
     });
 
-    if (status === 'done' && !ticket.tester) {
-      const testerUser = await User.findOne({ _id: { $in: project.teamMembers }, role: 'tester' });
-      if (testerUser) {
-        ticket.tester = testerUser._id;
-        await project.save();
-      }
-    }
+    // Removed: Auto-assignment of tester when ticket is marked done
+    // This was causing tickets to reappear in developer kanbans after completion
 
     emitTicketEvent({
       projectId: projectId.toString(),

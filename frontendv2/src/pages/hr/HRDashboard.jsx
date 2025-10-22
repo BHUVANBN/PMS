@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Typography,
   Grid,
@@ -24,6 +25,7 @@ import {
   Divider,
   Stack
 } from '@mui/material';
+
 import {
   People,
   PersonAdd,
@@ -42,6 +44,8 @@ import {
 import { hrAPI } from '../../services/api';
 import StatsCard from '../../components/dashboard/StatsCard';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
+import QuickActions from '../../components/dashboard/QuickActions';
+import { useAuth } from '../../contexts/AuthContext';
 
 const HRDashboard = () => {
   const navigate = useNavigate();
@@ -50,6 +54,14 @@ const HRDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const theme = useTheme();
+  const { user } = useAuth();
+
+  const quickActions = [
+    { title: 'Employee List', path: '/hr/employees', color: 'primary' },
+    { title: 'Add Employee', path: '/hr/employees/new', color: 'success' },
+    { title: 'Onboarding Submissions', path: '/hr/onboarding-public', color: 'info' },
+    { title: 'Standups', path: '/hr/standups', color: 'warning' },
+  ];
 
   const fetchData = async () => {
     try {
@@ -91,29 +103,6 @@ const HRDashboard = () => {
     fetchData();
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={60} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert 
-        severity="error" 
-        action={
-          <Button color="inherit" size="small" onClick={handleRefresh}>
-            Retry
-          </Button>
-        }
-      >
-        {error}
-      </Alert>
-    );
-  }
-
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -136,6 +125,29 @@ const HRDashboard = () => {
     };
     return colors[role] || theme.palette.grey[500];
   };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert 
+        severity="error" 
+        action={
+          <Button color="inherit" size="small" onClick={handleRefresh}>
+            Retry
+          </Button>
+        }
+      >
+        {error}
+      </Alert>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -165,6 +177,12 @@ const HRDashboard = () => {
         >
           Manage employees, track performance, and oversee HR operations
         </Typography>
+        <Typography
+          variant="body1"
+          sx={{ mt: 1.5, color: 'text.secondary' }}
+        >
+          Welcome{user?.fullName ? `, ${user.fullName}` : ''}.
+        </Typography>
         <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
           <Button
             variant="outlined"
@@ -184,6 +202,13 @@ const HRDashboard = () => {
           </Button>
         </Stack>
       </Box>
+
+      {/* Quick Actions */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12}>
+          <QuickActions actions={quickActions} />
+        </Grid>
+      </Grid>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>

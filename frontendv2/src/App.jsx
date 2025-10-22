@@ -1,5 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeModeProvider } from './contexts/ThemeModeContext';
+import { useThemeMode } from './contexts/useThemeMode';
+import { createAppTheme } from './theme/index.js';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import MainLayout from './layouts/MainLayout';
@@ -72,11 +76,21 @@ import NotificationsPage from './pages/NotificationsPage.jsx';
 // Shared pages
 import NotFoundPage from './pages/NotFoundPage';
 
-function App() {
+const AppRoutes = () => {
+  const location = useLocation();
+  const { resolvedMode } = useThemeMode();
+  const effectiveMode = location.pathname === '/login' ? 'light' : resolvedMode;
+  const theme = createAppTheme(effectiveMode);
   return (
-    <AuthProvider>
-      <Router>
-          <div style={{ minHeight: '100vh', position: 'relative' }}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div style={{ minHeight: '100vh', position: 'relative' }}>
+        {(() => {
+          const isDark = theme.palette.mode === 'dark';
+          const background = isDark
+            ? 'linear-gradient(135deg, rgba(24, 24, 27, 0.8) 0%, rgba(17, 24, 39, 0.8) 100%)'
+            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 248, 255, 0.7) 40%, rgba(176, 224, 230, 0.6) 70%, rgba(135, 206, 250, 0.8) 100%)';
+          return (
             <div
               style={{
                 position: 'fixed',
@@ -86,11 +100,13 @@ function App() {
                 bottom: 0,
                 zIndex: -1,
                 pointerEvents: 'none',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 248, 255, 0.7) 40%, rgba(176, 224, 230, 0.6) 70%, rgba(135, 206, 250, 0.8) 100%)'
+                background,
               }}
             />
-            <Toaster position="top-right" gutter={8} />
-            <Routes>
+          );
+        })()}
+        <Toaster position="top-right" gutter={8} />
+        <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -191,9 +207,26 @@ function App() {
             
             {/* 404 page */}
             <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </div>
-      </Router>
+        </Routes>
+      </div>
+    </ThemeProvider>
+  );
+};
+
+const ThemedApp = () => {
+  return (
+    <Router>
+      <AppRoutes />
+    </Router>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeModeProvider>
+        <ThemedApp />
+      </ThemeModeProvider>
     </AuthProvider>
   );
 }

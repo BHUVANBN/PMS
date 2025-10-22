@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Box, CssBaseline, useTheme } from '@mui/material';
 import AppBar from '../components/layout/AppBar';
 import Sidebar from '../components/layout/Sidebar';
+import CommandPalette from '../components/CommandPalette';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { calendarAPI } from '../services/api';
@@ -68,6 +69,7 @@ const MainLayout = () => {
         mobileOpen={mobileOpen} 
         onClose={handleDrawerToggle}
       />
+      <CommandPalette />
       <Box
         component="main"
         sx={{

@@ -1,0 +1,86 @@
+HR Login - Non-Security Enhancements
+
+1) Role-aware welcome and routing
+- Auto-route HR users to an HR home/dashboard with greeting and quick links.
+
+2) Quick actions panel
+- One-click actions: Review leave requests, Approve timesheets, Open hiring pipeline, Create announcement.
+- User-configurable shortcuts saved per HR user.
+
+3) Context-based deep linking
+- Support redirect query param (?redirect=/hr/approvals/123) and return users there post-login.
+
+4) Branding and theming
+- HR-specific theme, banner, and copy (e.g., performance cycle, open enrollment).
+
+5) Announcements and system status
+- Pre-login non-sensitive notices (maintenance, new features).
+- Post-login urgent HR alerts (policy updates due, compliance expirations).
+
+6) Localization and regionalization
+- Language selector and persisted locale.
+- Regional date/time/currency formatting by HR region.
+
+7) Accessibility-first UX
+- WCAG-compliant contrast, keyboard navigation, focus states, screen-reader labels.
+- Clear, inline error messages.
+
+8) Smart error handling
+- Friendly, specific error messages and retry hints for network/service issues.
+- Contact support CTA with auto-filled context (timestamp, route).
+
+9) Session continuity (UX)
+- Preserve filters, page, and scroll on session refresh/re-auth.
+- "Resume where I left off" tile on HR home.
+
+10) Environment picker (non-prod)
+- Optional pre-login Dev/Staging/Prod selector to reduce cross-environment errors.
+
+11) Progressive profiling (post-login)
+- Guided completion of HR profile (department scope, region) to personalize dashboards and filters.
+
+12) Onboarding tour and in-product help
+- Role-specific walkthrough after first HR login.
+- Inline help side-panel docs; avoid navigation away.
+
+13) Performance and reliability UX
+- Lightweight login shell; lazy-load HR modules for fast perceived performance.
+- Skeleton screens and optimistic loading states.
+
+14) Theming modes
+- Light/Dark/System toggle persisted per HR user.
+
+15) Keyboard-first power features
+- Global command palette (Ctrl/Cmd+K) for quick navigation across HR tasks.
+
+16) Notification handoff
+- If a notification is opened while logged out, show a brief preview on login and deep link post-login.
+
+17) Audit-friendly activity feed (UX)
+- "My recent actions" with timestamps and quick undo where applicable.
+
+18) Calendaring hooks
+- Banners for timebound items (payroll cutoff) and add-to-calendar buttons.
+
+19) Mobile-optimized login and landing
+- Responsive layout with tap targets and collapsible panels.
+
+20) Feature flags per HR segment
+- Gradual rollouts; "What’s new" changelog tile tailored to HR.
+
+21) Support contact presence
+- Persistent help icon with compact support panel (FAQs, quick search, chat/escalation links).
+
+22) Gamified completion nudges
+- Progress indicators (e.g., Performance cycle setup 80% complete) for multi-step workflows.
+
+23) Microcopy and tone
+- Role-relevant language (e.g., "Approve 6 offers pending").
+
+24) Telemetry for UX improvements (non-PII)
+- Track common paths to reorder quick actions and recommend next steps.
+
+Integration Pointers (Project-specific)
+- Frontend routes: Add HR landing and smart redirects in frontendv2/src/config/routes.js and pages/hr/.
+- Deep linking: Handle and persist redirect in auth wrapper (e.g., frontendv2/src/components/auth/AuthGate.jsx).
+- Personalization storage: Save HR preferences in user profile model (backend/models/) or an HR settings endpoint.

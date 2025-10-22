@@ -26,6 +26,10 @@ import {
   Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useThemeMode } from '../../contexts/useThemeMode';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import BrightnessAutoIcon from '@mui/icons-material/BrightnessAuto';
 import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 import { calendarAPI, meetingAPI, employeeAPI, subscribeToEvents } from '../../services/api';
@@ -35,6 +39,7 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { mode, setMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -427,6 +432,18 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
         
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title={`Theme: ${mode === 'dark' ? 'dark' : 'light'}`}> 
+              <IconButton
+                color="inherit"
+                onClick={() => {
+                  const next = mode === 'light' ? 'dark' : 'light';
+                  setMode(next);
+                }}
+                sx={{ mr: 1 }}
+              >
+                {mode === 'dark' ? <Brightness4Icon /> : <Brightness7Icon />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Notifications">
               <IconButton color="inherit" onClick={handleNotificationMenuOpen} sx={{ mr: 1 }}>
                 {(() => { const c = notifications.filter(n => !n.read).length; const d = c > 9 ? '9+' : c; return (

@@ -10,9 +10,7 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
   const [priority, setPriority] = useState('medium');
   const [type, setType] = useState('feature');
   const [developers, setDevelopers] = useState([]);
-  const [testers, setTesters] = useState([]);
   const [selectedDeveloper, setSelectedDeveloper] = useState('');
-  const [selectedTester, setSelectedTester] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,17 +32,27 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
           setError('No modules found. Please create a module first before adding tickets.');
         }
         
-        // Load developers and testers via manager endpoint (role-scoped)
-        const [devRes, testRes] = await Promise.all([
-          managerAPI.getEmployees({ role: 'developer' }),
-          managerAPI.getEmployees({ role: 'tester' })
-        ]);
+        // Load project details and filter only developers in the project's team
+        const projRes = await managerAPI.getProjectDetails(projectId);
+        const proj = projRes?.data || projRes?.project || projRes || {};
+        const teamSet = new Map();
 
-        const devs = devRes?.data || devRes?.employees || [];
-        const tests = testRes?.data || testRes?.employees || [];
+        const addUser = (u) => {
+          if (!u) return;
+          const id = u._id || u.id;
+          if (!id) return;
+          if (!teamSet.has(id)) teamSet.set(id, u);
+        };
 
-        setDevelopers(Array.isArray(devs) ? devs : []);
-        setTesters(Array.isArray(tests) ? tests : []);
+        (Array.isArray(proj.teamMembers) ? proj.teamMembers : []).forEach(addUser);
+        (Array.isArray(proj.modules) ? proj.modules : []).forEach((m) => {
+          if (m?.moduleLead) addUser(m.moduleLead);
+          (Array.isArray(m?.teamMembers) ? m.teamMembers : []).forEach(addUser);
+        });
+
+        const devs = Array.from(teamSet.values()).filter((u) => String(u?.role || '').toLowerCase() === 'developer');
+
+        setDevelopers(devs);
         
       } catch (err) {
         setError(err.message || 'Failed to load data');
@@ -68,13 +76,12 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
         type 
       });
       
-      // If developer or tester selected, assign them
-      if (selectedDeveloper || selectedTester) {
+      // If developer selected, assign them
+      if (selectedDeveloper) {
         const ticketId = ticketRes?.data?._id || ticketRes?.data?.ticket?._id;
         if (ticketId) {
           const assignmentData = {};
           if (selectedDeveloper) assignmentData.assignedDeveloper = selectedDeveloper;
-          if (selectedTester) assignmentData.tester = selectedTester;
           
           await managerAPI.assignTicket(projectId, moduleId, ticketId, assignmentData);
         }
@@ -87,7 +94,6 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
       setTitle('');
       setDescription('');
       setSelectedDeveloper('');
-      setSelectedTester('');
       
     } catch (err) {
       setError(err.message || 'Failed to create ticket');
@@ -144,7 +150,7 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
         <Divider sx={{ my: 2 }} />
         
         <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-          Assign Team Members (Optional)
+          Assign Team Members 
         </Typography>
         
         <FormControl fullWidth margin="normal">
@@ -166,32 +172,6 @@ const AddTicketModal = ({ open, onClose, projectId, onCreated }) => {
                   </Avatar>
                   <Typography>
                     {dev.firstName} {dev.lastName}
-                  </Typography>
-                </Stack>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="tester-assign-label">Assign Tester</InputLabel>
-          <Select 
-            labelId="tester-assign-label" 
-            label="Assign Tester" 
-            value={selectedTester} 
-            onChange={(e) => setSelectedTester(e.target.value)}
-          >
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
-            {testers.map((tester) => (
-              <MenuItem key={tester._id} value={tester._id}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Avatar sx={{ width: 24, height: 24 }}>
-                    {(tester.firstName || tester.username || '?')[0].toUpperCase()}
-                  </Avatar>
-                  <Typography>
-                    {tester.firstName} {tester.lastName}
                   </Typography>
                 </Stack>
               </MenuItem>

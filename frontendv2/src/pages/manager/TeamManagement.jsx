@@ -920,6 +920,8 @@
 //         </MenuItem>
 //       </Menu>
 //     </Box>
+
+//     </Box>
 //   );
 // };
 
@@ -929,19 +931,16 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { 
   Box, Button, Paper, Select, MenuItem, Stack, Typography, 
   Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, Chip, IconButton, Menu, TextField, Alert, Grid,
+  FormControl, InputLabel, Chip, IconButton, TextField, Alert, Grid,
   Tabs, Tab, Divider, FormControlLabel, Checkbox
 } from '@mui/material';
 import { 
-  Refresh, Add, PersonAdd, Close, MoreVert, Delete, Edit, AddCircle,
-  CalendarToday, VideoCall, AccessTime, People
+  Refresh, PersonAdd, Close, Delete, Edit, CalendarToday, People
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/shared/DataTable';
 import { managerAPI, hrAPI, usersAPI, meetingAPI } from '../../services/api';
 
 const TeamManagement = () => {
-  const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [members, setMembers] = useState([]);
@@ -967,25 +966,15 @@ const TeamManagement = () => {
     location: '',
     meetingLink: '',
     attendees: [],
-    isTeamMeeting: true // Default to team meeting
+    isTeamMeeting: true
   });
   
   // Team creation state
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [assigning, setAssigning] = useState(false);
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  
-  // Team member actions
-  const [memberMenuAnchor, setMemberMenuAnchor] = useState(null);
-  const [selectedMember, setSelectedMember] = useState(null);
-  
-  // Manual user input
   const [manualUserEmail, setManualUserEmail] = useState('');
 
-  // Fetch project meetings
   const fetchProjectMeetings = useCallback(async (projectId) => {
     if (!projectId) return;
     try {
@@ -1123,7 +1112,7 @@ const payload = {
 
 
   // Delete meeting
-  const handleDeleteMeeting = async (meetingId) => {
+  const handleDeleteMeeting = useCallback(async (meetingId) => {
     const confirmed = window.confirm('Are you sure you want to delete this meeting?');
     if (!confirmed) return;
 
@@ -1138,7 +1127,7 @@ const payload = {
     } finally {
       setAssigning(false);
     }
-  };
+  }, [selectedProjectId, fetchProjectMeetings]);
 
   // Edit meeting
   const handleEditMeeting = (meeting) => {
@@ -1241,23 +1230,22 @@ const payload = {
 
   const fetchAllUsers = async () => {
     try {
-      setLoadingUsers(true);
       let users = [];
 
       try {
         const mgrRes = await managerAPI.getEmployees();
         users = mgrRes?.data || mgrRes?.employees || mgrRes || [];
         if (!Array.isArray(users) || users.length === 0) throw new Error('No users');
-      } catch (mgrErr) {
+      } catch {
         try {
           const userRes = await usersAPI.getAllUsers();
           users = userRes?.data || userRes?.users || userRes || [];
           if (!Array.isArray(users) || users.length === 0) throw new Error('No users');
-        } catch (usersErr) {
+        } catch {
           try {
             const hrRes = await hrAPI.getAllEmployees();
             users = hrRes?.employees || hrRes?.data?.employees || hrRes?.data || hrRes || [];
-          } catch (hrErr) {
+          } catch {
             console.warn('All user fetch strategies failed');
           }
         }
@@ -1273,8 +1261,6 @@ const payload = {
       setAllUsers(allActiveUsers);
     } catch (e) {
       console.error('Failed to fetch users:', e);
-    } finally {
-      setLoadingUsers(false);
     }
   };
 
@@ -1283,31 +1269,7 @@ const payload = {
     fetchAllUsers();
   };
 
-  const handleMemberMenuOpen = (event, member) => {
-    setMemberMenuAnchor(event.currentTarget);
-    setSelectedMember(member);
-  };
-
-  const handleMemberMenuClose = () => {
-    setMemberMenuAnchor(null);
-    setSelectedMember(null);
-  };
-
-  const handleRemoveMember = async () => {
-    if (!selectedMember || !selectedProjectId) return;
-    
-    const confirmed = window.confirm(`Remove ${selectedMember.name} from this project?`);
-    if (!confirmed) return;
-
-    try {
-      await managerAPI.assignTeamRole(selectedProjectId, selectedMember.id, { role: null, remove: true });
-      await fetchProjectTeam(selectedProjectId);
-      handleMemberMenuClose();
-    } catch (e) {
-      setError(e.message || 'Failed to remove team member');
-      handleMemberMenuClose();
-    }
-  };
+  // Removed unused member menu handlers and menu
 
   const handleAddToTeam = useCallback(async (userId) => {
     if (!selectedProjectId) return;
@@ -1382,7 +1344,7 @@ const payload = {
       setError(null);
       
       const userId = await findUserByEmail(manualUserEmail.trim());
-      const response = await managerAPI.assignTeamRole(selectedProjectId, userId, { 
+      await managerAPI.assignTeamRole(selectedProjectId, userId, { 
         role: 'teamMember'
       });
       
@@ -1409,12 +1371,6 @@ const payload = {
       fetchProjectMeetings(selectedProjectId);
     }
   }, [selectedProjectId, fetchProjectTeam, fetchProjectMeetings]);
-
-  useEffect(() => {
-    if (selectedProjectId && allUsers.length === 0) {
-      fetchAllUsers();
-    }
-  }, [selectedProjectId, allUsers.length]);
 
   const columns = useMemo(() => [
     { key: 'name', label: 'Name', sortable: true },
@@ -1503,7 +1459,7 @@ const payload = {
         </Stack>
       ),
     },
-  ], []);
+  ], [handleDeleteMeeting]);
 
   const projectOptions = (overview?.projects || []).map((p) => ({
     id: p._id || p.id,
@@ -1684,11 +1640,13 @@ const payload = {
                 const userId = user._id || user.id;
                 const isCurrentMember = members.some(m => m.id === userId);
                 const displayName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+                const roleLabel = user.role || 'Employee';
                 return (
                   <Box key={userId} sx={{ display: 'flex', justifyContent: 'space-between', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                     <Box>
                       <Typography variant="subtitle2">{displayName}</Typography>
                       <Typography variant="body2" color="text.secondary">{user.email}</Typography>
+                      <Typography variant="caption" color="text.secondary">{roleLabel}</Typography>
                     </Box>
                     {isCurrentMember ? (
                       <Chip label="In Team" size="small" color="success" />
@@ -1878,12 +1836,7 @@ const payload = {
         </DialogActions>
       </Dialog>
 
-      {/* Member Actions Menu */}
-      <Menu anchorEl={memberMenuAnchor} open={Boolean(memberMenuAnchor)} onClose={handleMemberMenuClose}>
-        <MenuItem onClick={handleRemoveMember} sx={{ color: 'error.main' }}>
-          <Delete fontSize="small" sx={{ mr: 1 }} /> Remove from Team
-        </MenuItem>
-      </Menu>
+      {/* Member Actions Menu removed (unused) */}
     </Box>
   );
 };

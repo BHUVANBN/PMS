@@ -141,9 +141,9 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
           } catch {
             // ignore
           }
-          // Load candidate users by roles
+          // Load candidate users by roles (restrict to developer/tester)
           try {
-            const roles = ['developer','tester','intern','marketing','sales'];
+            const roles = ['developer','tester'];
             const results = await Promise.allSettled(roles.map(r => usersAPI.getUsersByRole(r)));
             const pool = [];
             const resultsArray = Array.isArray(results) ? results : [];
@@ -169,7 +169,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
               if (!id || seen.has(id) || teamIds.has(id)) continue;
 
               try {
-                // Get projects for this user
+                // Get projects for this user (optional best-effort)
                 const userProjects = await managerAPI.getUserProjects(id);
                 const projectCount = Array.isArray(userProjects?.data) ? userProjects.data.length : 0;
 
@@ -619,10 +619,7 @@ const ProjectForm = ({ mode = 'create', projectId, onCancel, onSuccess }) => {
                     options={[
                       { label: 'All Roles', value: 'all' },
                       { label: 'Developer', value: 'developer' },
-                      { label: 'Tester', value: 'tester' },
-                      { label: 'Marketing', value: 'marketing' },
-                      { label: 'Sales', value: 'sales' },
-                      { label: 'Intern', value: 'intern' }
+                      { label: 'Tester', value: 'tester' }
                     ]}
                     size="small"
                   />

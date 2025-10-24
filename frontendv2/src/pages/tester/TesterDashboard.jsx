@@ -36,8 +36,9 @@ import {
   Timeline,
   Assessment
 } from '@mui/icons-material';
-import { testerAPI } from '../../services/api';
+import { testerAPI, subscribeToEvents } from '../../services/api';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TesterDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -45,6 +46,8 @@ const TesterDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const theme = useTheme();
+  const { user } = useAuth();
+  const [standupNotice, setStandupNotice] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -72,6 +75,47 @@ const TesterDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    let unsubscribe;
+    let retryTimer;
+    let retryDelay = 2000;
+    const connect = () => {
+      try {
+        unsubscribe = subscribeToEvents(
+          { userId: user._id },
+          (payload) => {
+            try {
+              const type = payload?.type || '';
+              if (type.startsWith('standup.')) {
+                const title = type === 'standup.commented' ? 'Standup comment' : type === 'standup.attachment_added' ? 'Standup attachment' : 'Standup update';
+                const by = payload?.data?.by ? ` by ${payload.data.by}` : '';
+                setStandupNotice(`${title}${by}`);
+                setTimeout(() => setStandupNotice(null), 12000);
+              }
+            } catch (err) { String(err); }
+          },
+          () => {
+            try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { String(err); }
+            if (retryTimer) clearTimeout(retryTimer);
+            retryTimer = setTimeout(connect, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+          }
+        );
+      } catch (err) {
+        String(err);
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    };
+    connect();
+    return () => {
+      try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { String(err); }
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [user?._id]);
 
   const handleRefresh = () => {
     fetchData();
@@ -262,6 +306,11 @@ const TesterDashboard = () => {
             Refresh
           </Button>
         </Box>
+        {standupNotice && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            {standupNotice}
+          </Alert>
+        )}
       </Box>
 
       {/* Main Layout */}

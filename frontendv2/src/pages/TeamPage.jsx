@@ -7,11 +7,13 @@ import {
   Groups, ExpandMore, ExpandLess, Person, Business, 
   Assignment, Refresh 
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { managerAPI, projectsAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const TeamPage = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
+  const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,21 +30,25 @@ const TeamPage = () => {
       const projectsList = projectsRes?.data?.projects || projectsRes?.projects || projectsRes?.data || [];
       
       // For each project, fetch detailed team information
+      const isHRorAdmin = (user?.role === 'hr' || user?.role === 'admin');
       const projectsWithTeams = await Promise.all(
         projectsList.map(async (project) => {
           try {
-            const teamRes = await managerAPI.getProjectTeam(project._id || project.id);
-            const teamMembers = teamRes?.team || teamRes?.data?.team || teamRes?.data || [];
-            return {
-              ...project,
-              teamMembers: Array.isArray(teamMembers) ? teamMembers : []
-            };
+            if (isHRorAdmin) {
+              // HR/Admin: use projects API to get populated team members
+              const detailsRes = await projectsAPI.getProject(project._id || project.id);
+              const p = detailsRes?.data || detailsRes?.project || detailsRes || {};
+              const teamMembers = Array.isArray(p?.teamMembers) ? p.teamMembers : [];
+              return { ...project, teamMembers };
+            } else {
+              // Manager and others: use manager API
+              const teamRes = await managerAPI.getProjectTeam(project._id || project.id);
+              const teamMembers = teamRes?.team || teamRes?.data?.team || teamRes?.data || [];
+              return { ...project, teamMembers: Array.isArray(teamMembers) ? teamMembers : [] };
+            }
           } catch (e) {
             console.warn(`Failed to fetch team for project ${project.name}:`, e);
-            return {
-              ...project,
-              teamMembers: []
-            };
+            return { ...project, teamMembers: [] };
           }
         })
       );

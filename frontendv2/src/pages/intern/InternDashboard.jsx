@@ -31,9 +31,6 @@ const InternDashboard = () => (
           Welcome back! Here are your onboarding and learning items.
         </Typography>
       </Grid>
-      <Grid item xs={12} md={4}>
-        <MyUpcomingEvents title="My Upcoming Events" days={14} />
-      </Grid>
     </Grid>
     <Card>
       <CardContent>

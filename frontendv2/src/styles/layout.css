@@ -1,0 +1,84 @@
+/* Responsive layout system */
+:root {
+  --container-max: 1400px;
+  --container-pad-mobile: 1rem;   /* 16px */
+  --container-pad-desktop: 2rem;  /* 32px */
+  --section-gap: 3rem;            /* 48px */
+  --grid-gap: 1.5rem;             /* 24px */
+  --card-pad-mobile: 1rem;        /* 16px */
+  --card-pad: 1.5rem;             /* 24px */
+}
+
+/* Page container: centered, constrained, safe padding */
+.container-page {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: clamp(var(--container-pad-mobile), 3vw, var(--container-pad-desktop));
+}
+
+/* Section spacing */
+.section {
+  margin-block: var(--section-gap);
+}
+.section:first-child {
+  margin-top: 0;
+}
+.section:last-child {
+  margin-bottom: var(--section-gap);
+}
+
+/* Card grid: mobile-first responsive */
+.grid-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--grid-gap);
+}
+@media (min-width: 640px) {
+  .grid-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .grid-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .grid-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Card padding utility (non-invasive if applied) */
+.card-pad {
+  padding: var(--card-pad);
+}
+@media (max-width: 639.98px) {
+  .card-pad {
+    padding: var(--card-pad-mobile);
+  }
+}
+
+/* List container: consistent spacing and row heights */
+.list-container {
+  display: block;
+  margin-block: var(--grid-gap);
+}
+.list-row {
+  min-height: 3.5rem; /* ~56px row height baseline */
+}
+
+/* Page header pattern (title + actions) */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Ensure content never touches screen edges */
+.full-bleed-safe {
+  padding-inline: clamp(var(--container-pad-mobile), 3vw, var(--container-pad-desktop));
+}

@@ -1,0 +1,457 @@
+/* ========================================
+   PAGE HEADER & BREADCRUMBS DESIGN SYSTEM
+   ======================================== */
+
+/* Page Header Container */
+.page-header {
+  width: 100%;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.page-header-bordered {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Page Header Content Layout */
+.page-header-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .page-header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Page Header Main (Title + Description) */
+.page-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #757575;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breadcrumb-link {
+  color: #757575;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+.breadcrumb-current {
+  color: #212121;
+  font-weight: 500;
+}
+
+.breadcrumb-separator {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+/* Mobile: Show only last 2-3 levels */
+@media (max-width: 639.98px) {
+  .breadcrumb-item:not(:nth-last-child(-n+3)) {
+    display: none;
+  }
+  
+  .breadcrumb-item:nth-last-child(4) {
+    display: flex;
+  }
+  
+  .breadcrumb-item:nth-last-child(4)::after {
+    content: "...";
+    margin-left: 0.5rem;
+    color: #9ca3af;
+  }
+}
+
+/* Page Title */
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #212121;
+  margin: 0;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 639.98px) {
+  .page-title {
+    font-size: 1.75rem;
+  }
+}
+
+/* Page Description */
+.page-description {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #757575;
+  margin-top: 0.5rem;
+  max-width: 800px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 639.98px) {
+  .page-description {
+    font-size: 0.875rem;
+  }
+}
+
+/* Page Header Actions */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .page-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .page-header-actions > button,
+  .page-header-actions > .MuiButton-root {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* Primary Action Button */
+.page-header-action-primary {
+  order: 2;
+}
+
+/* Secondary Actions */
+.page-header-action-secondary {
+  order: 1;
+}
+
+/* Icon Button Actions */
+.page-header-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #212121;
+}
+
+.page-header-icon-button:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* ========================================
+   PAGE HEADER VARIANTS
+   ======================================== */
+
+/* Compact Header (less spacing) */
+.page-header-compact {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.page-header-compact .page-title {
+  font-size: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Large Header (more spacing) */
+.page-header-large {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+}
+
+.page-header-large .page-title {
+  font-size: 2.5rem;
+}
+
+@media (max-width: 639.98px) {
+  .page-header-large .page-title {
+    font-size: 2rem;
+  }
+}
+
+/* Centered Header */
+.page-header-centered {
+  text-align: center;
+}
+
+.page-header-centered .page-header-content {
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-header-centered .breadcrumbs {
+  justify-content: center;
+}
+
+.page-header-centered .page-description {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========================================
+   PAGE HEADER WITH TABS
+   ======================================== */
+
+.page-header-with-tabs {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.page-header-tabs {
+  margin-top: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.page-header-tab {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #757575;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.page-header-tab:hover {
+  color: #1976d2;
+  background: #f3f4f6;
+}
+
+.page-header-tab-active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+  font-weight: 600;
+}
+
+/* ========================================
+   PAGE HEADER WITH STATS
+   ======================================== */
+
+.page-header-stats {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 767.98px) {
+  .page-header-stats {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+
+.page-header-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.page-header-stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #757575;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.page-header-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212121;
+  line-height: 1;
+}
+
+/* ========================================
+   BREADCRUMB VARIANTS
+   ======================================== */
+
+/* Breadcrumbs with Icons */
+.breadcrumb-item-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.breadcrumb-icon {
+  width: 16px;
+  height: 16px;
+  color: #757575;
+}
+
+/* Breadcrumbs with Background */
+.breadcrumbs-pill {
+  background: #f3f4f6;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+
+.breadcrumbs-pill .breadcrumb-link {
+  color: #212121;
+}
+
+.breadcrumbs-pill .breadcrumb-link:hover {
+  color: #1976d2;
+}
+
+/* ========================================
+   PAGE HEADER UTILITIES
+   ======================================== */
+
+/* Hide breadcrumbs on mobile */
+.breadcrumbs-hide-mobile {
+  display: flex;
+}
+
+@media (max-width: 639.98px) {
+  .breadcrumbs-hide-mobile {
+    display: none;
+  }
+}
+
+/* Page header sticky (stays at top when scrolling) */
+.page-header-sticky {
+  position: sticky;
+  top: 72px; /* Below navbar */
+  background: #ffffff;
+  z-index: 10;
+  padding-top: 1rem;
+}
+
+@media (max-width: 639.98px) {
+  .page-header-sticky {
+    top: 64px;
+  }
+}
+
+/* Page header with background */
+.page-header-bg {
+  background: #f9fafb;
+  margin-left: -2rem;
+  margin-right: -2rem;
+  margin-top: -2rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 639.98px) {
+  .page-header-bg {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-top: -1rem;
+    padding: 1rem;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+.breadcrumb-link:focus-visible,
+.page-header-tab:focus-visible,
+.page-header-icon-button:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.breadcrumb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.page-header-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.page-header-skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.page-title-skeleton {
+  height: 2.5rem;
+  width: 60%;
+  margin-top: 0.5rem;
+}
+
+.page-description-skeleton {
+  height: 1.5rem;
+  width: 80%;
+  margin-top: 0.5rem;
+}

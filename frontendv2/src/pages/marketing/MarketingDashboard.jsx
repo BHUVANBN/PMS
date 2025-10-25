@@ -286,9 +286,6 @@ const MarketingDashboard = () => {
             Campaign performance and channel insights.
           </Typography>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <MyUpcomingEvents title="My Upcoming Events" days={14} />
-        </Grid>
       </Grid>
 
       {/* Statistics Cards */}

@@ -1,0 +1,440 @@
+/* ========================================
+   DIALOG/MODAL DESIGN SYSTEM
+   ======================================== */
+
+/* Dialog Backdrop */
+.dialog-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Base Dialog Container */
+.dialog-container {
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+/* Dialog Size Variants */
+.dialog-small {
+  max-width: 400px;
+  width: 90%;
+}
+
+.dialog-medium {
+  max-width: 600px;
+  width: 90%;
+}
+
+.dialog-large {
+  max-width: 800px;
+  width: 90%;
+}
+
+.dialog-full {
+  max-width: 1200px;
+  width: 90%;
+}
+
+/* Mobile adjustments for all sizes */
+@media (max-width: 639.98px) {
+  .dialog-small,
+  .dialog-medium,
+  .dialog-large,
+  .dialog-full {
+    width: 95%;
+    max-width: 95%;
+    margin: 1rem;
+  }
+}
+
+/* ========================================
+   DIALOG STRUCTURE
+   ======================================== */
+
+/* Dialog Header */
+.dialog-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #ffffff;
+  position: relative;
+}
+
+.dialog-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #212121;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-subtitle {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #757575;
+  margin-top: 0.25rem;
+}
+
+.dialog-close-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #757575;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dialog-close-button:hover {
+  background: #f3f4f6;
+  color: #212121;
+}
+
+.dialog-close-button:active {
+  background: #e5e7eb;
+}
+
+/* Dialog Body */
+.dialog-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.dialog-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dialog-body::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.dialog-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.dialog-body::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dialog Footer/Actions */
+.dialog-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.dialog-footer-left {
+  margin-right: auto;
+}
+
+/* Mobile: Full-width buttons */
+@media (max-width: 639.98px) {
+  .dialog-header {
+    padding: 1rem;
+  }
+
+  .dialog-body {
+    padding: 1rem;
+  }
+
+  .dialog-footer {
+    padding: 1rem;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .dialog-footer > button,
+  .dialog-footer > .MuiButton-root {
+    width: 100%;
+  }
+
+  .dialog-footer-left {
+    margin-right: 0;
+    width: 100%;
+  }
+}
+
+/* ========================================
+   DIALOG CONTENT HELPERS
+   ======================================== */
+
+/* Dialog Section */
+.dialog-section {
+  margin-bottom: 1.5rem;
+}
+
+.dialog-section:last-child {
+  margin-bottom: 0;
+}
+
+.dialog-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212121;
+  margin-bottom: 0.75rem;
+}
+
+.dialog-section-description {
+  font-size: 0.875rem;
+  color: #757575;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+/* Dialog Divider */
+.dialog-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5rem 0;
+}
+
+/* Dialog Alert/Notice */
+.dialog-alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.dialog-alert-info {
+  background: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  color: #1976d2;
+}
+
+.dialog-alert-warning {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  color: #f57c00;
+}
+
+.dialog-alert-error {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #d32f2f;
+}
+
+.dialog-alert-success {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #388e3c;
+}
+
+/* ========================================
+   DIALOG BUTTON VARIANTS
+   ======================================== */
+
+/* Primary Action Button */
+.dialog-button-primary {
+  order: 2;
+}
+
+/* Secondary/Cancel Button */
+.dialog-button-secondary {
+  order: 1;
+}
+
+/* Destructive Action Button */
+.dialog-button-destructive {
+  background-color: #dc2626;
+  color: white;
+}
+
+.dialog-button-destructive:hover {
+  background-color: #b91c1c;
+}
+
+/* ========================================
+   CONFIRMATION DIALOG SPECIFIC
+   ======================================== */
+
+.dialog-confirmation {
+  text-align: center;
+}
+
+.dialog-confirmation-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-confirmation-icon-warning {
+  background: rgba(255, 152, 0, 0.15);
+  color: #f57c00;
+}
+
+.dialog-confirmation-icon-error {
+  background: rgba(244, 67, 54, 0.15);
+  color: #d32f2f;
+}
+
+.dialog-confirmation-icon-info {
+  background: rgba(33, 150, 243, 0.15);
+  color: #1976d2;
+}
+
+.dialog-confirmation-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212121;
+  margin-bottom: 0.5rem;
+}
+
+.dialog-confirmation-message {
+  font-size: 0.875rem;
+  color: #757575;
+  line-height: 1.5;
+}
+
+/* ========================================
+   FORM DIALOG SPECIFIC
+   ======================================== */
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .dialog-form-row-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.dialog-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.dialog-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+.dialog-close-button:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Ensure proper contrast */
+.dialog-title,
+.dialog-section-title {
+  color: #212121;
+}
+
+.dialog-subtitle,
+.dialog-section-description {
+  color: #757575;
+}
+
+/* ========================================
+   MUI DIALOG OVERRIDES
+   ======================================== */
+
+.MuiDialog-paper {
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+.MuiDialogTitle-root {
+  padding: 1.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.MuiDialogContent-root {
+  padding: 1.5rem !important;
+}
+
+.MuiDialogActions-root {
+  padding: 1.5rem !important;
+  border-top: 1px solid #e5e7eb !important;
+  gap: 0.75rem !important;
+}
+
+/* Mobile MUI overrides */
+@media (max-width: 639.98px) {
+  .MuiDialogTitle-root {
+    padding: 1rem !important;
+  }
+
+  .MuiDialogContent-root {
+    padding: 1rem !important;
+  }
+
+  .MuiDialogActions-root {
+    padding: 1rem !important;
+    flex-direction: column-reverse !important;
+  }
+
+  .MuiDialogActions-root > * {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}

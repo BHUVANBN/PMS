@@ -263,9 +263,6 @@ const SalesDashboard = () => {
             Your sales performance overview and pipeline at a glance.
           </Typography>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <MyUpcomingEvents title="My Upcoming Events" days={14} />
-        </Grid>
       </Grid>
 
       {/* Statistics Cards */}

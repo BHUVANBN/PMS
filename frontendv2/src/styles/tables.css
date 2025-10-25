@@ -1,0 +1,707 @@
+/* ========================================
+   TABLE & DATA DISPLAY SYSTEM
+   ======================================== */
+
+/* Table Container */
+.table-container {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container-shadow {
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Table Wrapper (for horizontal scroll) */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Custom scrollbar for table wrapper */
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Base Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ========================================
+   TABLE HEADER
+   ======================================== */
+
+.table thead {
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table thead th {
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #212121;
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Uppercase header variant */
+.table-header-uppercase thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+/* Sticky header */
+.table-sticky-header thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f9fafb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================
+   TABLE BODY
+   ======================================== */
+
+.table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.15s ease;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.table tbody td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+  color: #212121;
+  min-height: 60px;
+}
+
+/* ========================================
+   TABLE CELL ALIGNMENT
+   ======================================== */
+
+/* Text alignment */
+.table-cell-left {
+  text-align: left;
+}
+
+.table-cell-center {
+  text-align: center;
+}
+
+.table-cell-right {
+  text-align: right;
+}
+
+/* Vertical alignment */
+.table-cell-top {
+  vertical-align: top;
+}
+
+.table-cell-middle {
+  vertical-align: middle;
+}
+
+.table-cell-bottom {
+  vertical-align: bottom;
+}
+
+/* ========================================
+   SORTABLE COLUMNS
+   ======================================== */
+
+.table-sortable th {
+  cursor: pointer;
+  position: relative;
+  padding-right: 2rem;
+}
+
+.table-sortable th:hover {
+  background-color: #f3f4f6;
+}
+
+.table-sortable th::after {
+  content: '↕';
+  position: absolute;
+  right: 1rem;
+  opacity: 0.3;
+  font-size: 0.75rem;
+}
+
+.table-sortable th.sort-asc::after {
+  content: '↑';
+  opacity: 1;
+  color: #1976d2;
+}
+
+.table-sortable th.sort-desc::after {
+  content: '↓';
+  opacity: 1;
+  color: #1976d2;
+}
+
+.table-sortable th.sort-active {
+  background-color: #f3f4f6;
+  color: #1976d2;
+}
+
+/* ========================================
+   SELECTABLE ROWS
+   ======================================== */
+
+.table-selectable tbody tr {
+  cursor: pointer;
+}
+
+.table-selectable tbody tr.selected {
+  background-color: #e3f2fd;
+}
+
+.table-selectable tbody tr.selected:hover {
+  background-color: #bbdefb;
+}
+
+/* Checkbox column */
+.table-checkbox-cell {
+  width: 48px;
+  padding: 1rem 1rem 1rem 1.5rem;
+}
+
+/* ========================================
+   TABLE CELL CONTENT
+   ======================================== */
+
+/* Text truncation */
+.table-cell-truncate {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-cell-truncate-sm {
+  max-width: 150px;
+}
+
+.table-cell-truncate-lg {
+  max-width: 300px;
+}
+
+/* Status badges in tables */
+.table-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-status-success {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.table-status-error {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.table-status-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.table-status-info {
+  background-color: rgba(8, 145, 178, 0.1);
+  color: #0891b2;
+}
+
+.table-status-pending {
+  background-color: rgba(156, 163, 175, 0.1);
+  color: #757575;
+}
+
+/* ========================================
+   TABLE ACTIONS
+   ======================================== */
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.table-action-button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #757575;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-action-button:hover {
+  background-color: #f3f4f6;
+  color: #1976d2;
+}
+
+.table-action-button-edit:hover {
+  color: #1976d2;
+}
+
+.table-action-button-delete:hover {
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.1);
+}
+
+.table-action-button-view:hover {
+  color: #0891b2;
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+
+.table-empty {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.table-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  color: #d1d5db;
+}
+
+.table-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #212121;
+  margin-bottom: 0.5rem;
+}
+
+.table-empty-description {
+  font-size: 0.875rem;
+  color: #757575;
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.table-loading {
+  position: relative;
+  min-height: 200px;
+}
+
+.table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.table-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: table-spinner 0.8s linear infinite;
+}
+
+@keyframes table-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Skeleton rows */
+.table-skeleton-row {
+  height: 60px;
+}
+
+.table-skeleton-cell {
+  padding: 1rem 1.5rem;
+}
+
+.table-skeleton-content {
+  height: 16px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: table-skeleton 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes table-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========================================
+   TABLE PAGINATION
+   ======================================== */
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+.table-pagination-info {
+  font-size: 0.875rem;
+  color: #757575;
+}
+
+.table-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-pagination-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #212121;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-pagination-button:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.table-pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table-pagination-button.active {
+  background-color: #1976d2;
+  border-color: #1976d2;
+  color: #ffffff;
+}
+
+/* ========================================
+   TABLE VARIANTS
+   ======================================== */
+
+/* Striped rows */
+.table-striped tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.table-striped tbody tr:nth-child(even):hover {
+  background-color: #f3f4f6;
+}
+
+/* Bordered table */
+.table-bordered {
+  border: 1px solid #e5e7eb;
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid #e5e7eb;
+}
+
+/* Compact table */
+.table-compact thead th,
+.table-compact tbody td {
+  padding: 0.5rem 1rem;
+}
+
+.table-compact tbody td {
+  min-height: 48px;
+}
+
+/* Comfortable table (more spacing) */
+.table-comfortable thead th,
+.table-comfortable tbody td {
+  padding: 1.25rem 1.5rem;
+}
+
+/* ========================================
+   STICKY FIRST COLUMN
+   ======================================== */
+
+.table-sticky-first-column th:first-child,
+.table-sticky-first-column td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background-color: #ffffff;
+}
+
+.table-sticky-first-column thead th:first-child {
+  z-index: 15;
+  background-color: #f9fafb;
+}
+
+.table-sticky-first-column tbody tr:hover td:first-child {
+  background-color: #f9fafb;
+}
+
+/* ========================================
+   RESPONSIVE TABLES
+   ======================================== */
+
+/* Mobile card layout */
+@media (max-width: 767.98px) {
+  .table-responsive-cards {
+    display: block;
+  }
+  
+  .table-responsive-cards thead {
+    display: none;
+  }
+  
+  .table-responsive-cards tbody {
+    display: block;
+  }
+  
+  .table-responsive-cards tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #ffffff;
+  }
+  
+  .table-responsive-cards tbody tr:hover {
+    background-color: #f9fafb;
+  }
+  
+  .table-responsive-cards tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border: none;
+  }
+  
+  .table-responsive-cards tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #757575;
+    margin-right: 1rem;
+  }
+  
+  .table-responsive-cards .table-actions {
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+}
+
+/* Horizontal scroll on mobile */
+@media (max-width: 767.98px) {
+  .table-responsive-scroll {
+    min-width: 600px;
+  }
+}
+
+/* ========================================
+   TABLE FILTERS & SEARCH
+   ======================================== */
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.table-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.table-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ========================================
+   TABLE FOOTER
+   ======================================== */
+
+.table-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  color: #757575;
+}
+
+/* ========================================
+   MUI TABLE OVERRIDES
+   ======================================== */
+
+.MuiTableContainer-root {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.MuiTable-root {
+  border-collapse: collapse;
+}
+
+.MuiTableHead-root {
+  background-color: #f9fafb;
+}
+
+.MuiTableHead-root .MuiTableCell-root {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #212121;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 1rem 1.5rem;
+}
+
+.MuiTableBody-root .MuiTableRow-root {
+  transition: background-color 0.15s ease;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: #f9fafb;
+}
+
+.MuiTableBody-root .MuiTableCell-root {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 60px;
+}
+
+.MuiTableBody-root .MuiTableRow-root:last-child .MuiTableCell-root {
+  border-bottom: none;
+}
+
+/* MUI Table Pagination */
+.MuiTablePagination-root {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+.table-sortable th:focus-visible,
+.table-action-button:focus-visible,
+.table-pagination-button:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.table-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+
+/* Table with fixed layout */
+.table-fixed {
+  table-layout: fixed;
+}
+
+/* Table with auto layout */
+.table-auto {
+  table-layout: auto;
+}
+
+/* Nowrap cells */
+.table-nowrap td,
+.table-nowrap th {
+  white-space: nowrap;
+}
+
+/* Full width table */
+.table-full-width {
+  width: 100%;
+}

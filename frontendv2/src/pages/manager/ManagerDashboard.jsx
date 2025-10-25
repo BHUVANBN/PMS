@@ -201,29 +201,28 @@ const ManagerDashboard = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }} className="container-page full-bleed-safe">
       {/* Header */}
-      <Box mb={4}>
+      <Box mb={4} className="page-header">
         <Typography 
-          variant="h3" 
+          variant="h1" 
+          className="page-title"
           sx={{ 
-            fontWeight: 800, 
-            color: 'text.primary',
-            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-            letterSpacing: '-0.02em',
+            fontSize: { xs: '1.75rem', md: '2rem' },
+            fontWeight: 700,
             mb: 1.5
           }}
         >
           Manager Dashboard
         </Typography>
         <Typography 
-          variant="h6" 
+          variant="body1" 
+          className="text-secondary"
           sx={{ 
-            color: 'text.secondary',
+            fontSize: '1rem',
             fontWeight: 400,
-            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
             lineHeight: 1.6,
-            letterSpacing: '0.01em'
+            color: 'text.secondary'
           }}
         >
           Welcome back, {user?.username || 'Manager'}! Here's your team overview.
@@ -257,40 +256,32 @@ const ManagerDashboard = () => {
         {/* Main Content Column */}
         <Box sx={{ flex: 1 }}>
           {/* Stats Cards */}
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatsCard
-                title="Active Projects"
-                value={stats.activeProjects}
-                icon={Assignment}
-                color="primary"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatsCard
-                title="Pending Tasks"
-                value={stats.pendingTasks}
-                icon={Schedule}
-                color="warning"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatsCard
-                title="In Progress Tasks"
-                value={stats.inProgressTasks}
-                icon={Assignment}
-                color="info"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatsCard
-                title="Completed Tasks"
-                value={stats.completedTasks}
-                icon={CheckCircle}
-                color="success"
-              />
-            </Grid>
-          </Grid>
+          <Box className="card-grid-stats section" sx={{ mb: 4 }}>
+            <StatsCard
+              title="Active Projects"
+              value={stats.activeProjects}
+              icon={Assignment}
+              color="primary"
+            />
+            <StatsCard
+              title="Pending Tasks"
+              value={stats.pendingTasks}
+              icon={Schedule}
+              color="warning"
+            />
+            <StatsCard
+              title="In Progress Tasks"
+              value={stats.inProgressTasks}
+              icon={Assignment}
+              color="info"
+            />
+            <StatsCard
+              title="Completed Tasks"
+              value={stats.completedTasks}
+              icon={CheckCircle}
+              color="success"
+            />
+          </Box>
 
           {/* Quick Actions */}
           <Box mb={4}>
@@ -298,59 +289,40 @@ const ManagerDashboard = () => {
           </Box>
 
           {/* Project Overview - Bento Grid */}
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-          }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section" sx={{ mb: 3 }}>
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 Project Overview
               </Typography>
-              <Button 
-                variant="outlined" 
-                size="small"
-                onClick={() => navigate('/projects')}
-              >
-                View All Projects
-              </Button>
+              <Box className="card-header-actions">
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => navigate('/projects')}
+                >
+                  View All Projects
+                </Button>
+              </Box>
             </Box>
 
             {projects.length === 0 ? (
-              <Box textAlign="center" py={6}>
+              <Box className="card-body" sx={{ textAlign: 'center', py: 6 }}>
                 <Typography variant="body2" color="text.secondary">
                   No projects found
                 </Typography>
               </Box>
             ) : (
-              <Grid container spacing={3}>
+              <Box className="card-grid-content">
                 {projects.map((project) => (
-                  <Grid item xs={12} sm={6} lg={4} key={project._id}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 3,
-                        height: 320,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        background: 'rgba(255, 255, 255, 0.3)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.5)',
-                        borderRadius: '12px',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-                          background: 'rgba(255, 255, 255, 0.4)',
-                        }
-                      }}
-                      onClick={() => navigate(`/manager/projects/${project._id}/edit`)}
-                    >
+                  <Box
+                    key={project._id}
+                    className="card card-project card-hover"
+                    sx={{
+                      height: 320,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => navigate(`/manager/projects/${project._id}/edit`)}
+                  >
                       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Project Header */}
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -495,12 +467,11 @@ const ManagerDashboard = () => {
                           </Box>
                         </Box>
                       </Box>
-                    </Paper>
-                  </Grid>
+                    </Box>
                 ))}
-              </Grid>
+              </Box>
             )}
-          </Paper>
+          </Box>
         </Box>
 
         {/* Right Sidebar */}
@@ -528,11 +499,6 @@ const ManagerDashboard = () => {
               <Button size="small" variant="outlined" onClick={downloadTodaySummary}>Download Summary</Button>
             </Stack>
           </Paper>
-
-          {/* My Upcoming Events */}
-          <Box sx={{ mb: 3 }}>
-            <MyUpcomingEvents title="My Upcoming Events" days={14} />
-          </Box>
 
           {/* Task Progress */}
           <Paper elevation={0} sx={{ 

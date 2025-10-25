@@ -1,0 +1,732 @@
+/* ========================================
+   LIST VIEWS & ITEMS DESIGN SYSTEM
+   ======================================== */
+
+/* List Container */
+.list-container {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.list-container-shadow {
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.list-container-borderless {
+  border: none;
+  box-shadow: none;
+}
+
+/* List */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list-divided .list-item {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.list-divided .list-item:last-child {
+  border-bottom: none;
+}
+
+/* ========================================
+   LIST ITEM
+   ======================================== */
+
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+/* Hover state */
+.list-item-hover:hover {
+  background-color: #f9fafb;
+}
+
+/* Clickable items */
+.list-item-clickable {
+  cursor: pointer;
+}
+
+.list-item-clickable:hover {
+  background-color: #f9fafb;
+}
+
+.list-item-clickable:active {
+  background-color: #f3f4f6;
+}
+
+/* Active/Selected state */
+.list-item-active,
+.list-item-selected {
+  background-color: #e3f2fd;
+  border-left: 3px solid #1976d2;
+  padding-left: calc(1.5rem - 3px);
+}
+
+.list-item-active:hover,
+.list-item-selected:hover {
+  background-color: #bbdefb;
+}
+
+/* ========================================
+   LIST ITEM CONTENT LAYOUT
+   ======================================== */
+
+/* Avatar/Icon Section */
+.list-item-avatar {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.list-item-icon {
+  flex-shrink: 0;
+  margin-right: 1rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  color: #757575;
+}
+
+/* Content Section */
+.list-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.list-item-content-horizontal {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Primary Text */
+.list-item-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #212121;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.list-item-title-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item-title-large {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Secondary Text */
+.list-item-subtitle {
+  font-size: 0.75rem;
+  color: #757575;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.list-item-subtitle-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Description */
+.list-item-description {
+  font-size: 0.875rem;
+  color: #757575;
+  line-height: 1.6;
+  margin-top: 0.25rem;
+}
+
+.list-item-description-truncate {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Meta Information */
+.list-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+}
+
+.list-item-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Actions Section */
+.list-item-actions {
+  flex-shrink: 0;
+  margin-left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.list-item-action-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #757575;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.list-item-action-button:hover {
+  background-color: #f3f4f6;
+  color: #1976d2;
+}
+
+/* ========================================
+   LIST VARIATIONS
+   ======================================== */
+
+/* Simple List */
+.list-simple .list-item {
+  padding: 0.75rem 1.5rem;
+}
+
+.list-simple .list-item-title {
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+/* Description List */
+.list-description .list-item {
+  align-items: flex-start;
+  padding: 1rem 1.5rem;
+}
+
+/* Complex List */
+.list-complex .list-item {
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Compact List */
+.list-compact .list-item {
+  padding: 0.5rem 1rem;
+}
+
+.list-compact .list-item-title {
+  font-size: 0.8125rem;
+}
+
+.list-compact .list-item-subtitle {
+  font-size: 0.6875rem;
+}
+
+/* Comfortable List */
+.list-comfortable .list-item {
+  padding: 1.5rem 2rem;
+}
+
+/* ========================================
+   INTERACTIVE LISTS
+   ======================================== */
+
+/* Checkbox List */
+.list-checkbox .list-item {
+  padding-left: 1rem;
+}
+
+.list-item-checkbox {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+/* Radio List */
+.list-radio .list-item {
+  padding-left: 1rem;
+}
+
+.list-item-radio {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+/* Draggable List */
+.list-draggable .list-item {
+  cursor: move;
+}
+
+.list-item-drag-handle {
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  color: #9ca3af;
+  cursor: grab;
+}
+
+.list-item-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ========================================
+   LIST ITEM BADGES & INDICATORS
+   ======================================== */
+
+.list-item-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-item-badge-primary {
+  background-color: rgba(25, 118, 210, 0.1);
+  color: #1976d2;
+}
+
+.list-item-badge-success {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.list-item-badge-error {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.list-item-badge-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.list-item-badge-info {
+  background-color: rgba(8, 145, 178, 0.1);
+  color: #0891b2;
+}
+
+/* Notification Dot */
+.list-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+}
+
+.list-item-dot-primary {
+  background-color: #1976d2;
+}
+
+.list-item-dot-success {
+  background-color: #16a34a;
+}
+
+.list-item-dot-error {
+  background-color: #dc2626;
+}
+
+.list-item-dot-warning {
+  background-color: #f59e0b;
+}
+
+/* ========================================
+   LIST STATES
+   ======================================== */
+
+/* Empty State */
+.list-empty {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.list-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  color: #d1d5db;
+}
+
+.list-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #212121;
+  margin-bottom: 0.5rem;
+}
+
+.list-empty-description {
+  font-size: 0.875rem;
+  color: #757575;
+  margin-bottom: 1.5rem;
+}
+
+/* Loading State */
+.list-loading {
+  position: relative;
+  min-height: 200px;
+}
+
+.list-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Skeleton Items */
+.list-skeleton-item {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.list-skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: list-skeleton 1.5s ease-in-out infinite;
+  margin-right: 1rem;
+}
+
+.list-skeleton-content {
+  flex: 1;
+}
+
+.list-skeleton-title {
+  height: 16px;
+  width: 60%;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: list-skeleton 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.list-skeleton-subtitle {
+  height: 12px;
+  width: 40%;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: list-skeleton 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes list-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Error State */
+.list-error {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.list-error-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  color: #dc2626;
+}
+
+.list-error-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #212121;
+  margin-bottom: 0.5rem;
+}
+
+.list-error-description {
+  font-size: 0.875rem;
+  color: #757575;
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   LIST HEADER & FOOTER
+   ======================================== */
+
+.list-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list-header-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #212121;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.list-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  text-align: center;
+}
+
+.list-footer-button {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1976d2;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.list-footer-button:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+/* ========================================
+   LIST GROUPS
+   ======================================== */
+
+.list-group-header {
+  padding: 0.75rem 1.5rem;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #757575;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* ========================================
+   SPECIFIC LIST TYPES
+   ======================================== */
+
+/* Activity Feed */
+.list-activity .list-item {
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+}
+
+.list-activity .list-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.list-activity .list-item-meta {
+  margin-top: 0.25rem;
+}
+
+/* Notification List */
+.list-notifications .list-item {
+  align-items: flex-start;
+}
+
+.list-notifications .list-item-unread {
+  background-color: #f0f9ff;
+  border-left: 3px solid #1976d2;
+  padding-left: calc(1.5rem - 3px);
+}
+
+/* Task List */
+.list-tasks .list-item {
+  align-items: flex-start;
+}
+
+.list-tasks .list-item-completed {
+  opacity: 0.6;
+}
+
+.list-tasks .list-item-completed .list-item-title {
+  text-decoration: line-through;
+}
+
+/* File List */
+.list-files .list-item-icon {
+  background-color: transparent;
+  color: #1976d2;
+}
+
+/* Team Member List */
+.list-team .list-item-avatar {
+  margin-right: 1rem;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 639.98px) {
+  .list-item {
+    padding: 0.75rem 1rem;
+  }
+  
+  .list-item-content-horizontal {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .list-item-actions {
+    margin-left: 0;
+    margin-top: 0.75rem;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .list-header,
+  .list-footer {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ========================================
+   MUI LIST OVERRIDES
+   ======================================== */
+
+.MuiList-root {
+  padding: 0;
+}
+
+.MuiListItem-root {
+  padding: 1rem 1.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.MuiListItem-root:hover {
+  background-color: #f9fafb;
+}
+
+.MuiListItemButton-root {
+  padding: 1rem 1.5rem;
+  border-radius: 0;
+}
+
+.MuiListItemButton-root:hover {
+  background-color: #f9fafb;
+}
+
+.MuiListItemIcon-root {
+  min-width: 40px;
+  margin-right: 1rem;
+}
+
+.MuiListItemText-root {
+  margin: 0;
+}
+
+.MuiListItemText-primary {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #212121;
+}
+
+.MuiListItemText-secondary {
+  font-size: 0.75rem;
+  color: #757575;
+  margin-top: 0.25rem;
+}
+
+.MuiDivider-root {
+  margin: 0;
+  border-color: #e5e7eb;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+.list-item-clickable:focus-visible,
+.list-item-action-button:focus-visible,
+.list-footer-button:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.list-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+
+/* Spacing utilities */
+.list-spacing-sm .list-item {
+  padding: 0.5rem 1rem;
+}
+
+.list-spacing-md .list-item {
+  padding: 1rem 1.5rem;
+}
+
+.list-spacing-lg .list-item {
+  padding: 1.5rem 2rem;
+}
+
+/* No hover */
+.list-no-hover .list-item:hover {
+  background-color: transparent;
+}

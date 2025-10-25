@@ -1,0 +1,392 @@
+/* Typography System - Standardized Hierarchy */
+
+/* Heading Hierarchy */
+.heading-h1,
+.page-title {
+  font-size: 2rem;        /* 32px */
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  color: var(--text-default, #212121);
+}
+
+.heading-h2,
+.section-title {
+  font-size: 1.5rem;      /* 24px */
+  font-weight: 600;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+  color: var(--text-default, #212121);
+}
+
+.heading-h3,
+.card-title {
+  font-size: 1.25rem;     /* 20px */
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+}
+
+.heading-h4,
+.sub-heading {
+  font-size: 1.125rem;    /* 18px */
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+}
+
+/* Body Text Standards */
+.text-primary,
+.body-text {
+  font-size: 1rem;        /* 16px */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-default, #212121);
+}
+
+.text-secondary,
+.supporting-text {
+  font-size: 0.875rem;    /* 14px */
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted, #757575);
+}
+
+.text-small,
+.metadata-text {
+  font-size: 0.75rem;     /* 12px */
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-muted, #9e9e9e);
+}
+
+.button-text {
+  font-size: 0.875rem;    /* 14px */
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Text Color Utilities (WCAG AA compliant) */
+.text-color-primary {
+  color: var(--text-default, #212121);
+}
+
+.text-color-secondary {
+  color: var(--text-muted, #757575);
+}
+
+.text-color-muted {
+  color: #9e9e9e;
+}
+
+.text-color-disabled {
+  color: #bdbdbd;
+}
+
+/* Text Alignment */
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* Font Weight Utilities */
+.font-regular {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+/* Responsive Typography */
+@media (max-width: 639.98px) {
+  .heading-h1,
+  .page-title {
+    font-size: 1.75rem;   /* 28px on mobile */
+    margin-bottom: 1.25rem;
+  }
+
+  .heading-h2,
+  .section-title {
+    font-size: 1.375rem;  /* 22px on mobile */
+    margin-bottom: 0.875rem;
+  }
+
+  .heading-h3,
+  .card-title {
+    font-size: 1.125rem;  /* 18px on mobile */
+    margin-bottom: 0.625rem;
+  }
+}
+
+/* Special Text Styles */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Link Styles */
+a,
+.link {
+  color: var(--color-primary-600, #4f46e5);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover,
+.link:hover {
+  color: var(--color-primary-700, #4338ca);
+  text-decoration: underline;
+}
+
+/* Label Styles */
+label,
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-default, #212121);
+  margin-bottom: 0.5rem;
+  display: block;
+  text-align: left;
+}
+
+/* Helper Text */
+.helper-text {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-muted, #757575);
+  margin-top: 0.25rem;
+}
+
+/* Error Text */
+.error-text {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-error-600, #dc2626);
+  margin-top: 0.25rem;
+}
+
+/* Success Text */
+.success-text {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-success-600, #059669);
+  margin-top: 0.25rem;
+}
+
+/* ========================================
+   FORM TYPOGRAPHY STANDARDS
+   ======================================== */
+
+/* Form Labels */
+.form-label,
+label.MuiFormLabel-root,
+.MuiInputLabel-root {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+  color: var(--text-default, #212121) !important;
+  margin-bottom: 0.5rem;
+  display: block;
+  text-align: left;
+}
+
+/* Required Indicator */
+.form-label-required::after,
+.MuiFormLabel-asterisk {
+  content: ' *';
+  color: var(--color-error-600, #dc2626);
+  margin-left: 0.25rem;
+}
+
+/* Input Fields */
+input,
+textarea,
+select,
+.MuiInputBase-input,
+.MuiOutlinedInput-input {
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  color: var(--text-default, #212121) !important;
+}
+
+/* Prevent mobile zoom on focus */
+@media (max-width: 639.98px) {
+  input,
+  textarea,
+  select,
+  .MuiInputBase-input {
+    font-size: 16px !important;
+  }
+}
+
+/* Placeholder Text */
+input::placeholder,
+textarea::placeholder,
+.MuiInputBase-input::placeholder {
+  color: var(--text-muted, #9e9e9e) !important;
+  opacity: 1;
+  font-weight: 400;
+}
+
+/* Input Helper Text */
+.input-helper-text,
+.MuiFormHelperText-root {
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: var(--text-muted, #757575) !important;
+  margin-top: 0.25rem !important;
+  display: block;
+}
+
+/* Input Error Messages */
+.input-error-text,
+.MuiFormHelperText-root.Mui-error {
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: var(--color-error-600, #dc2626) !important;
+  margin-top: 0.25rem !important;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Error Icon Prefix */
+.input-error-text::before {
+  content: '⚠';
+  font-size: 0.875rem;
+}
+
+/* Form Section Headings */
+.form-section-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+}
+
+/* Form Group Spacing */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Related Fields Spacing */
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field:last-child {
+  margin-bottom: 0;
+}
+
+/* Form Row (for side-by-side fields) */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-row-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Disabled Input States */
+input:disabled,
+textarea:disabled,
+select:disabled,
+.MuiInputBase-input.Mui-disabled {
+  color: var(--text-color-disabled, #bdbdbd) !important;
+  cursor: not-allowed;
+}
+
+/* Focus States */
+input:focus,
+textarea:focus,
+select:focus,
+.MuiInputBase-root.Mui-focused {
+  outline-color: var(--focus-ring, var(--color-primary-500, #6366f1));
+}
+
+/* Select Dropdown */
+select,
+.MuiSelect-select {
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+}
+
+/* Checkbox and Radio Labels */
+.MuiFormControlLabel-label {
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  color: var(--text-default, #212121) !important;
+}
+
+/* Form Fieldset */
+fieldset {
+  border: 1px solid var(--border-default, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+fieldset legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-default, #212121);
+  padding: 0 0.5rem;
+}

@@ -107,13 +107,26 @@ export const FormInput = forwardRef(({
       sx={{
         '& .MuiInputBase-root': {
           minHeight: '48px',
-          fontSize: '1rem',
         },
         '& .MuiInputLabel-root': {
-          fontSize: '1rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'text.primary',
         },
         '& .MuiInputBase-input': {
+          fontSize: '1rem',
+          fontWeight: 400,
+          lineHeight: 1.5,
           padding: '14px 14px',
+        },
+        '& .MuiFormHelperText-root': {
+          fontSize: '0.75rem',
+          fontWeight: 400,
+          lineHeight: 1.4,
+          marginTop: '0.25rem',
+        },
+        '& .MuiFormHelperText-root.Mui-error': {
+          color: 'error.main',
         },
         ...sx
       }}
@@ -157,15 +170,25 @@ export const FormSelect = ({
         flex: 1,
         '& .MuiInputBase-root': {
           minHeight: '48px',
-          fontSize: '1rem',
           width: '100%',
         },
         '& .MuiInputLabel-root': {
-          fontSize: '1rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'text.primary',
         },
         '& .MuiSelect-select': {
+          fontSize: '1rem',
+          fontWeight: 400,
+          lineHeight: 1.5,
           padding: '14px 14px',
           minWidth: '200px',
+        },
+        '& .MuiFormHelperText-root': {
+          fontSize: '0.75rem',
+          fontWeight: 400,
+          lineHeight: 1.4,
+          marginTop: '0.25rem',
         },
         ...sx
       }}
@@ -678,7 +701,7 @@ export const FormSection = ({
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <Box mb={3} {...props}>
+    <Box mb={3} className="form-group" {...props}>
       <Box
         display="flex"
         alignItems="center"
@@ -688,11 +711,11 @@ export const FormSection = ({
         onClick={collapsible ? () => setExpanded(!expanded) : undefined}
       >
         <Box>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h3" className="form-section-heading" sx={{ fontSize: '1.25rem', fontWeight: 600, mb: 0.75 }}>
             {title}
           </Typography>
           {subtitle && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               {subtitle}
             </Typography>
           )}
@@ -736,9 +759,11 @@ export const FormActions = ({
           onClick={onCancel}
           disabled={loading}
           size="large"
+          className="button-text"
           sx={{ 
             minHeight: '48px',
-            fontSize: '1rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
             px: 3,
             py: 1.5
           }}
@@ -753,9 +778,11 @@ export const FormActions = ({
         onClick={onSubmit}
         disabled={disabled || loading}
         size="large"
+        className="button-text"
         sx={{ 
           minHeight: '48px',
-          fontSize: '1rem',
+          fontSize: '0.875rem',
+          fontWeight: 500,
           px: 3,
           py: 1.5
         }}

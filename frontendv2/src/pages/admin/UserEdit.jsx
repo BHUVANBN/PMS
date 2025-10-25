@@ -123,8 +123,8 @@ const UserEdit = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" mb={3}>Edit User</Typography>
-      <Paper sx={{ p: 3 }}>
+      <Typography variant="h1" className="page-title" sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, mb: 3 }}>Edit User</Typography>
+      <Paper sx={{ p: 3 }} className="card-pad">
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
             {error && <Box sx={{ color: 'error.main', fontSize: '0.875rem' }}>{error}</Box>}

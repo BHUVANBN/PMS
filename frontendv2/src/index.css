@@ -1,3 +1,15 @@
+@import './styles/tokens.css';
+@import './styles/layout.css';
+@import './styles/typography.css';
+@import './styles/cards.css';
+@import './styles/dialogs.css';
+@import './styles/navigation.css';
+@import './styles/page-header.css';
+@import './styles/buttons.css';
+@import './styles/form-inputs.css';
+@import './styles/icons.css';
+@import './styles/avatars.css';
+@import './styles/stat-cards.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,6 +37,20 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   margin: 0;
+}
+
+/* Global rule: Icons with colored backgrounds should be white */
+[style*="background"] svg,
+[style*="backgroundColor"] svg,
+.MuiAvatar-root[style*="background"] svg,
+.MuiAvatar-root[style*="backgroundColor"] svg {
+  color: #ffffff !important;
+}
+
+/* Ensure stat card icons are always white */
+[class*="stat-card"] [class*="icon"] svg,
+[class*="stat-card"] [class*="icon"] .MuiSvgIcon-root {
+  color: #ffffff !important;
 }
 
 /* MUI components are themed; avoid overriding with !important here */

@@ -181,7 +181,11 @@ const TesterDashboard = () => {
                 bgcolor: color,
                 width: 48,
                 height: 48,
-                boxShadow: `0 4px 12px ${color}40`
+                boxShadow: `0 4px 12px ${color}40`,
+                color: '#ffffff',
+                '& svg': {
+                  color: '#ffffff !important'
+                }
               }}
             >
               {icon}
@@ -269,16 +273,15 @@ const TesterDashboard = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }} className="container-page full-bleed-safe">
       {/* Header */}
-      <Box mb={4}>
+      <Box mb={4} className="page-header">
         <Typography 
-          variant="h3" 
+          variant="h1" 
+          className="page-title"
           sx={{ 
-            fontWeight: 800, 
-            color: 'text.primary',
-            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-            letterSpacing: '-0.02em',
+            fontSize: { xs: '1.75rem', md: '2rem' },
+            fontWeight: 700,
             mb: 1.5
           }}
         >
@@ -286,13 +289,13 @@ const TesterDashboard = () => {
         </Typography>
         <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
           <Typography 
-            variant="h6" 
+            variant="body1" 
+            className="text-secondary"
             sx={{ 
-              color: 'text.secondary',
+              fontSize: '1rem',
               fontWeight: 400,
-              fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
               lineHeight: 1.6,
-              letterSpacing: '0.01em'
+              color: 'text.secondary'
             }}
           >
             Welcome back! Here's your testing overview.
@@ -318,51 +321,44 @@ const TesterDashboard = () => {
         {/* Main Content Column */}
         <Box sx={{ flex: 1 }}>
           {/* Statistics Cards */}
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Total Bugs"
-                value={summary.totalBugs || 0}
-                icon={<BugReport sx={{ fontSize: 28 }} />}
-                color={theme.palette.error.main}
-                trend={`Reported: ${summary.reportedBugs || 0}`}
-                subtitle={`${summary.activeBugs || 0} active`}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Assigned Bugs"
-                value={summary.assignedBugs || 0}
-                icon={<Assignment sx={{ fontSize: 28 }} />}
-                color={theme.palette.primary.main}
-                trend={`Resolved: ${summary.resolvedBugs || 0}`}
-                subtitle={`${summary.closedBugs || 0} closed`}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Test Cases"
-                value={testCases.total || 0}
-                icon={<Assessment sx={{ fontSize: 28 }} />}
-                color={theme.palette.info.main}
-                trend={`Executed: ${testCases.executed || 0}`}
-                subtitle={`${testCases.passed || 0} passed`}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                title="Projects"
-                value={summary.totalProjects || 0}
-                icon={<Timeline sx={{ fontSize: 28 }} />}
-                color={theme.palette.success.main}
-                subtitle={`${summary.activeProjects || 0} active`}
-              />
-            </Grid>
-          </Grid>
+          <Box className="card-grid-stats section" sx={{ mb: 4 }}>
+            <StatCard
+              title="Total Bugs"
+              value={summary.totalBugs || 0}
+              icon={<BugReport sx={{ fontSize: 28 }} />}
+              color={theme.palette.error.main}
+              trend={`Reported: ${summary.reportedBugs || 0}`}
+              subtitle={`${summary.activeBugs || 0} active`}
+            />
+            <StatCard
+              title="Assigned Bugs"
+              value={summary.assignedBugs || 0}
+              icon={<Assignment sx={{ fontSize: 28 }} />}
+              color={theme.palette.primary.main}
+              trend={`Resolved: ${summary.resolvedBugs || 0}`}
+              subtitle={`${summary.closedBugs || 0} closed`}
+            />
+            <StatCard
+              title="Test Cases"
+              value={testCases.total || 0}
+              icon={<Assessment sx={{ fontSize: 28 }} />}
+              color={theme.palette.info.main}
+              trend={`Executed: ${testCases.executed || 0}`}
+              subtitle={`${testCases.passed || 0} passed`}
+            />
+            <StatCard
+              title="Projects"
+              value={summary.totalProjects || 0}
+              icon={<Timeline sx={{ fontSize: 28 }} />}
+              color={theme.palette.success.main}
+              subtitle={`${summary.activeProjects || 0} active`}
+            />
+          </Box>
 
           {/* Recent Bugs Table */}
           <Paper 
             elevation={0} 
+            className="card-pad section"
             sx={{ 
               p: 3,
               mb: 4,
@@ -374,7 +370,7 @@ const TesterDashboard = () => {
             }}
           >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 0 }}>
                 Recent Bugs
               </Typography>
               <Button size="small" variant="outlined">
@@ -458,32 +454,23 @@ const TesterDashboard = () => {
           </Paper>
 
           {/* Test Execution Overview - Full Width */}
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 3,
-              background: 'rgba(255, 255, 255, 0.4)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              borderRadius: '16px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-            }}
-          >
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section" sx={{ mb: 3 }}>
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 Test Execution Overview
               </Typography>
-              <Chip 
-                label={`Total: ${testCases.total || 0}`}
-                sx={{ 
-                  fontWeight: 600,
-                  bgcolor: 'primary.light',
-                  color: 'white'
-                }}
-              />
+              <Box className="card-header-actions">
+                <Chip 
+                  label={`Total: ${testCases.total || 0}`}
+                  sx={{ 
+                    fontWeight: 600,
+                    bgcolor: 'primary.light',
+                    color: 'white'
+                  }}
+                />
+              </Box>
             </Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
+            <Box className="card-grid-stats">
                 <Box 
                   textAlign="center" 
                   p={3}
@@ -508,10 +495,13 @@ const TesterDashboard = () => {
                       mb: 2,
                       width: 56,
                       height: 56,
-                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
+                      boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)',
+                      '& svg': {
+                        color: '#ffffff !important'
+                      }
                     }}
                   >
-                    <CheckCircle sx={{ fontSize: 32 }} />
+                    <CheckCircle sx={{ fontSize: 32, color: '#ffffff' }} />
                   </Avatar>
                   <Typography variant="h3" fontWeight={800} color="success.main" mb={0.5}>
                     {testCases.passed || 0}
@@ -520,8 +510,6 @@ const TesterDashboard = () => {
                     Passed
                   </Typography>
                 </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
                 <Box 
                   textAlign="center" 
                   p={3}
@@ -546,10 +534,13 @@ const TesterDashboard = () => {
                       mb: 2,
                       width: 56,
                       height: 56,
-                      boxShadow: '0 4px 12px rgba(244, 67, 54, 0.4)'
+                      boxShadow: '0 4px 12px rgba(244, 67, 54, 0.4)',
+                      '& svg': {
+                        color: '#ffffff !important'
+                      }
                     }}
                   >
-                    <Error sx={{ fontSize: 32 }} />
+                    <Error sx={{ fontSize: 32, color: '#ffffff' }} />
                   </Avatar>
                   <Typography variant="h3" fontWeight={800} color="error.main" mb={0.5}>
                     {testCases.failed || 0}
@@ -558,8 +549,6 @@ const TesterDashboard = () => {
                     Failed
                   </Typography>
                 </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
                 <Box 
                   textAlign="center" 
                   p={3}
@@ -584,10 +573,13 @@ const TesterDashboard = () => {
                       mb: 2,
                       width: 56,
                       height: 56,
-                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)'
+                      boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
+                      '& svg': {
+                        color: '#ffffff !important'
+                      }
                     }}
                   >
-                    <Speed sx={{ fontSize: 32 }} />
+                    <Speed sx={{ fontSize: 32, color: '#ffffff' }} />
                   </Avatar>
                   <Typography variant="h3" fontWeight={800} color="primary.main" mb={0.5}>
                     {testCases.executed || 0}
@@ -596,8 +588,6 @@ const TesterDashboard = () => {
                     Executed
                   </Typography>
                 </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
                 <Box 
                   textAlign="center" 
                   p={3}
@@ -622,10 +612,13 @@ const TesterDashboard = () => {
                       mb: 2,
                       width: 56,
                       height: 56,
-                      boxShadow: '0 4px 12px rgba(255, 152, 0, 0.4)'
+                      boxShadow: '0 4px 12px rgba(255, 152, 0, 0.4)',
+                      '& svg': {
+                        color: '#ffffff !important'
+                      }
                     }}
                   >
-                    <Warning sx={{ fontSize: 32 }} />
+                    <Warning sx={{ fontSize: 32, color: '#ffffff' }} />
                   </Avatar>
                   <Typography variant="h3" fontWeight={800} color="warning.main" mb={0.5}>
                     {testCases.blocked || 0}
@@ -634,9 +627,8 @@ const TesterDashboard = () => {
                     Blocked
                   </Typography>
                 </Box>
-              </Grid>
-            </Grid>
-          </Paper>
+            </Box>
+          </Box>
         </Box>
 
         {/* Right Sidebar */}
@@ -645,14 +637,10 @@ const TesterDashboard = () => {
           flexShrink: 0,
           mt: { xs: 3, lg: 0 }
         }}>
-          {/* My Upcoming Events */}
-          <Box sx={{ mb: 3 }}>
-            <MyUpcomingEvents title="My Upcoming Events" days={14} />
-          </Box>
-
           {/* Bug Severity Distribution */}
           <Paper 
             elevation={0} 
+            className="card-pad section"
             sx={{ 
               p: 3,
               mb: 3,
@@ -663,7 +651,7 @@ const TesterDashboard = () => {
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
             }}
           >
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+            <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 3 }}>
               Bug Distribution by Severity
             </Typography>
             <Box>
@@ -703,6 +691,7 @@ const TesterDashboard = () => {
           {/* Bug Status Overview */}
           <Paper 
             elevation={0} 
+            className="card-pad section"
             sx={{ 
               p: 3,
               mb: 3,
@@ -713,7 +702,7 @@ const TesterDashboard = () => {
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
             }}
           >
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+            <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 3 }}>
               Bug Status Overview
             </Typography>
             <Box>
@@ -760,6 +749,7 @@ const TesterDashboard = () => {
           {/* Productivity Metrics */}
           <Paper 
             elevation={0} 
+            className="card-pad section"
             sx={{ 
               p: 3,
               background: 'rgba(255, 255, 255, 0.4)',
@@ -771,7 +761,7 @@ const TesterDashboard = () => {
               top: { lg: 24 }
             }}
           >
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+            <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 3 }}>
               Productivity Metrics
             </Typography>
             <Stack spacing={2.5}>

@@ -159,8 +159,8 @@ const ProjectsPage = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }} className="page-header">
+        <Typography variant="h1" className="page-title" sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, mb: 0 }}>
           Projects
         </Typography>
         {!isDeveloper && (
@@ -268,40 +268,40 @@ const ProjectsPage = () => {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'primary.main' }}>
                 {projects.length}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Total Projects
               </Typography>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="success.main" sx={{ fontWeight: 600 }}>
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'success.main' }}>
                 {projects.filter(p => p.status === 'active').length}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Active Projects
               </Typography>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'info.main' }}>
                 {projects.filter(p => p.status === 'completed').length}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Completed
               </Typography>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h4" color="warning.main" sx={{ fontWeight: 600 }}>
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'warning.main' }}>
                 {projects.filter(p => p.status === 'planning').length}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 In Planning
               </Typography>
             </Card>
@@ -321,7 +321,7 @@ const ProjectsPage = () => {
                       <FolderIcon className="h-5 w-5" />
                     </Avatar> */}
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      <Typography variant="h3" className="card-title" sx={{ fontSize: '1.25rem', fontWeight: 600, mb: 0.5 }}>
                         {project.name}
                       </Typography>
                       {project.projectManager && (
@@ -430,10 +430,10 @@ const ProjectsPage = () => {
       {projects.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <FolderIcon className="h-16 w-16 mx-auto mb-4 text-neutral-400" />
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography variant="h3" className="sub-heading" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1, color: 'text.secondary' }}>
             No projects found
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {searchTerm ? 'Try adjusting your search terms' : 'Create your first project to get started'}
           </Typography>
         </Box>

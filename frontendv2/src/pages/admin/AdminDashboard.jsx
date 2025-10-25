@@ -315,29 +315,28 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }} className="container-page full-bleed-safe">
       {/* Header */}
-      <Box mb={4}>
+      <Box mb={4} className="page-header">
         <Typography 
-          variant="h3" 
+          variant="h1" 
+          className="page-title"
           sx={{ 
-            fontWeight: 800, 
-            color: 'text.primary',
-            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-            letterSpacing: '-0.02em',
+            fontSize: { xs: '1.75rem', md: '2rem' },
+            fontWeight: 700,
             mb: 1.5
           }}
         >
           Admin Dashboard
         </Typography>
         <Typography 
-          variant="h6" 
+          variant="body1" 
+          className="text-secondary"
           sx={{ 
-            color: 'text.secondary',
+            fontSize: '1rem',
             fontWeight: 400,
-            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
             lineHeight: 1.6,
-            letterSpacing: '0.01em'
+            color: 'text.secondary'
           }}
         >
           Welcome back, {user?.username || 'Admin'}! Here's your system overview.
@@ -365,53 +364,43 @@ export default function AdminDashboard() {
         {/* Main Content Column */}
         <Box sx={{ flex: 1 }}>
           {/* Stats Cards */}
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} sm={6}>
-              <StatsCard
-                title="Total Users"
-                value={stats.totalUsers}
-                change={`${stats.totalUsers} registered users`}
-                changeType="neutral"
-                icon={People}
-                color="primary"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <StatsCard
-                title="Active Projects"
-                value={stats.activeProjects}
-                change={`${stats.activeProjects} projects`}
-                changeType="neutral"
-                icon={Business}
-                color="success"
-              />
-            </Grid>
-          </Grid>
+          <Box className="card-grid-2 section" sx={{ mb: 4 }}>
+            <StatsCard
+              title="Total Users"
+              value={stats.totalUsers}
+              change={`${stats.totalUsers} registered users`}
+              changeType="neutral"
+              icon={People}
+              color="primary"
+            />
+            <StatsCard
+              title="Active Projects"
+              value={stats.activeProjects}
+              change={`${stats.activeProjects} projects`}
+              changeType="neutral"
+              icon={Business}
+              color="success"
+            />
+          </Box>
 
           {/* User Management */}
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            mb: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-          }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section" sx={{ mb: 3 }}>
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 User Management
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => {
-                  setSelectedUser(null);
-                  setOpenDialog(true);
-                }}
-              >
-                Add User
-              </Button>
+              <Box className="card-header-actions">
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setOpenDialog(true);
+                  }}
+                >
+                  Add User
+                </Button>
+              </Box>
             </Box>
             
             <TableContainer sx={{ maxHeight: 400 }}>
@@ -517,29 +506,24 @@ export default function AdminDashboard() {
                 </Button>
               </Box>
             )}
-          </Paper>
+          </Box>
 
           {/* Project Management */}
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-          }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section">
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 Project Management
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                color="success"
-                onClick={() => navigate('/manager/projects/new')}
-              >
-                Add Project
-              </Button>
+              <Box className="card-header-actions">
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  color="success"
+                  onClick={() => navigate('/manager/projects/new')}
+                >
+                  Add Project
+                </Button>
+              </Box>
             </Box>
             
             <TableContainer sx={{ maxHeight: 400 }}>
@@ -624,7 +608,7 @@ export default function AdminDashboard() {
                 </Button>
               </Box>
             )}
-          </Paper>
+          </Box>
         </Box>
 
         {/* Right Sidebar */}
@@ -633,18 +617,12 @@ export default function AdminDashboard() {
           flexShrink: 0,
           mt: { xs: 3, lg: 0 }
         }}>
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+          <Box className="card" sx={{ 
             position: { lg: 'sticky' },
             top: { lg: 24 }
           }}>
             <RecentActivity activities={activities} onShowMore={handleShowMoreActivity} />
-          </Paper>
+          </Box>
         </Box>
       </Box>
 

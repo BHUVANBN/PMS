@@ -121,10 +121,10 @@ const TeamPage = () => {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} className="page-header">
         <div>
-          <Typography variant="h4" fontWeight="bold">Teams Overview</Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="h1" className="page-title" sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, mb: 0.5 }}>Teams Overview</Typography>
+          <Typography variant="body1" className="text-secondary" sx={{ fontSize: '1rem', fontWeight: 400, lineHeight: 1.6, color: 'text.secondary' }}>
             View all project teams created by managers (Read-only)
           </Typography>
         </div>
@@ -141,10 +141,10 @@ const TeamPage = () => {
           <Card sx={{ textAlign: 'center' }}>
             <CardContent>
               <Groups sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-              <Typography variant="h4" fontWeight="bold">
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
                 {uniqueMembers}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Unique Team Members
               </Typography>
             </CardContent>
@@ -154,10 +154,10 @@ const TeamPage = () => {
           <Card sx={{ textAlign: 'center' }}>
             <CardContent>
               <Assignment sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h4" fontWeight="bold">
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
                 {totalTeamMembers}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Total Assignments
               </Typography>
             </CardContent>
@@ -167,10 +167,10 @@ const TeamPage = () => {
           <Card sx={{ textAlign: 'center' }}>
             <CardContent>
               <Business sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-              <Typography variant="h4" fontWeight="bold">
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
                 {activeProjects}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Active Projects
               </Typography>
             </CardContent>
@@ -180,10 +180,10 @@ const TeamPage = () => {
           <Card sx={{ textAlign: 'center' }}>
             <CardContent>
               <Person sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-              <Typography variant="h4" fontWeight="bold">
+              <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
                 {totalProjects}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                 Total Projects
               </Typography>
             </CardContent>

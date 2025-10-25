@@ -1,0 +1,641 @@
+/* ========================================
+   CARD COMPONENT DESIGN SYSTEM
+   ======================================== */
+
+/* Base Card Container */
+.card,
+.card-base {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Mobile padding adjustment */
+@media (max-width: 639.98px) {
+  .card,
+  .card-base {
+    padding: 1rem;
+  }
+}
+
+/* Card without border (shadow only) */
+.card-borderless {
+  background: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Card hover state */
+.card-hover:hover,
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Card with glassmorphism effect */
+.card-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+/* Card Header */
+.card-header {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+  margin: 0;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.card-header-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+/* Card Body */
+.card-body {
+  line-height: 1.6;
+}
+
+.card-body > * + * {
+  margin-top: 0.75rem;
+}
+
+.card-body-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card-body-list-item {
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.card-body-list-item:hover {
+  background-color: #f9fafb;
+}
+
+/* Card Footer */
+.card-footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ========================================
+   DASHBOARD CARD VARIANTS
+   ======================================== */
+
+/* Stat Card */
+.card-stat {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-stat:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-stat-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.card-stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  color: var(--text-default, #212121);
+}
+
+.card-stat-label {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-muted, #757575);
+  line-height: 1.5;
+}
+
+.card-stat-trend {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+/* Stat card with accent color */
+.card-stat-primary { background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%); border-color: rgba(99, 102, 241, 0.2); }
+.card-stat-success { background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.02) 100%); border-color: rgba(34, 197, 94, 0.2); }
+.card-stat-warning { background: linear-gradient(135deg, rgba(251, 146, 60, 0.05) 0%, rgba(251, 146, 60, 0.02) 100%); border-color: rgba(251, 146, 60, 0.2); }
+.card-stat-error { background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%); border-color: rgba(239, 68, 68, 0.2); }
+.card-stat-info { background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%); border-color: rgba(59, 130, 246, 0.2); }
+
+/* Task Card */
+.card-task {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.card-task:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-task-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.card-task-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+.card-task-status-todo { background-color: #9ca3af; }
+.card-task-status-progress { background-color: #3b82f6; }
+.card-task-status-review { background-color: #f59e0b; }
+.card-task-status-done { background-color: #10b981; }
+
+.card-task-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+  margin-bottom: 0.5rem;
+}
+
+.card-task-description {
+  font-size: 0.875rem;
+  color: var(--text-muted, #757575);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.card-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #757575);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.card-task-assignee {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-task-due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Project Card */
+.card-project {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-project:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-project-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-project-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.card-project-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-default, #212121);
+  margin-bottom: 0.25rem;
+}
+
+.card-project-description {
+  font-size: 0.875rem;
+  color: var(--text-muted, #757575);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.card-project-progress {
+  margin-bottom: 1rem;
+}
+
+.card-project-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted, #757575);
+  margin-bottom: 0.5rem;
+}
+
+.card-project-progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.card-project-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.card-project-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.card-project-team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-project-team-avatars {
+  display: flex;
+  margin-left: -0.5rem;
+}
+
+.card-project-team-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: #6366f1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: -0.5rem;
+}
+
+/* ========================================
+   CARD UTILITIES
+   ======================================== */
+
+/* Card spacing */
+.card-compact { padding: 1rem; }
+.card-comfortable { padding: 1.5rem; }
+.card-spacious { padding: 2rem; }
+
+/* Card clickable */
+.card-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-clickable:active {
+  transform: scale(0.98);
+}
+
+/* Card disabled */
+.card-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* Card selected */
+.card-selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Card loading */
+.card-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.card-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+/* ========================================
+   RESPONSIVE CARD GRID LAYOUTS
+   ======================================== */
+
+/* Base Grid - Auto-fit responsive */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+/* Stat Cards Grid - 4 columns on desktop */
+.card-grid-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-grid-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Content Cards Grid - 3 columns on desktop */
+.card-grid-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-grid-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid-content {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Auto-fit Grid - Flexible columns based on min-width */
+.card-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* 2 Column Grid */
+.card-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-grid,
+  .card-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 3 Column Grid */
+.card-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 4 Column Grid */
+.card-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .card-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ========================================
+   CARD SIZES & CONSTRAINTS
+   ======================================== */
+
+/* Stat Card Sizes */
+.card-stat {
+  min-height: 120px;
+}
+
+/* Content Card Sizes */
+.card-content,
+.card-task,
+.card-project {
+  min-height: 200px;
+}
+
+/* Full Width Card List */
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-list > .card {
+  width: 100%;
+}
+
+/* ========================================
+   EMPTY STATES
+   ======================================== */
+
+.card-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  min-height: 300px;
+}
+
+.card-empty-state-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1rem;
+  color: #9ca3af;
+}
+
+.card-empty-state-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-default, #212121);
+  margin-bottom: 0.5rem;
+}
+
+.card-empty-state-description {
+  font-size: 0.875rem;
+  color: var(--text-muted, #757575);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+}
+
+.card-empty-state-action {
+  margin-top: 0.5rem;
+}
+
+/* ========================================
+   CARD SPACING UTILITIES
+   ======================================== */
+
+/* Vertical spacing between card sections */
+.card-section + .card-section {
+  margin-top: 2rem;
+}
+
+/* Horizontal gap adjustments */
+.card-grid-tight {
+  gap: 1rem;
+}
+
+.card-grid-loose {
+  gap: 2rem;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 639.98px) {
+  .card-grid,
+  .card-grid-2,
+  .card-grid-3,
+  .card-grid-4,
+  .card-grid-stats,
+  .card-grid-content,
+  .card-grid-auto {
+    gap: 1rem;
+  }
+  
+  .card-empty-state {
+    padding: 2rem 1rem;
+    min-height: 250px;
+  }
+}

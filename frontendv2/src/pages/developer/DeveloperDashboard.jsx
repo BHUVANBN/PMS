@@ -27,9 +27,11 @@ import {
 import StatsGrid from '../../components/dashboard/StatsGrid';
 import DashboardCard from '../../components/dashboard/DashboardCard';
 import Badge from '../../components/ui/Badge';
-import { developerAPI } from '../../services/api';
+import { developerAPI, subscribeToEvents } from '../../services/api';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import TwoColumnRight from '../../components/layout/TwoColumnRight';
+import { useAuth } from '../../contexts/AuthContext';
+import { Alert } from '@mui/material';
 
 const DeveloperDashboard = () => {
   const [stats, setStats] = useState([]);
@@ -39,10 +41,54 @@ const DeveloperDashboard = () => {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const { user } = useAuth();
+  const [standupNotice, setStandupNotice] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    let unsubscribe;
+    let retryTimer;
+    let retryDelay = 2000;
+    const connect = () => {
+      try {
+        unsubscribe = subscribeToEvents(
+          { userId: user._id },
+          (payload) => {
+            try {
+              const type = payload?.type || '';
+              if (type.startsWith('standup.')) {
+                const title = type === 'standup.commented' ? 'Standup comment' : type === 'standup.attachment_added' ? 'Standup attachment' : 'Standup update';
+                const by = payload?.data?.by ? ` by ${payload.data.by}` : '';
+                setStandupNotice(`${title}${by}`);
+                // auto-clear after 12s
+                setTimeout(() => setStandupNotice(null), 12000);
+              }
+            } catch (err) { String(err); }
+          },
+          () => {
+            try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { String(err); }
+            if (retryTimer) clearTimeout(retryTimer);
+            retryTimer = setTimeout(connect, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+          }
+        );
+      } catch (err) {
+        String(err);
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    };
+    connect();
+    return () => {
+      try { if (typeof unsubscribe === 'function') unsubscribe(); } catch (err) { String(err); }
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [user?._id]);
 
   const fetchDashboardData = async () => {
     try {
@@ -209,6 +255,11 @@ const DeveloperDashboard = () => {
       >
         Welcome back! Here's your development overview.
       </Typography>
+      {standupNotice && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {standupNotice}
+        </Alert>
+      )}
       {error && (
         <Card sx={{ mb: 2 }}>
           <CardContent>

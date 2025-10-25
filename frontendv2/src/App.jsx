@@ -182,7 +182,7 @@ const AppRoutes = () => {
               <Route path="bugs" element={<BugsPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="calendar" element={<CalendarPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="analytics" element={<Navigate to="/" replace />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="help" element={<HelpPage />} />

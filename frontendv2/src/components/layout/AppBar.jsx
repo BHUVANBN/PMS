@@ -30,7 +30,6 @@ import { useThemeMode } from '../../contexts/useThemeMode';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import BrightnessAutoIcon from '@mui/icons-material/BrightnessAuto';
-import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 import { calendarAPI, meetingAPI, employeeAPI, subscribeToEvents } from '../../services/api';
 import dayjs from 'dayjs';
@@ -42,7 +41,7 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
   const { mode, setMode } = useThemeMode();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   // sound is always enabled via vibration cue for new notifications
@@ -528,12 +527,6 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
             <ListItemText>All Standups</ListItemText>
           </MenuItem>
         )}
-        <MenuItem onClick={() => setHistoryOpen(true)}>
-          <ListItemIcon>
-            <Person fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>My Standups</ListItemText>
-        </MenuItem>
         <MenuItem onClick={handleProfile}>
           <ListItemIcon>
             <Person fontSize="small" />
@@ -593,7 +586,6 @@ const AppBar = ({ onMenuClick, drawerWidth = 0 }) => {
           <ListItemText sx={{ textAlign: 'center' }}>Close</ListItemText>
         </MenuItem>
       </Menu>
-      <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={5000}

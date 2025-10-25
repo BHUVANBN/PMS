@@ -673,13 +673,18 @@ export const getAllEmployees = async (req, res) => {
   try {
     const { role } = req.query;
     
+    // Only allow developer and tester to be listed for managers
+    const allowedRoles = ['developer', 'tester'];
     let query = { 
       isActive: true,
-      role: { $in: ['developer', 'tester', 'manager', 'employee'] }
+      role: { $in: allowedRoles }
     };
     
     if (role) {
-      query.role = role;
+      // Constrain requested role to allowed set
+      if (allowedRoles.includes(role)) {
+        query.role = role;
+      }
     }
 
     const employees = await User.find(query)

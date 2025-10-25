@@ -87,11 +87,28 @@ export default function CalendarEventModal({
   const loadProjectTeam = async (projectId) => {
     if (!projectId) { setProjectTeam([]); return; }
     try {
-      const res = await managerAPI.getProjectTeam(projectId);
-      const team = res?.team || res?.data?.team || res?.data || [];
-      setProjectTeam(Array.isArray(team) ? team : []);
+      // Prefer full project details to include manager + team members
+      const details = await projectsAPI.getProject(projectId);
+      const p = details?.data || details?.project || details || {};
+      const members = Array.isArray(p?.teamMembers) ? p.teamMembers : [];
+      const mgr = p?.projectManager ? [{ ...(p.projectManager), _id: p.projectManager._id || p.projectManager }] : [];
+      // Build unique list by _id
+      const seen = new Set();
+      const combined = [];
+      [...members, ...mgr].forEach(u => {
+        const id = u?._id || u?.id;
+        if (id && !seen.has(id)) { seen.add(id); combined.push(u); }
+      });
+      setProjectTeam(combined);
     } catch {
-      setProjectTeam([]);
+      try {
+        // Fallback: manager API (may exclude manager)
+        const res = await managerAPI.getProjectTeam(projectId);
+        const team = res?.team || res?.data?.team || res?.data || [];
+        setProjectTeam(Array.isArray(team) ? team : []);
+      } catch {
+        setProjectTeam([]);
+      }
     }
   };
 
@@ -185,7 +202,7 @@ export default function CalendarEventModal({
     // Validate based on scope for non-personal events
     if (form.scopeType === 'project') {
       if (!form.scopeProjectId) return 'Select a project for project-scoped event';
-      if (!projectTeam || projectTeam.length === 0) return 'Selected project has no team members';
+      // Do not block when team list is empty; manager will still be notified if available
     } else {
       if (!form.attendeeIds || form.attendeeIds.length === 0) return 'Select at least one attendee';
     }
@@ -315,10 +332,10 @@ export default function CalendarEventModal({
 
           {!form.isPersonal && form.scopeType === 'project' && (
             <Grid item xs={12}>
-              <Alert severity={projectTeam.length ? 'info' : 'warning'}>
-                {form.scopeProjectId ? (
-                  projectTeam.length ? `${projectTeam.length} team members will be invited automatically from the selected project.` : 'This project has no team members.'
-                ) : 'Select a project to auto-invite its team.'}
+              <Alert severity={'info'}>
+                {form.scopeProjectId
+                  ? `${projectTeam.length} recipients (project team + manager) will be invited automatically.`
+                  : 'Select a project to auto-invite its team and manager.'}
               </Alert>
             </Grid>
           )}

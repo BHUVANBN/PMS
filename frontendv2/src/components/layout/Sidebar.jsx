@@ -35,6 +35,7 @@ import logo from '../../assets/skillonx.png';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { meetingAPI, calendarAPI, subscribeToEvents } from '../../services/api';
+import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 
 const StyledDrawer = styled(Drawer)(() => ({
   flexShrink: 0,
@@ -73,6 +74,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
 
   const [meetingCount, setMeetingCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const role = (userRole || user?.role || '').toLowerCase();
 
@@ -152,6 +154,13 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
       roles: ['developer', 'tester', 'sales', 'marketing', 'intern'],
     },
     {
+      text: 'My Standups',
+      icon: <ListIcon />,
+      path: null,
+      openStandupHistory: true,
+      roles: ['hr', 'manager', 'developer', 'tester', 'sales', 'marketing', 'intern'],
+    },
+    {
       text: 'Standups',
       icon: <ListIcon />,
       path: role === 'admin' ? '/admin/standups' : role === 'hr' ? '/hr/standups' : '/manager/standups',
@@ -169,12 +178,6 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
     //   path: '/hr/employee/details',
     //   roles: ['admin', 'hr'],
     // },
-    {
-      text: 'Analytics',
-      icon: <BarChartIcon />,
-      path: '/analytics',
-      roles: ['admin', 'hr', 'manager'],
-    },
     {
       text: 'Onboarding (Public)',
       icon: <PeopleIcon />,
@@ -194,9 +197,17 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    if (isMobile) onClose();
+  const handleNavigation = (item) => {
+    if (item.openStandupHistory) {
+      setHistoryOpen(true);
+      if (isMobile) onClose();
+      return;
+    }
+    const path = item.path;
+    if (path) {
+      navigate(path);
+      if (isMobile) onClose();
+    }
   };
 
   const fetchEvents = async () => {
@@ -322,7 +333,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
                 key={item.text}
                 disablePadding
                 selected={isActive(item.path)}
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => handleNavigation(item)}
               >
                 <ListItemButton 
                   sx={{ 
@@ -444,6 +455,7 @@ const Sidebar = ({ mobileOpen, onClose, userRole }) => {
           ))}
         </List>
       </StyledDrawer>
+      <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </Box>
   );
 };

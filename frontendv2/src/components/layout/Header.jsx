@@ -36,7 +36,6 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
-import StandupHistoryDialog from '../standup/StandupHistoryDialog.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const Header = ({ 
@@ -50,7 +49,6 @@ const Header = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [historyOpen, setHistoryOpen] = useState(false);
   
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
@@ -355,12 +353,7 @@ const Header = ({
             </ListItemIcon>
             <ListItemText>My Profile</ListItemText>
           </MenuItem>
-          <MenuItem onClick={() => setHistoryOpen(true)}>
-            <ListItemIcon>
-              <Person fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>My Standups</ListItemText>
-          </MenuItem>
+          
           
           <MenuItem onClick={handleSettingsClick}>
             <ListItemIcon>
@@ -386,8 +379,7 @@ const Header = ({
           </MenuItem>
         </Menu>
 
-        {/* Standup History Dialog */}
-        <StandupHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
+        
 
 
         {/* Notifications Menu */}

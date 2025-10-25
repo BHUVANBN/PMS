@@ -349,7 +349,7 @@ const ManagerDashboard = () => {
                           background: 'rgba(255, 255, 255, 0.4)',
                         }
                       }}
-                      onClick={() => navigate(`/projects/${project._id}`)}
+                      onClick={() => navigate(`/manager/projects/${project._id}/edit`)}
                     >
                       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Project Header */}
@@ -483,7 +483,14 @@ const ManagerDashboard = () => {
                           >
                             <Group sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
                             <Typography variant="body2" color="text.secondary">
-                              {project.team?.length || 0} team {(project.team?.length || 0) === 1 ? 'member' : 'members'}
+                              {(() => {
+                                const memberCount = Array.isArray(project.teamMembers)
+                                  ? project.teamMembers.length
+                                  : Array.isArray(project.team)
+                                    ? project.team.length
+                                    : 0;
+                                return `${memberCount} team ${memberCount === 1 ? 'member' : 'members'}`;
+                              })()}
                             </Typography>
                           </Box>
                         </Box>

@@ -1,0 +1,532 @@
+/* ========================================
+   NAVIGATION BAR DESIGN SYSTEM
+   ======================================== */
+
+/* Top Navigation Bar */
+.navbar {
+  height: 64px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  transition: all 0.3s ease;
+}
+
+/* Mobile navbar height */
+@media (max-width: 639.98px) {
+  .navbar {
+    height: 56px;
+    padding: 0 1rem;
+  }
+}
+
+/* Navbar with primary brand color variant */
+.navbar-primary {
+  background: var(--primary-color, #1976d2);
+  color: #ffffff;
+}
+
+.navbar-primary .navbar-link {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.navbar-primary .navbar-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-primary .navbar-link-active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   NAVBAR STRUCTURE
+   ======================================== */
+
+/* Logo/Brand Section */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.navbar-logo {
+  max-width: 180px;
+  max-height: 40px;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-logo {
+    max-width: 120px;
+    max-height: 32px;
+  }
+}
+
+.navbar-brand-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: inherit;
+  white-space: nowrap;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-brand-text {
+    font-size: 1rem;
+  }
+}
+
+/* Navigation Links Container */
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  margin-left: 2rem;
+}
+
+@media (max-width: 1023.98px) {
+  .navbar-nav {
+    display: none; /* Hidden on mobile, shown in drawer */
+  }
+}
+
+/* Individual Navigation Link */
+.navbar-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #212121;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-link:hover {
+  background: #f3f4f6;
+  color: #1976d2;
+}
+
+.navbar-link-active {
+  background: #e3f2fd;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+/* Alternative: Underline active state */
+.navbar-link-underline.navbar-link-active {
+  background: transparent;
+  border-bottom: 2px solid #1976d2;
+  border-radius: 0;
+  padding-bottom: calc(0.5rem - 2px);
+}
+
+/* User Actions Section (Right Side) */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* User Menu */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.navbar-user:hover {
+  background: #f3f4f6;
+}
+
+.navbar-user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #212121;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-user-name {
+    display: none;
+  }
+}
+
+.navbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1976d2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Notification Icon */
+.navbar-notification {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: none;
+  background: transparent;
+  color: #212121;
+}
+
+.navbar-notification:hover {
+  background: #f3f4f6;
+}
+
+.navbar-notification-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Settings/Theme Toggle */
+.navbar-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: none;
+  background: transparent;
+  color: #212121;
+}
+
+.navbar-icon-button:hover {
+  background: #f3f4f6;
+}
+
+/* ========================================
+   MOBILE NAVIGATION DRAWER
+   ======================================== */
+
+/* Hamburger Menu Button */
+.navbar-hamburger {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: none;
+  background: transparent;
+  color: #212121;
+  flex-shrink: 0;
+}
+
+.navbar-hamburger:hover {
+  background: #f3f4f6;
+}
+
+@media (max-width: 1023.98px) {
+  .navbar-hamburger {
+    display: flex;
+  }
+}
+
+/* Mobile Drawer */
+.navbar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background: #ffffff;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1200;
+  overflow-y: auto;
+}
+
+.navbar-drawer-open {
+  transform: translateX(0);
+}
+
+.navbar-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 1199;
+}
+
+.navbar-drawer-overlay-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Drawer Header */
+.navbar-drawer-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-drawer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #212121;
+}
+
+.navbar-drawer-close:hover {
+  background: #f3f4f6;
+}
+
+/* Drawer Navigation */
+.navbar-drawer-nav {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navbar-drawer-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #212121;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar-drawer-link:hover {
+  background: #f3f4f6;
+  color: #1976d2;
+}
+
+.navbar-drawer-link-active {
+  background: #e3f2fd;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+/* Drawer User Section */
+.navbar-drawer-user {
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+}
+
+/* ========================================
+   DROPDOWN MENUS
+   ======================================== */
+
+.navbar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s ease;
+  z-index: 1300;
+}
+
+.navbar-dropdown-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.navbar-dropdown-item {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  color: #212121;
+  font-size: 0.875rem;
+}
+
+.navbar-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.navbar-dropdown-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.5rem 0;
+}
+
+/* ========================================
+   ROLE-SPECIFIC NAVIGATION
+   ======================================== */
+
+/* Role badge in navbar */
+.navbar-role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: #e3f2fd;
+  color: #1976d2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navbar-role-admin {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.navbar-role-hr {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.navbar-role-manager {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.navbar-role-developer {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.navbar-role-tester {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+.navbar-link:focus-visible,
+.navbar-icon-button:focus-visible,
+.navbar-notification:focus-visible,
+.navbar-hamburger:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Skip to main content link */
+.navbar-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #1976d2;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  z-index: 1400;
+}
+
+.navbar-skip-link:focus {
+  top: 0;
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+
+/* Navbar spacer (pushes content below fixed navbar) */
+.navbar-spacer {
+  height: 64px;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-spacer {
+    height: 56px;
+  }
+}
+
+/* Hide on mobile */
+.navbar-hide-mobile {
+  display: flex;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-hide-mobile {
+    display: none;
+  }
+}
+
+/* Show only on mobile */
+.navbar-show-mobile {
+  display: none;
+}
+
+@media (max-width: 639.98px) {
+  .navbar-show-mobile {
+    display: flex;
+  }
+}

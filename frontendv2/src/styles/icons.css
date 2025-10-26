@@ -1,0 +1,731 @@
+/* ========================================
+   ICON SYSTEM DESIGN
+   ======================================== */
+
+/* 
+  ICON LIBRARY: Material-UI Icons (@mui/icons-material)
+  - Already integrated in the project
+  - Consistent design language
+  - Comprehensive icon set
+  - React components with proper accessibility
+*/
+
+/* Base Icon Styles */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  vertical-align: middle;
+}
+
+/* ========================================
+   ICON SIZES
+   ======================================== */
+
+/* Extra Small - 16x16px */
+.icon-xs,
+.MuiSvgIcon-fontSizeXs {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+}
+
+/* Small - 20x20px */
+.icon-sm,
+.MuiSvgIcon-fontSizeSmall {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 20px !important;
+}
+
+/* Medium - 24x24px (Default) */
+.icon-md,
+.MuiSvgIcon-fontSizeMedium {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 24px !important;
+}
+
+/* Large - 32x32px */
+.icon-lg,
+.MuiSvgIcon-fontSizeLarge {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 32px !important;
+}
+
+/* Extra Large - 48x48px */
+.icon-xl {
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 48px !important;
+}
+
+/* Custom sizes */
+.icon-12 {
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 12px !important;
+}
+
+.icon-14 {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 14px !important;
+}
+
+.icon-18 {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 18px !important;
+}
+
+.icon-28 {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 28px !important;
+}
+
+.icon-36 {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 36px !important;
+}
+
+.icon-40 {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 40px !important;
+}
+
+.icon-56 {
+  width: 56px !important;
+  height: 56px !important;
+  font-size: 56px !important;
+}
+
+.icon-64 {
+  width: 64px !important;
+  height: 64px !important;
+  font-size: 64px !important;
+}
+
+/* ========================================
+   ICON COLORS
+   ======================================== */
+
+/* Inherit from parent */
+.icon-inherit {
+  color: inherit;
+}
+
+/* Theme colors */
+.icon-primary {
+  color: #1976d2;
+}
+
+.icon-secondary {
+  color: #757575;
+}
+
+.icon-success {
+  color: #16a34a;
+}
+
+.icon-error,
+.icon-danger {
+  color: #dc2626;
+}
+
+.icon-warning {
+  color: #f59e0b;
+}
+
+.icon-info {
+  color: #0891b2;
+}
+
+/* Neutral colors */
+.icon-muted {
+  color: #9ca3af;
+}
+
+.icon-dark {
+  color: #212121;
+}
+
+.icon-light {
+  color: #f3f4f6;
+}
+
+.icon-white {
+  color: #ffffff;
+}
+
+/* ========================================
+   ICON WITH TEXT
+   ======================================== */
+
+/* Icon + Text Container */
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-text-sm {
+  gap: 0.375rem;
+}
+
+.icon-text-lg {
+  gap: 0.75rem;
+}
+
+/* Icon Left (default) */
+.icon-text-left {
+  flex-direction: row;
+}
+
+/* Icon Right */
+.icon-text-right {
+  flex-direction: row-reverse;
+}
+
+/* Icon Top */
+.icon-text-top {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Icon Bottom */
+.icon-text-bottom {
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ========================================
+   ICON BUTTONS
+   ======================================== */
+
+/* Icon-only button */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #757575;
+}
+
+.icon-button:hover {
+  background: #f3f4f6;
+  color: #1976d2;
+}
+
+.icon-button:active {
+  background: #e5e7eb;
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Icon button sizes */
+.icon-button-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-button-md {
+  width: 40px;
+  height: 40px;
+}
+
+.icon-button-lg {
+  width: 48px;
+  height: 48px;
+}
+
+/* ========================================
+   STATUS ICONS
+   ======================================== */
+
+/* Status indicator with icon */
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-icon-success {
+  color: #16a34a;
+}
+
+.status-icon-error {
+  color: #dc2626;
+}
+
+.status-icon-warning {
+  color: #f59e0b;
+}
+
+.status-icon-info {
+  color: #0891b2;
+}
+
+.status-icon-pending {
+  color: #9ca3af;
+}
+
+/* ========================================
+   ICON BADGES
+   ======================================== */
+
+/* Icon with badge (notification count) */
+.icon-badge {
+  position: relative;
+  display: inline-flex;
+}
+
+.icon-badge-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.icon-badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+/* ========================================
+   ICON CONTAINERS
+   ======================================== */
+
+/* Icon in circle/square container */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-container-circle {
+  border-radius: 50%;
+}
+
+.icon-container-rounded {
+  border-radius: 8px;
+}
+
+.icon-container-square {
+  border-radius: 0;
+}
+
+/* Container sizes */
+.icon-container-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-container-md {
+  width: 40px;
+  height: 40px;
+}
+
+.icon-container-lg {
+  width: 48px;
+  height: 48px;
+}
+
+.icon-container-xl {
+  width: 64px;
+  height: 64px;
+}
+
+/* Container colors */
+.icon-container-primary {
+  background: #1976d2;
+  color: #ffffff;
+}
+
+.icon-container-primary svg,
+.icon-container-primary .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+.icon-container-success {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.icon-container-success svg,
+.icon-container-success .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+.icon-container-error {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.icon-container-error svg,
+.icon-container-error .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+.icon-container-warning {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.icon-container-warning svg,
+.icon-container-warning .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+.icon-container-info {
+  background: #0891b2;
+  color: #ffffff;
+}
+
+.icon-container-info svg,
+.icon-container-info .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+.icon-container-muted {
+  background: #757575;
+  color: #ffffff;
+}
+
+.icon-container-muted svg,
+.icon-container-muted .MuiSvgIcon-root {
+  color: #ffffff !important;
+}
+
+/* ========================================
+   ICON ANIMATIONS
+   ======================================== */
+
+/* Spin animation (for loading icons) */
+.icon-spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulse animation */
+.icon-pulse {
+  animation: icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Bounce animation */
+.icon-bounce {
+  animation: icon-bounce 1s ease-in-out infinite;
+}
+
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ========================================
+   ICON STATES
+   ======================================== */
+
+/* Disabled icon */
+.icon-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Clickable icon */
+.icon-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-clickable:hover {
+  transform: scale(1.1);
+}
+
+.icon-clickable:active {
+  transform: scale(0.95);
+}
+
+/* ========================================
+   NAVIGATION ICONS
+   ======================================== */
+
+/* Sidebar/navigation icon */
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  color: #757575;
+  transition: color 0.2s ease;
+}
+
+.nav-icon-active {
+  color: #1976d2;
+}
+
+/* ========================================
+   EMPTY STATE ICONS
+   ======================================== */
+
+/* Large centered icon for empty states */
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  color: #d1d5db;
+  margin: 0 auto 1rem;
+}
+
+/* ========================================
+   FORM INPUT ICONS
+   ======================================== */
+
+/* Icon inside form input */
+.input-icon {
+  width: 20px;
+  height: 20px;
+  color: #757575;
+  pointer-events: none;
+}
+
+/* ========================================
+   CARD/SECTION HEADER ICONS
+   ======================================== */
+
+/* Icon in card or section header */
+.header-icon {
+  width: 24px;
+  height: 24px;
+  color: #1976d2;
+}
+
+/* ========================================
+   ACTION ICONS (Standard Icons)
+   ======================================== */
+
+/* Common action icons with consistent sizing */
+.action-icon {
+  width: 20px;
+  height: 20px;
+  color: #757575;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.action-icon:hover {
+  color: #1976d2;
+}
+
+.action-icon-edit:hover {
+  color: #1976d2;
+}
+
+.action-icon-delete:hover {
+  color: #dc2626;
+}
+
+.action-icon-view:hover {
+  color: #0891b2;
+}
+
+.action-icon-download:hover {
+  color: #16a34a;
+}
+
+/* ========================================
+   RESPONSIVE ICON SIZES
+   ======================================== */
+
+@media (max-width: 639.98px) {
+  /* Slightly smaller icons on mobile for better spacing */
+  .icon-responsive-sm {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 18px !important;
+  }
+  
+  .icon-responsive-md {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 20px !important;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Screen reader only text for icon-only buttons */
+.icon-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+.icon-button:focus-visible,
+.icon-clickable:focus-visible {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* ========================================
+   MUI ICON OVERRIDES
+   ======================================== */
+
+/* Ensure consistent stroke width */
+.MuiSvgIcon-root {
+  stroke-width: 0;
+}
+
+/* Inherit color by default */
+.MuiSvgIcon-colorInherit {
+  color: inherit;
+}
+
+/* Standard MUI color overrides */
+.MuiSvgIcon-colorPrimary {
+  color: #1976d2;
+}
+
+.MuiSvgIcon-colorSecondary {
+  color: #757575;
+}
+
+.MuiSvgIcon-colorSuccess {
+  color: #16a34a;
+}
+
+.MuiSvgIcon-colorError {
+  color: #dc2626;
+}
+
+.MuiSvgIcon-colorWarning {
+  color: #f59e0b;
+}
+
+.MuiSvgIcon-colorInfo {
+  color: #0891b2;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Vertical alignment */
+.icon-align-top {
+  vertical-align: top;
+}
+
+.icon-align-middle {
+  vertical-align: middle;
+}
+
+.icon-align-bottom {
+  vertical-align: bottom;
+}
+
+.icon-align-text-top {
+  vertical-align: text-top;
+}
+
+.icon-align-text-bottom {
+  vertical-align: text-bottom;
+}
+
+/* Display */
+.icon-inline {
+  display: inline;
+}
+
+.icon-inline-flex {
+  display: inline-flex;
+}
+
+.icon-block {
+  display: block;
+}
+
+/* Rotation */
+.icon-rotate-90 {
+  transform: rotate(90deg);
+}
+
+.icon-rotate-180 {
+  transform: rotate(180deg);
+}
+
+.icon-rotate-270 {
+  transform: rotate(270deg);
+}
+
+/* Flip */
+.icon-flip-horizontal {
+  transform: scaleX(-1);
+}
+
+.icon-flip-vertical {
+  transform: scaleY(-1);
+}

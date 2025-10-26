@@ -1,26 +1,34 @@
 import { clsx } from 'clsx';
+import React from 'react';
 
 const Card = ({ 
   children, 
   className = '',
-  padding = true,
-  shadow = 'soft',
+  variant = 'default',
+  hover = false,
+  clickable = false,
+  selected = false,
+  disabled = false,
+  borderless = false,
+  glass = false,
   ...props 
 }) => {
-  const shadowClasses = {
-    none: '',
-    soft: 'shadow-soft',
-    medium: 'shadow-medium',
-    large: 'shadow-large',
+  const variantClasses = {
+    default: 'card',
+    stat: 'card-stat',
+    task: 'card-task',
+    project: 'card-project',
   };
 
   return (
     <div
       className={clsx(
-        'card',
-        shadowClasses[shadow],
+        borderless ? 'card-borderless' : glass ? 'card-glass' : variantClasses[variant],
         {
-          'p-0': !padding,
+          'card-hover': hover,
+          'card-clickable': clickable,
+          'card-selected': selected,
+          'card-disabled': disabled,
         },
         className
       )}

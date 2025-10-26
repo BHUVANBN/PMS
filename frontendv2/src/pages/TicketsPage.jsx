@@ -259,7 +259,7 @@ const TicketsPage = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     {ticket.id}
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  <Typography variant="h3" className="card-title" sx={{ fontSize: '1.25rem', fontWeight: 600, mb: 1 }}>
                     {ticket.title}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -420,8 +420,8 @@ const TicketsPage = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }} className="page-header">
+        <Typography variant="h1" className="page-title" sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, mb: 0 }}>
           Tickets
         </Typography>
         <Button
@@ -493,40 +493,40 @@ const TicketsPage = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="primary.main" sx={{ fontWeight: 600 }}>
+            <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'primary.main' }}>
               {tickets.length}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               Total Tickets
             </Typography>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="warning.main" sx={{ fontWeight: 600 }}>
+            <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'warning.main' }}>
               {tickets.filter(t => t.status === 'Open').length}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               Open Tickets
             </Typography>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
+            <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'info.main' }}>
               {tickets.filter(t => t.status === 'In Progress').length}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               In Progress
             </Typography>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h4" color="success.main" sx={{ fontWeight: 600 }}>
+            <Typography variant="h4" sx={{ fontSize: '1.5rem', fontWeight: 700, color: 'success.main' }}>
               {tickets.filter(t => t.status === 'Closed').length}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
               Closed
             </Typography>
           </Card>
@@ -571,7 +571,7 @@ const TicketsPage = () => {
               </Box>
             </DialogTitle>
             <DialogContent>
-              <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+              <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', mb: 2, fontWeight: 600 }}>
                 {selectedTicket.title}
               </Typography>
               <Typography variant="body1" sx={{ mb: 3 }}>
@@ -628,10 +628,10 @@ const TicketsPage = () => {
       {filteredTickets.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <TicketIcon className="h-16 w-16 mx-auto mb-4 text-neutral-400" />
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography variant="h3" className="sub-heading" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1, color: 'text.secondary' }}>
             No tickets found
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" className="text-secondary" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {searchTerm ? 'Try adjusting your search terms' : 'Create your first ticket to get started'}
           </Typography>
         </Box>

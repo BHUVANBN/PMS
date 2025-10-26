@@ -150,29 +150,28 @@ const HRDashboard = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }} className="container-page full-bleed-safe">
       {/* Header */}
-      <Box mb={4}>
+      <Box mb={4} className="page-header">
         <Typography 
-          variant="h3" 
+          variant="h1" 
+          className="page-title"
           sx={{ 
-            fontWeight: 800, 
-            color: 'text.primary',
-            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-            letterSpacing: '-0.02em',
+            fontSize: { xs: '1.75rem', md: '2rem' },
+            fontWeight: 700,
             mb: 1.5
           }}
         >
           HR Dashboard
         </Typography>
         <Typography 
-          variant="h6" 
+          variant="body1" 
+          className="text-secondary"
           sx={{ 
-            color: 'text.secondary',
+            fontSize: '1rem',
             fontWeight: 400,
-            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
             lineHeight: 1.6,
-            letterSpacing: '0.01em'
+            color: 'text.secondary'
           }}
         >
           Manage employees, track performance, and oversee HR operations
@@ -204,7 +203,7 @@ const HRDashboard = () => {
       </Box>
 
       {/* Quick Actions */}
-      <Grid container spacing={3} mb={4}>
+      <Grid container spacing={3} mb={4} className="section">
         <Grid item xs={12}>
           <QuickActions actions={quickActions} />
         </Grid>
@@ -221,69 +220,55 @@ const HRDashboard = () => {
         {/* Main content column */}
         <Box sx={{ flex: 1 }}>
           {/* Statistics Cards */}
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatsCard
-                title="Total Employees"
-                value={stats?.employees?.total || 0}
-                change={`${stats?.employees?.active || 0} active employees`}
-                changeType="neutral"
-                icon={People}
-                color="primary"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatsCard
-                title="Recent Hires"
-                value={stats?.employees?.recentHires || 0}
-                change="New employees this month"
-                changeType="positive"
-                icon={PersonAdd}
-                color="success"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatsCard
-                title="Leave Requests"
-                value={stats?.leaves?.pending || 0}
-                change={`${stats?.leaves?.total || 0} total requests`}
-                changeType="neutral"
-                icon={EventNote}
-                color="warning"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} lg={3}>
-              <StatsCard
-                title="Departments"
-                value={stats?.overview?.departmentCount || 0}
-                change="Active departments"
-                changeType="neutral"
-                icon={Work}
-                color="info"
-              />
-            </Grid>
-          </Grid>
+          <Box className="card-grid-stats section" sx={{ mb: 4 }}>
+            <StatsCard
+              title="Total Employees"
+              value={stats?.employees?.total || 0}
+              change={`${stats?.employees?.active || 0} active employees`}
+              changeType="neutral"
+              icon={People}
+              color="primary"
+            />
+            <StatsCard
+              title="Recent Hires"
+              value={stats?.employees?.recentHires || 0}
+              change="New employees this month"
+              changeType="positive"
+              icon={PersonAdd}
+              color="success"
+            />
+            <StatsCard
+              title="Leave Requests"
+              value={stats?.leaves?.pending || 0}
+              change={`${stats?.leaves?.total || 0} total requests`}
+              changeType="neutral"
+              icon={EventNote}
+              color="warning"
+            />
+            <StatsCard
+              title="Departments"
+              value={stats?.overview?.departmentCount || 0}
+              change="Active departments"
+              changeType="neutral"
+              icon={Work}
+              color="info"
+            />
+          </Box>
 
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            mb: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-          }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section" sx={{ mb: 3 }}>
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 Recent Employees
               </Typography>
-              <Button 
-                variant="outlined" 
-                size="small"
-                onClick={() => navigate('/hr/employees')}
-              >
-                View All Employees
-              </Button>
+              <Box className="card-header-actions">
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={() => navigate('/hr/employees')}
+                >
+                  View All Employees
+                </Button>
+              </Box>
             </Box>
             
             <TableContainer sx={{ maxHeight: 400 }}>
@@ -383,36 +368,30 @@ const HRDashboard = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
+          </Box>
 
           {/* Leave Requests Overview */}
-          <Paper elevation={0} sx={{ 
-            p: 3,
-            background: 'rgba(255, 255, 255, 0.4)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-          }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box className="card section">
+            <Box className="card-header">
+              <Typography variant="h3" className="card-header-title">
                 Leave Management
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Leave request system coming soon
-              </Typography>
+              <Box className="card-header-actions">
+                <Typography variant="body2" color="text.secondary">
+                  Leave request system coming soon
+                </Typography>
+              </Box>
             </Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ 
-                  p: 2, 
-                  textAlign: 'center', 
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-                }}>
+            <Box className="card-grid-stats">
+              <Card sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                background: 'rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+              }}>
                   <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <Pending />
                   </Avatar>
@@ -423,17 +402,15 @@ const HRDashboard = () => {
                     Pending Requests
                   </Typography>
                 </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ 
-                  p: 2, 
-                  textAlign: 'center', 
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-                }}>
+              <Card sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                background: 'rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+              }}>
                   <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <CheckCircle />
                   </Avatar>
@@ -444,9 +421,7 @@ const HRDashboard = () => {
                     Approved
                   </Typography>
                 </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ 
+              <Card sx={{ 
                   p: 2, 
                   textAlign: 'center', 
                   background: 'rgba(255, 255, 255, 0.3)',
@@ -465,17 +440,15 @@ const HRDashboard = () => {
                     Rejected
                   </Typography>
                 </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ 
-                  p: 2, 
-                  textAlign: 'center', 
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
-                }}>
+              <Card sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                background: 'rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+              }}>
                   <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1, width: 48, height: 48, color: '#fff' }}>
                     <EventNote />
                   </Avatar>
@@ -486,9 +459,8 @@ const HRDashboard = () => {
                     Total Requests
                   </Typography>
                 </Card>
-              </Grid>
-            </Grid>
-          </Paper>
+            </Box>
+          </Box>
         </Box>
 
         {/* Right sidebar column */}
@@ -503,18 +475,12 @@ const HRDashboard = () => {
           </Box>
 
           {/* Employee Distribution */}
-          <Paper elevation={0} sx={{ 
-            p: 3, 
+          <Box className="card" sx={{ 
             height: 'fit-content',
-            background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
             position: { lg: 'sticky' },
             top: { lg: 24 }
           }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+            <Typography variant="h2" className="section-title" sx={{ fontSize: '1.5rem', fontWeight: 600, mb: 3 }}>
               Employee Distribution
             </Typography>
             <Box>
@@ -550,7 +516,7 @@ const HRDashboard = () => {
                 </Typography>
               )}
             </Box>
-          </Paper>
+          </Box>
         </Box>
       </Box>
     </Box>

@@ -49,26 +49,26 @@ const UserCreate = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" mb={3}>Create User</Typography>
-      <Paper sx={{ p: 3 }}>
+      <Typography variant="h1" className="page-title" sx={{ fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 700, mb: 3 }}>Create User</Typography>
+      <Paper sx={{ p: 3 }} className="card-pad">
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
-            {error && <Box className="text-red-600 text-sm">{error}</Box>}
+            {error && <Box className="input-error-text" sx={{ fontSize: '0.75rem', color: 'error.main', mb: 2 }}>{error}</Box>}
             <FormSection title="Basic Information">
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormInput label="First Name" value={values.firstName} onChange={(e)=>handleChange('firstName', e.target.value)} required />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormInput label="Last Name" value={values.lastName} onChange={(e)=>handleChange('lastName', e.target.value)} required />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormInput label="Username" value={values.username} onChange={(e)=>handleChange('username', e.target.value)} required />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormInput label="Email" type="email" value={values.email} onChange={(e)=>handleChange('email', e.target.value)} required />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormSelect 
                     label="Role" 
                     value={values.role} 
@@ -77,7 +77,7 @@ const UserCreate = () => {
                     required 
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} className="form-field">
                   <FormInput label="Password" type="password" value={values.password} onChange={(e)=>handleChange('password', e.target.value)} required />
                 </Grid>
               </Grid>

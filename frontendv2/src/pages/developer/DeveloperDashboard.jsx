@@ -15,14 +15,18 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  IconButton,
+  Alert,
+  Skeleton
 } from '@mui/material';
 import {
   TicketIcon,
   CodeBracketIcon,
   ClockIcon,
   CheckCircleIcon,
-  PlayIcon
+  PlayIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import StatsGrid from '../../components/dashboard/StatsGrid';
 import DashboardCard from '../../components/dashboard/DashboardCard';
@@ -31,7 +35,6 @@ import { developerAPI, subscribeToEvents } from '../../services/api';
 import MyUpcomingEvents from '../../components/dashboard/MyUpcomingEvents';
 import TwoColumnRight from '../../components/layout/TwoColumnRight';
 import { useAuth } from '../../contexts/AuthContext';
-import { Alert } from '@mui/material';
 
 const DeveloperDashboard = () => {
   const [stats, setStats] = useState([]);
@@ -64,7 +67,6 @@ const DeveloperDashboard = () => {
                 const title = type === 'standup.commented' ? 'Standup comment' : type === 'standup.attachment_added' ? 'Standup attachment' : 'Standup update';
                 const by = payload?.data?.by ? ` by ${payload.data.by}` : '';
                 setStandupNotice(`${title}${by}`);
-                // auto-clear after 12s
                 setTimeout(() => setStandupNotice(null), 12000);
               }
             } catch (err) { String(err); }
@@ -101,7 +103,6 @@ const DeveloperDashboard = () => {
         developerAPI.getDashboard().catch(() => null),
       ]);
 
-      // Stats cards mapping
       const s = statsRes?.stats;
       const ticketStats = s?.tickets || {};
       const statsCards = [
@@ -136,7 +137,6 @@ const DeveloperDashboard = () => {
       ];
       setStats(statsCards);
 
-      // Tickets mapping
       const tickets = ticketsRes?.tickets || [];
       const normalizedTickets = tickets.map((t) => ({
         id: t.ticketId || t._id || t.id,
@@ -150,7 +150,6 @@ const DeveloperDashboard = () => {
       }));
       setMyTickets(normalizedTickets);
 
-      // Standups from dashboard summary (replaces dummy Today tasks/commits)
       const standupsArr = dashboardRes?.standups || [];
       setStandups(standupsArr);
 
@@ -191,189 +190,939 @@ const DeveloperDashboard = () => {
     setSelectedTicket(null);
   };
 
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <Box>
+      {/* Stats skeleton */}
+      <Box sx={{ mb: 4 }}>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map((i) => (
+            <Grid item xs={12} sm={6} md={6} lg={3} key={i}>
+              <Skeleton 
+                variant="rectangular" 
+                height={120} 
+                sx={{ borderRadius: '12px' }}
+                animation="pulse"
+              />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+
+      {/* Tickets skeleton */}
+      <Box>
+        <Skeleton variant="text" width={200} height={40} sx={{ mb: 2 }} />
+        <Grid container spacing={3}>
+          {[1, 2, 3].map((i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton 
+                variant="rectangular" 
+                height={200} 
+                sx={{ borderRadius: '12px' }}
+                animation="pulse"
+              />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    </Box>
+  );
+
+  // Empty state for tickets
+  const EmptyTicketsState = () => (
+    <Box 
+      sx={{ 
+        textAlign: 'center', 
+        py: 6,
+        px: 2
+      }}
+    >
+      <Box
+        sx={{
+          display: 'inline-flex',
+          p: 2,
+          borderRadius: '50%',
+          bgcolor: 'rgba(0,0,0,0.04)',
+          mb: 2
+        }}
+      >
+        <TicketIcon style={{ width: 64, height: 64, color: 'rgba(0,0,0,0.3)' }} />
+      </Box>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontWeight: 600,
+          color: 'text.primary',
+          mb: 1
+        }}
+      >
+        No active tickets assigned
+      </Typography>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'text.secondary',
+          maxWidth: 400,
+          mx: 'auto'
+        }}
+      >
+        Your assigned tickets will appear here
+      </Typography>
+    </Box>
+  );
+
   if (loading) {
     return (
-      <Box sx={{ width: '100%' }}>
-        <LinearProgress />
-        <Typography variant="h6" sx={{ mt: 2 }}>Loading dashboard...</Typography>
-      </Box>
+      <TwoColumnRight 
+        right={
+          <Box sx={{ p: 0 }}>
+            <Box sx={{ 
+              bgcolor: 'white', 
+              borderRadius: '12px', 
+              p: 3,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <Skeleton variant="text" width={150} height={30} sx={{ mb: 2 }} />
+              {[1, 2, 3].map((i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Skeleton variant="circular" width={40} height={40} sx={{ mr: 2 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="80%" />
+                    <Skeleton variant="text" width="60%" />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        }
+      >
+        <Box sx={{ 
+          maxWidth: 1400, 
+          mx: 'auto', 
+          px: { xs: 2, md: 4 }, 
+          py: 3 
+        }}>
+          <LoadingSkeleton />
+        </Box>
+      </TwoColumnRight>
     );
   }
 
   const rightRail = (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ mb: 3 }}>
-        <MyUpcomingEvents title="My Upcoming Events" days={14} />
-      </Box>
-      <DashboardCard title="Recent Standups" className="h-full">
-        <List dense>
+    <Box sx={{ p: 0 }}>
+      <Box sx={{ 
+        bgcolor: 'white', 
+        borderRadius: '12px', 
+        p: 3,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        transition: 'box-shadow 0.2s ease',
+        '@media (hover: hover)': {
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }
+        }
+      }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontSize: '1.125rem',
+            fontWeight: 600,
+            mb: 2,
+            color: 'text.primary'
+          }}
+        >
+          Recent Standups
+        </Typography>
+        <List sx={{ p: 0 }}>
           {standups.length === 0 && (
-            <ListItem sx={{ px: 0 }}>
-              <ListItemText primary="No recent standups" />
-            </ListItem>
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 4,
+              color: 'text.secondary'
+            }}>
+              <PlayIcon style={{ width: 32, height: 32, margin: '0 auto 8px' }} />
+              <Typography variant="body2">No recent standups</Typography>
+            </Box>
           )}
           {standups.map((s, index) => (
-            <ListItem key={index} sx={{ px: 0 }}>
-              <Avatar sx={{ mr: 2, bgcolor: 'primary.main', width: 32, height: 32 }}>
-                <PlayIcon className="h-4 w-4" />
+            <ListItem 
+              key={index} 
+              sx={{ 
+                px: 0,
+                py: 2,
+                borderBottom: index < standups.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+                transition: 'background 0.15s ease',
+                borderRadius: '8px',
+                '@media (hover: hover)': {
+                  '&:hover': {
+                    bgcolor: 'rgba(0,0,0,0.02)'
+                  }
+                }
+              }}
+            >
+              <Avatar 
+                sx={{ 
+                  mr: 2, 
+                  bgcolor: 'primary.main', 
+                  width: 40, 
+                  height: 40,
+                  '& svg': {
+                    color: '#ffffff !important'
+                  }
+                }}
+              >
+                <PlayIcon style={{ width: 20, height: 20, color: '#ffffff' }} />
               </Avatar>
               <ListItemText
-                primary={s.projectId?.name || 'Standup'}
-                secondary={new Date(s.date).toLocaleString()}
+                primary={
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.875rem',
+                      color: 'text.primary'
+                    }}
+                  >
+                    {s.projectId?.name || 'Standup'}
+                  </Typography>
+                }
+                secondary={
+                  <Box>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        color: 'text.secondary'
+                      }}
+                    >
+                      {new Date(s.date).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        color: 'text.secondary'
+                      }}
+                    >
+                      {new Date(s.date).toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit' 
+                      })}
+                    </Typography>
+                  </Box>
+                }
               />
             </ListItem>
           ))}
         </List>
-      </DashboardCard>
+      </Box>
     </Box>
   );
 
   return (
     <TwoColumnRight right={rightRail}>
-      <Typography 
-        variant="h3" 
-        sx={{ 
-          fontWeight: 800, 
-          color: 'text.primary',
-          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-          letterSpacing: '-0.02em',
-          mb: 1.5
-        }}
-      >
-        Developer Dashboard
-      </Typography>
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          color: 'text.secondary',
-          fontWeight: 400,
-          fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
-          lineHeight: 1.6,
-          letterSpacing: '0.01em',
-          mb: 2
-        }}
-      >
-        Welcome back! Here's your development overview.
-      </Typography>
-      {standupNotice && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {standupNotice}
-        </Alert>
-      )}
-      {error && (
-        <Card sx={{ mb: 2 }}>
-          <CardContent>
-            <Typography color="error">{error}</Typography>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Stats Overview */}
-      <Box sx={{ mb: 4 }}>
-        <StatsGrid stats={stats} />
-      </Box>
+      <Box sx={{ 
+        width: '100%',
+        px: { xs: 2, md: 3 }, 
+        py: 3 
+      }}>
+        {/* Page Header */}
+        <Box 
+          sx={{ 
+            mb: 4,
+            pb: 3,
+            borderBottom: '1px solid rgba(0,0,0,0.08)'
+          }}
+        >
+          <Typography 
+            variant="h1" 
+            sx={{ 
+              fontSize: { xs: '1.75rem', md: '2rem' },
+              fontWeight: 700,
+              mb: 1,
+              color: 'text.primary'
+            }}
+          >
+            Developer Dashboard
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              fontSize: '1rem',
+              fontWeight: 400,
+              lineHeight: 1.6,
+              color: 'text.secondary'
+            }}
+          >
+            Welcome back! Here's your development overview.
+          </Typography>
+        </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <DashboardCard title="My Active Tickets" className="h-full">
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
-              {myTickets.map((ticket, index) => (
-                <Card key={index} sx={{ minWidth: 280, maxWidth: 350, flex: 1 }}>
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Box sx={{ flex: 1, mr: 2 }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                          {ticket.id}
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
-                          {ticket.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {ticket.project}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <Badge variant={getPriorityColor(ticket.priority)}>
-                          {ticket.priority}
-                        </Badge>
-                        <Chip
-                          label={ticket.status}
-                          color={getStatusColor(ticket.status)}
-                          size="small"
-                        />
-                      </Box>
+        {/* Standup Notice Alert */}
+        {standupNotice && (
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 3,
+              borderRadius: '12px',
+              fontSize: '0.875rem',
+              animation: 'slideIn 0.3s ease'
+            }}
+          >
+            {standupNotice}
+          </Alert>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Alert 
+            severity="error" 
+            variant="outlined"
+            sx={{ 
+              mb: 3,
+              borderRadius: '12px'
+            }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={fetchDashboardData}
+                sx={{ fontWeight: 500 }}
+              >
+                Retry
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        )}
+        
+        {/* Stats Overview */}
+        <Box sx={{ mb: 6 }}>
+          <Grid container spacing={2.5}>
+            {stats.map((stat, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Card
+                  sx={{
+                    bgcolor: 'white',
+                    borderRadius: '12px',
+                    p: 3,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s ease',
+                    height: '100%',
+                    minHeight: 180,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    '@media (hover: hover)': {
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '50%',
+                        bgcolor: `${stat.color}.main`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        flexShrink: 0,
+                        '& svg': {
+                          color: '#ffffff !important'
+                        }
+                      }}
+                    >
+                      {React.cloneElement(stat.icon, { 
+                        style: { width: 24, height: 24, color: '#ffffff' } 
+                      })}
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <Typography variant="body2" sx={{ mr: 2 }}>
-                        {ticket.spentHours}h / {ticket.estimatedHours}h
-                      </Typography>
-                      <Box sx={{ width: 80, mr: 2 }}>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={(ticket.spentHours / ticket.estimatedHours) * 100} 
-                          sx={{ height: 6, borderRadius: 3 }}
-                        />
-                      </Box>
-                      <Button size="small" variant="outlined" onClick={() => handleViewTicket(ticket)}>
-                        View
-                      </Button>
-                    </Box>
-                  </CardContent>
+                  </Box>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'text.secondary',
+                      display: 'block',
+                      mb: 1,
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {stat.title}
+                  </Typography>
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      fontSize: '2.25rem',
+                      fontWeight: 700,
+                      color: 'text.primary',
+                      mb: 0.5,
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {stat.value}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: '0.875rem',
+                      fontWeight: 400,
+                      color: 'text.secondary',
+                      lineHeight: 1.4,
+                      mt: 'auto'
+                    }}
+                  >
+                    {stat.subtitle}
+                  </Typography>
                 </Card>
-              ))}
-            </Box>
-          </DashboardCard>
-        </Grid>
-      </Grid>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
 
-      {/* Ticket Details Modal */}
-      <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Ticket Details
-        </DialogTitle>
-        <DialogContent>
-          {selectedTicket && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                {selectedTicket.title}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary', lineHeight: 1.6 }}>
-                {selectedTicket.description}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <strong>Ticket ID:</strong> {selectedTicket.id}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <strong>Project:</strong> {selectedTicket.project}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <strong>Priority:</strong> {selectedTicket.priority}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                <strong>Status:</strong> {selectedTicket.status}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <strong>Time Spent:</strong> {selectedTicket.spentHours}h / {selectedTicket.estimatedHours}h
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ mr: 2 }}>
-                  Progress:
-                </Typography>
-                <Box sx={{ width: 200 }}>
+        {/* My Active Tickets */}
+        <Box sx={{ mb: 6 }}>
+          <Box
+            sx={{
+              bgcolor: 'white',
+              borderRadius: '12px',
+              p: 3,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'text.primary',
+                mb: 3
+              }}
+            >
+              My Active Tickets
+            </Typography>
+
+            {myTickets.length === 0 ? (
+              <EmptyTicketsState />
+            ) : (
+              <Grid container spacing={3}>
+                {myTickets.map((ticket, index) => (
+                  <Grid item xs={12} sm={6} lg={4} key={index}>
+                    <Card
+                      onClick={() => handleViewTicket(ticket)}
+                      sx={{
+                        bgcolor: 'white',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        borderRadius: '12px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        height: '100%',
+                        '@media (hover: hover)': {
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        {/* Header with badges */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                          <Box sx={{ flex: 1, mr: 2 }}>
+                            <Typography 
+                              variant="overline" 
+                              sx={{ 
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                color: 'text.secondary',
+                                letterSpacing: '0.5px',
+                                display: 'block',
+                                mb: 0.5
+                              }}
+                            >
+                              {ticket.id}
+                            </Typography>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 600, 
+                                mb: 1, 
+                                fontSize: '1.125rem',
+                                lineHeight: 1.4,
+                                color: 'text.primary'
+                              }}
+                            >
+                              {ticket.title}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontSize: '0.875rem',
+                                fontWeight: 400,
+                                color: 'text.secondary',
+                                mb: 2
+                              }}
+                            >
+                              {ticket.project}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <Badge 
+                              variant={getPriorityColor(ticket.priority)}
+                              sx={{
+                                transition: 'transform 0.15s ease',
+                                '@media (hover: hover)': {
+                                  '&:hover': {
+                                    transform: 'scale(1.05)'
+                                  }
+                                }
+                              }}
+                            >
+                              {ticket.priority}
+                            </Badge>
+                            <Chip
+                              label={ticket.status}
+                              color={getStatusColor(ticket.status)}
+                              size="small"
+                              sx={{
+                                fontSize: '0.75rem',
+                                height: 24,
+                                transition: 'transform 0.15s ease',
+                                '@media (hover: hover)': {
+                                  '&:hover': {
+                                    transform: 'scale(1.05)'
+                                  }
+                                }
+                              }}
+                            />
+                          </Box>
+                        </Box>
+
+                        {/* Progress section */}
+                        <Box 
+                          sx={{ 
+                            pt: 2,
+                            borderTop: '1px solid rgba(0,0,0,0.08)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            flexWrap: 'wrap'
+                          }}
+                        >
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              color: 'text.primary'
+                            }}
+                          >
+                            {ticket.spentHours}h / {ticket.estimatedHours}h
+                          </Typography>
+                          <Box sx={{ flex: 1, minWidth: 100 }}>
+                            <LinearProgress 
+                              variant="determinate" 
+                              value={ticket.estimatedHours > 0 ? (ticket.spentHours / ticket.estimatedHours) * 100 : 0} 
+                              sx={{ 
+                                height: 6, 
+                                borderRadius: 3,
+                                transition: 'all 0.3s ease',
+                                bgcolor: 'rgba(0,0,0,0.06)'
+                              }}
+                            />
+                          </Box>
+                          <Button 
+                            size="small" 
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewTicket(ticket);
+                            }}
+                            sx={{
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              textTransform: 'none',
+                              px: 2,
+                              transition: 'all 0.15s ease',
+                              '@media (hover: hover)': {
+                                '&:hover': {
+                                  transform: 'scale(0.98)'
+                                }
+                              }
+                            }}
+                          >
+                            View
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        </Box>
+
+        {/* Ticket Details Modal */}
+        <Dialog 
+          open={modalOpen} 
+          onClose={handleCloseModal} 
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '12px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              maxWidth: 600
+            }
+          }}
+          BackdropProps={{
+            sx: {
+              bgcolor: 'rgba(0,0,0,0.5)'
+            }
+          }}
+          TransitionProps={{
+            timeout: 200
+          }}
+        >
+          <DialogTitle 
+            sx={{ 
+              p: 3,
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'text.primary'
+              }}
+            >
+              Ticket Details
+            </Typography>
+            <IconButton
+              onClick={handleCloseModal}
+              sx={{
+                width: 32,
+                height: 32,
+                transition: 'background 0.15s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(0,0,0,0.04)'
+                }
+              }}
+              aria-label="Close dialog"
+            >
+              <XMarkIcon style={{ width: 20, height: 20 }} />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent 
+            sx={{ 
+              p: 3,
+              maxHeight: '70vh',
+              overflowY: 'auto'
+            }}
+          >
+            {selectedTicket && (
+              <Box>
+                {/* Title and badges */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontSize: '1.25rem',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      flex: 1,
+                      mr: 2
+                    }}
+                  >
+                    {selectedTicket.title}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Badge variant={getPriorityColor(selectedTicket.priority)}>
+                      {selectedTicket.priority}
+                    </Badge>
+                    <Chip
+                      label={selectedTicket.status}
+                      color={getStatusColor(selectedTicket.status)}
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+
+                {/* Description */}
+                <Box 
+                  sx={{ 
+                    p: 2,
+                    mb: 3,
+                    bgcolor: 'rgba(0,0,0,0.02)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0,0,0,0.06)'
+                  }}
+                >
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      fontSize: '1rem',
+                      lineHeight: 1.6,
+                      color: 'text.secondary'
+                    }}
+                  >
+                    {selectedTicket.description}
+                  </Typography>
+                </Box>
+
+                {/* Info section */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Ticket ID:
+                    </Typography>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        ml: 1
+                      }}
+                    >
+                      {selectedTicket.id}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Project:
+                    </Typography>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        ml: 1
+                      }}
+                    >
+                      {selectedTicket.project}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Priority:
+                    </Typography>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        ml: 1
+                      }}
+                    >
+                      {selectedTicket.priority}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Status:
+                    </Typography>
+                    <Typography 
+                      component="span"
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        ml: 1
+                      }}
+                    >
+                      {selectedTicket.status}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Time Spent:
+                    </Typography>
+                    <Typography 
+                      component="span" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 400,
+                        color: 'text.secondary',
+                        ml: 1
+                      }}
+                    >
+                      {selectedTicket.spentHours}h / {selectedTicket.estimatedHours}h
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Progress section */}
+                <Box 
+                  sx={{ 
+                    pt: 3,
+                    borderTop: '1px solid rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary'
+                      }}
+                    >
+                      Progress
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'primary.main'
+                      }}
+                    >
+                      {selectedTicket.estimatedHours > 0 
+                        ? Math.round((selectedTicket.spentHours / selectedTicket.estimatedHours) * 100)
+                        : 0}%
+                    </Typography>
+                  </Box>
                   <LinearProgress 
                     variant="determinate" 
-                    value={(selectedTicket.spentHours / selectedTicket.estimatedHours) * 100} 
-                    sx={{ height: 8, borderRadius: 4 }}
+                    value={selectedTicket.estimatedHours > 0 
+                      ? (selectedTicket.spentHours / selectedTicket.estimatedHours) * 100 
+                      : 0
+                    } 
+                    sx={{ 
+                      height: 10, 
+                      borderRadius: 5,
+                      bgcolor: 'rgba(0,0,0,0.06)',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 5,
+                        transition: 'transform 0.3s ease'
+                      }
+                    }}
+                    aria-label={`Progress: ${selectedTicket.spentHours} out of ${selectedTicket.estimatedHours} hours`}
                   />
                 </Box>
               </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModal}>Close</Button>
-        </DialogActions>
-      </Dialog>
+            )}
+          </DialogContent>
+          <DialogActions 
+            sx={{ 
+              p: 3,
+              borderTop: '1px solid rgba(0,0,0,0.08)',
+              justifyContent: 'flex-end'
+            }}
+          >
+            <Button 
+              onClick={handleCloseModal}
+              variant="contained"
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                boxShadow: 'none',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                },
+                '&:active': {
+                  transform: 'scale(0.98)'
+                }
+              }}
+            >
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add keyframe animation for alert */}
+        <style>
+          {`
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+              }
+            }
+          `}
+        </style>
+      </Box>
     </TwoColumnRight>
   );
 };

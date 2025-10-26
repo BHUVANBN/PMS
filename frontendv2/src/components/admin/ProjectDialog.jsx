@@ -151,12 +151,26 @@ const ProjectDialog = ({ open, project, onClose, onSave }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {project ? 'Edit Project' : 'Create New Project'}
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth={false}
+      PaperProps={{
+        className: 'dialog-container dialog-large'
+      }}
+      BackdropProps={{
+        className: 'dialog-backdrop'
+      }}
+    >
+      <DialogTitle className="dialog-header">
+        <Box className="dialog-header-content">
+          <h3 className="dialog-title">
+            {project ? 'Edit Project' : 'Create New Project'}
+          </h3>
+        </Box>
       </DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 1 }}>
+      <DialogContent className="dialog-body">
+        <Box className="dialog-form">
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -268,14 +282,19 @@ const ProjectDialog = ({ open, project, onClose, onSave }) => {
           </Grid>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+      <DialogActions className="dialog-footer">
+        <Button 
+          onClick={onClose} 
+          disabled={loading}
+          className="dialog-button-secondary"
+        >
           Cancel
         </Button>
         <Button 
           variant="contained" 
           onClick={handleSubmit}
           disabled={loading || !isFormValid()}
+          className="dialog-button-primary"
         >
           {loading ? 'Saving...' : (project ? 'Update' : 'Create')}
         </Button>

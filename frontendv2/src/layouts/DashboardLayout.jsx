@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { Bars3Icon, ChartBarIcon, ClipboardDocumentListIcon, HomeIcon, UsersIcon, ViewColumnsIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { useAuth } from '../store/auth.js'
+import { useAuth } from '../contexts/AuthContext'
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../config/featureFlags.js'
 
 const navItems = [
@@ -67,10 +67,10 @@ export default function DashboardLayout() {
           <div className="flex h-16 items-center font-semibold">PMS</div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
-              {navItems.map(({ to, label, icon: Icon }) => (
+              {navItems.map(({ to, label, icon: NavIcon }) => (
                 <li key={to}>
-                  <NavLink to={to} className={({ isActive }) => `group flex gap-x-3 rounded-md p-2 text-sm leading-6 ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}>
-                    <Icon className="h-6 w-6" />
+                  <NavLink to={to} onClick={() => setSidebarOpen(false)} className={({ isActive }) => `group flex gap-x-3 rounded-md p-2 text-sm leading-6 ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <NavIcon className="h-6 w-6" />
                     {label}
                   </NavLink>
                 </li>

@@ -1074,12 +1074,56 @@ export const apiUtils = {
   },
 };
 
+// Leave API
+export const leaveAPI = {
+  // Employee: submit a leave request
+  submit: (leaveData) =>
+    apiRequest('/leave', {
+      method: 'POST',
+      body: JSON.stringify(leaveData),
+    }),
+
+  // Employee: get own leave requests
+  getMy: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/leave/my${query ? `?${query}` : ''}`);
+  },
+
+  // Employee: cancel a pending leave request
+  cancel: (leaveId) =>
+    apiRequest(`/leave/${leaveId}/cancel`, { method: 'PATCH' }),
+
+  // HR/Admin: get all leave requests with filters
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/leave${query ? `?${query}` : ''}`);
+  },
+
+  // HR/Admin: approve a leave request
+  approve: (leaveId, { comments } = {}) =>
+    apiRequest(`/leave/${leaveId}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ comments }),
+    }),
+
+  // HR/Admin: reject a leave request
+  reject: (leaveId, { reason } = {}) =>
+    apiRequest(`/leave/${leaveId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    }),
+
+  // HR/Admin: leave statistics
+  getStats: () => apiRequest('/leave/stats'),
+};
+
 // Realtime: Server-Sent Events subscription helper
-export const subscribeToEvents = ({ userId, projectId, role } = {}, onMessage, onError) => {
+export const subscribeToEvents = ({ projectId } = {}, onMessage, onError) => {
   const params = new URLSearchParams();
-  if (userId) params.append('userId', userId);
-  else if (projectId) params.append('projectId', projectId);
-  else if (role) params.append('role', role);
+  if (projectId) params.append('projectId', projectId);
+  // Pass JWT token as query param since EventSource cannot set custom headers
+  const token = localStorage.getItem('token');
+  if (token) params.append('token', token);
   const url = `${API_BASE_URL.replace(/\/$/, '')}/events${params.toString() ? `?${params.toString()}` : ''}`;
   const es = new EventSource(url, { withCredentials: true });
   es.onmessage = (evt) => {
@@ -1157,9 +1201,9 @@ export const meetingAPI = {
     apiRequest(`/meetings/project/${projectId}`),
 
   getUserMeetings: () =>
-  apiRequest('/meetings/user', {
-    method: 'GET',
-  }),
+    apiRequest('/meetings/user', {
+      method: 'GET',
+    }),
 
   // Get a single meeting by ID
   getMeetingById: (meetingId) =>
@@ -1172,10 +1216,10 @@ export const meetingAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     }),
-    
-    endMeeting: (meetingId) =>
+
+  endMeeting: (meetingId) =>
     apiRequest(`/meetings/${meetingId}/end`, {
-    method: 'PATCH',
+      method: 'PATCH',
     }),
 
   // Delete a meeting (manager only)
@@ -1208,6 +1252,7 @@ export default {
   calendar: calendarAPI,
   meetings: meetingAPI,
   public: publicAPI,
+  leave: leaveAPI,
   utils: apiUtils,
   subscribeToEvents,
 };

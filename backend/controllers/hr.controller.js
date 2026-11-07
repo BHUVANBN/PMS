@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import { User, USER_ROLES, Leave, Standup, Onboarding, ONBOARDING_STATUS } from '../models/index.js';
 import { EmployeeDocuments } from '../models/employeeDocuments.models.js';
 import { PublicOnboarding } from '../models/publicOnboarding.models.js';
- 
+import { getAllLeaveRequests, approveLeaveRequest, rejectLeaveRequest } from './leave.controller.js';
+
 
 /**
  * Create a new employee account
@@ -143,25 +144,28 @@ export const createEmployee = async (req, res) => {
  */
 export const getAllEmployees = async (req, res) => {
 	try {
-		// Return all non-admin, non-HR users so HR can't view admin/HR accounts
-		const employees = await User.find({ role: { $nin: [USER_ROLES.ADMIN, USER_ROLES.HR] } })
-			.select('-password') // Exclude password from response
-			.sort({ createdAt: -1 }); // Sort by newest first
-
-		console.log(`HR getAllEmployees: Found ${employees.length} employees`);
-
+		const { role, page = 1, limit = 50, search } = req.query;
+		const filter = { role: { $nin: [USER_ROLES.ADMIN, USER_ROLES.HR] } };
+		if (role && Object.values(USER_ROLES).includes(role)) filter.role = role;
+		if (search) {
+			const re = new RegExp(search, 'i');
+			filter.$or = [{ firstName: re }, { lastName: re }, { email: re }, { username: re }];
+		}
+		const skip = (Number(page) - 1) * Number(limit);
+		const [employees, total] = await Promise.all([
+			User.find(filter).select('-password').sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+			User.countDocuments(filter),
+		]);
 		return res.status(200).json({
+			success: true,
 			message: 'Employees retrieved successfully',
 			employees,
-			count: employees.length
+			count: total,
+			pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
 		});
-
 	} catch (error) {
 		console.error('Error retrieving employees:', error);
-		return res.status(500).json({
-			message: 'Server error while retrieving employees',
-			error: error.message
-		});
+		return res.status(500).json({ success: false, message: 'Server error while retrieving employees' });
 	}
 };
 
@@ -426,72 +430,40 @@ export const getHRStats = async (req, res) => {
 /**
  * Leave management: Approve a leave request
  */
-export const approveLeaveRequest = async (req, res) => {
-	try {
-		// Stub implementation; integrate with Leave model/workflow as needed
-		return res.status(200).json({ message: 'Leave request approved (stub)' });
-	} catch (error) {
-		console.error('Error approving leave request:', error);
-		return res.status(500).json({
-			message: 'Server error while approving leave request',
-			error: error.message
-		});
-	}
-};
+// Leave management delegates to leave.controller.js
+export { getAllLeaveRequests, approveLeaveRequest, rejectLeaveRequest };
 
 /**
- * Leave management: Get all leave requests
- */
-export const getAllLeaveRequests = async (req, res) => {
-	try {
-		// Stub data; replace with real query to Leave model when available
-		const data = [
-			{ id: 1, employee: 'Alice', status: 'Pending' },
-			{ id: 2, employee: 'Bob', status: 'Approved' }
-		];
-		return res.status(200).json(data);
-	} catch (error) {
-		console.error('Error fetching leave requests:', error);
-		return res.status(500).json({
-			message: 'Server error while fetching leave requests',
-			error: error.message
-		});
-	}
-};
-
-/**
- * Leave management: Reject a leave request
- */
-export const rejectLeaveRequest = async (req, res) => {
-	try {
-		// Stub implementation; integrate with Leave model/workflow as needed
-		return res.status(200).json({ message: 'Leave request rejected (stub)' });
-	} catch (error) {
-		console.error('Error rejecting leave request:', error);
-		return res.status(500).json({
-			message: 'Server error while rejecting leave request',
-			error: error.message
-		});
-	}
-};
-
-/**
- * Standups: Get all standups
+ * Standups: Get all standups (real data from Standup model)
  */
 export const getAllStandups = async (req, res) => {
 	try {
-		// Stub data; replace with real query to Standup model when available
-		const data = [
-			{ id: 1, employee: 'Alice', date: new Date().toISOString(), summary: 'Did X, plan Y' },
-			{ id: 2, employee: 'Bob', date: new Date().toISOString(), summary: 'Fixed bug Z' }
-		];
-		return res.status(200).json(data);
+		const { page = 1, limit = 30, userId, date } = req.query;
+		const filter = {};
+		if (userId && mongoose.Types.ObjectId.isValid(userId)) filter.userId = userId;
+		if (date) {
+			const d = new Date(date);
+			const next = new Date(d);
+			next.setDate(next.getDate() + 1);
+			filter.date = { $gte: d, $lt: next };
+		}
+		const skip = (Number(page) - 1) * Number(limit);
+		const [standups, total] = await Promise.all([
+			Standup.find(filter)
+				.sort({ date: -1 })
+				.skip(skip)
+				.limit(Number(limit))
+				.populate('userId', 'firstName lastName email role'),
+			Standup.countDocuments(filter),
+		]);
+		return res.status(200).json({
+			success: true,
+			data: standups,
+			pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
+		});
 	} catch (error) {
 		console.error('Error fetching standups:', error);
-		return res.status(500).json({
-			message: 'Server error while fetching standups',
-			error: error.message
-		});
+		return res.status(500).json({ success: false, message: 'Failed to fetch standups' });
 	}
 };
 
@@ -501,17 +473,17 @@ export const getAllStandups = async (req, res) => {
 export const getEmployeeStandups = async (req, res) => {
 	try {
 		const { employeeId } = req.params;
-		// Stub data filtered by employeeId; replace with real Standup model query
-		const data = [
-			{ id: 1, employeeId, date: new Date().toISOString(), summary: 'Daily update (stub)' }
-		];
-		return res.status(200).json(data);
+		if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+			return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+		}
+		const standups = await Standup.find({ userId: employeeId })
+			.sort({ date: -1 })
+			.limit(30)
+			.populate('userId', 'firstName lastName email role');
+		return res.status(200).json({ success: true, data: standups });
 	} catch (error) {
 		console.error('Error fetching employee standups:', error);
-		return res.status(500).json({
-			message: 'Server error while fetching employee standups',
-			error: error.message
-		});
+		return res.status(500).json({ success: false, message: 'Failed to fetch employee standups' });
 	}
 };
 

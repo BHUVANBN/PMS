@@ -1,549 +1,282 @@
-// leave.controller.js - Leave Management Controller
-import { Leave, User, LEAVE_STATUS, LEAVE_TYPES } from '../models/index.js';
-import { ActivityLog } from '../models/index.js';
+// leave.controller.js - Full Leave Management Implementation
+import mongoose from 'mongoose';
+import { Leave, User } from '../models/index.js';
 
-// Submit a new leave request
+// ─── Submit leave request (any employee) ─────────────────────────────────────
 export const submitLeaveRequest = async (req, res) => {
   try {
-    const {
-      leaveType,
-      startDate,
-      endDate,
-      isHalfDay,
-      halfDayPeriod,
-      reason,
-      additionalDetails,
-      priority,
-      emergencyContact,
-      workHandover
-    } = req.body;
+    const employeeId = req.user._id;
+    const { leaveType, startDate, endDate, reason, isHalfDay, halfDayPeriod, additionalDetails, priority } = req.body;
 
-    // Validate required fields
     if (!leaveType || !startDate || !endDate || !reason) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: leaveType, startDate, endDate, reason'
+        message: 'leaveType, startDate, endDate, and reason are required',
       });
     }
 
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
-    if (start > end) {
-      return res.status(400).json({
-        success: false,
-        message: 'Start date cannot be after end date'
-      });
+
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ success: false, message: 'Invalid date format' });
+    }
+
+    if (end < start) {
+      return res.status(400).json({ success: false, message: 'endDate must be on or after startDate' });
     }
 
     // Check for overlapping leave requests
-    const overlappingLeave = await Leave.findOne({
-      employeeId: req.user._id,
-      status: { $in: [LEAVE_STATUS.PENDING, LEAVE_STATUS.APPROVED] },
+    const existing = await Leave.findOne({
+      employeeId,
+      status: { $in: ['pending', 'approved'] },
       $or: [
-        { startDate: { $lte: end }, endDate: { $gte: start } }
-      ]
+        { startDate: { $lte: end }, endDate: { $gte: start } },
+      ],
     });
-
-    if (overlappingLeave) {
-      return res.status(400).json({
+    if (existing) {
+      return res.status(409).json({
         success: false,
-        message: 'You already have a leave request for overlapping dates'
+        message: 'You already have a leave request overlapping with this date range',
       });
     }
 
-    // Create leave request
-    const leaveRequest = new Leave({
-      employeeId: req.user._id,
+    const leave = await Leave.create({
+      employeeId,
       leaveType,
       startDate: start,
       endDate: end,
-      isHalfDay: isHalfDay || false,
-      halfDayPeriod,
-      reason,
-      additionalDetails,
+      reason: reason.trim(),
+      isHalfDay: Boolean(isHalfDay),
+      halfDayPeriod: isHalfDay ? halfDayPeriod : null,
+      additionalDetails: additionalDetails?.trim(),
       priority: priority || 'medium',
-      emergencyContact,
-      workHandover,
-      submittedAt: new Date()
+      status: 'pending',
     });
 
-    await leaveRequest.save();
+    await leave.populate('employeeId', 'firstName lastName email role');
 
-    // Log activity
-    await ActivityLog.create({
-      projectId: null,
-      entityType: 'leave',
-      entityId: leaveRequest._id,
-      userId: req.user._id,
-      action: 'created',
-      actionCategory: 'leave_management',
-      description: `Leave request submitted for ${leaveType}`,
-      metadata: {
-        leaveType,
-        startDate,
-        endDate
-      }
-    });
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Leave request submitted successfully',
-      data: leaveRequest
+      data: leave,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error submitting leave request',
-      error: error.message
-    });
+    console.error('submitLeaveRequest error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit leave request' });
   }
 };
 
-// Get all leave requests (HR/Admin view)
-export const getAllLeaveRequests = async (req, res) => {
-  try {
-    const { status, leaveType, startDate, endDate, page = 1, limit = 10 } = req.query;
-    
-    const filter = {};
-    
-    if (status) filter.status = status;
-    if (leaveType) filter.leaveType = leaveType;
-    if (startDate && endDate) {
-      filter.startDate = { $gte: new Date(startDate) };
-      filter.endDate = { $lte: new Date(endDate) };
-    }
-
-    const leaves = await Leave.find(filter)
-      .populate('employeeId', 'firstName lastName email department jobTitle')
-      .populate('reviewedBy', 'firstName lastName')
-      .sort({ submittedAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Leave.countDocuments(filter);
-
-    res.json({
-      success: true,
-      data: {
-        leaves,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching leave requests',
-      error: error.message
-    });
-  }
-};
-
-// Get user's own leave requests
+// ─── Get my leave requests (self) ─────────────────────────────────────────────
 export const getMyLeaveRequests = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
-    
-    const filter = { employeeId: req.user._id };
+    const employeeId = req.user._id;
+    const { status, page = 1, limit = 20 } = req.query;
+
+    const filter = { employeeId };
     if (status) filter.status = status;
 
-    const leaves = await Leave.find(filter)
-      .populate('reviewedBy', 'firstName lastName')
-      .sort({ submittedAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const skip = (Number(page) - 1) * Number(limit);
+    const [leaves, total] = await Promise.all([
+      Leave.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('reviewedBy', 'firstName lastName role'),
+      Leave.countDocuments(filter),
+    ]);
 
-    const total = await Leave.countDocuments(filter);
-
-    res.json({
+    return res.status(200).json({
       success: true,
-      data: {
-        leaves,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      }
+      data: leaves,
+      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching your leave requests',
-      error: error.message
-    });
+    console.error('getMyLeaveRequests error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leave requests' });
   }
 };
 
-// Get pending leave requests for approval
-export const getPendingLeaveRequests = async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-
-    const leaves = await Leave.find({ status: LEAVE_STATUS.PENDING })
-      .populate('employeeId', 'firstName lastName email department jobTitle managerId')
-      .sort({ priority: -1, submittedAt: 1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Leave.countDocuments({ status: LEAVE_STATUS.PENDING });
-
-    res.json({
-      success: true,
-      data: {
-        leaves,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching pending leave requests',
-      error: error.message
-    });
-  }
-};
-
-// Approve or reject leave request
-export const reviewLeaveRequest = async (req, res) => {
-  try {
-    const { leaveId } = req.params;
-    const { action, comments } = req.body;
-
-    if (!['approve', 'reject'].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Action must be either "approve" or "reject"'
-      });
-    }
-
-    const leave = await Leave.findById(leaveId)
-      .populate('employeeId', 'firstName lastName email');
-
-    if (!leave) {
-      return res.status(404).json({
-        success: false,
-        message: 'Leave request not found'
-      });
-    }
-
-    if (leave.status !== LEAVE_STATUS.PENDING) {
-      return res.status(400).json({
-        success: false,
-        message: 'Leave request has already been reviewed'
-      });
-    }
-
-    // Update leave status
-    leave.status = action === 'approve' ? LEAVE_STATUS.APPROVED : LEAVE_STATUS.REJECTED;
-    leave.reviewedBy = req.user._id;
-    leave.reviewedAt = new Date();
-    leave.reviewComments = comments;
-    leave.lastModifiedBy = req.user._id;
-
-    await leave.save();
-
-    // Log activity
-    await ActivityLog.create({
-      projectId: null,
-      entityType: 'leave',
-      entityId: leave._id,
-      userId: req.user._id,
-      action: 'status_changed',
-      actionCategory: 'leave_management',
-      description: `Leave request ${action}d by ${req.user.firstName} ${req.user.lastName}`,
-      metadata: {
-        employeeId: leave.employeeId._id,
-        employeeName: `${leave.employeeId.firstName} ${leave.employeeId.lastName}`,
-        action,
-        comments
-      }
-    });
-
-    res.json({
-      success: true,
-      message: `Leave request ${action}d successfully`,
-      data: leave
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error reviewing leave request',
-      error: error.message
-    });
-  }
-};
-
-// Cancel leave request (by employee)
+// ─── Cancel own leave request ─────────────────────────────────────────────────
 export const cancelLeaveRequest = async (req, res) => {
   try {
     const { leaveId } = req.params;
+    const employeeId = req.user._id;
 
-    const leave = await Leave.findById(leaveId);
+    if (!mongoose.Types.ObjectId.isValid(leaveId)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave ID' });
+    }
 
+    const leave = await Leave.findOne({ _id: leaveId, employeeId });
     if (!leave) {
-      return res.status(404).json({
-        success: false,
-        message: 'Leave request not found'
-      });
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (!['pending'].includes(leave.status)) {
+      return res.status(400).json({ success: false, message: 'Only pending leave requests can be cancelled' });
     }
 
-    // Check if user owns this leave request
-    if (leave.employeeId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only cancel your own leave requests'
-      });
-    }
-
-    // Check if leave can be cancelled
-    if (![LEAVE_STATUS.PENDING, LEAVE_STATUS.APPROVED].includes(leave.status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Leave request cannot be cancelled'
-      });
-    }
-
-    // Check if leave has already started
-    const today = new Date();
-    if (leave.startDate <= today) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot cancel leave that has already started'
-      });
-    }
-
-    leave.status = LEAVE_STATUS.CANCELLED;
-    leave.lastModifiedBy = req.user._id;
+    leave.status = 'cancelled';
+    leave.lastModifiedBy = employeeId;
     await leave.save();
 
-    // Log activity
-    await ActivityLog.create({
-      projectId: null,
-      entityType: 'leave',
-      entityId: leave._id,
-      userId: req.user._id,
-      action: 'status_changed',
-      actionCategory: 'leave_management',
-      description: 'Leave request cancelled by employee',
-      metadata: {
-        previousStatus: leave.status
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Leave request cancelled successfully',
-      data: leave
-    });
+    return res.status(200).json({ success: true, message: 'Leave request cancelled', data: leave });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error cancelling leave request',
-      error: error.message
-    });
+    console.error('cancelLeaveRequest error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to cancel leave request' });
   }
 };
 
-// Get leave balance for user
-export const getLeaveBalance = async (req, res) => {
+// ─── Get ALL leave requests (HR/Admin) ───────────────────────────────────────
+export const getAllLeaveRequests = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const targetUserId = userId || req.user._id;
+    const { status, leaveType, employeeId, page = 1, limit = 20, startDate, endDate } = req.query;
 
-    // Check permission to view other user's balance
-    if (targetUserId !== req.user._id.toString() && 
-        !['admin', 'hr', 'manager'].includes(req.userRole)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
+    const filter = {};
+    if (status) filter.status = status;
+    if (leaveType) filter.leaveType = leaveType;
+    if (employeeId && mongoose.Types.ObjectId.isValid(employeeId)) filter.employeeId = employeeId;
+    if (startDate || endDate) {
+      filter.startDate = {};
+      if (startDate) filter.startDate.$gte = new Date(startDate);
+      if (endDate) filter.startDate.$lte = new Date(endDate);
     }
 
-    const user = await User.findById(targetUserId).select('leaveBalance firstName lastName');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Calculate used leave for current year
-    const currentYear = new Date().getFullYear();
-    const yearStart = new Date(currentYear, 0, 1);
-    const yearEnd = new Date(currentYear, 11, 31);
-
-    const usedLeave = await Leave.aggregate([
-      {
-        $match: {
-          employeeId: user._id,
-          status: LEAVE_STATUS.APPROVED,
-          startDate: { $gte: yearStart },
-          endDate: { $lte: yearEnd }
-        }
-      },
-      {
-        $group: {
-          _id: '$leaveType',
-          totalDays: { $sum: '$numberOfDays' }
-        }
-      }
+    const skip = (Number(page) - 1) * Number(limit);
+    const [leaves, total] = await Promise.all([
+      Leave.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('employeeId', 'firstName lastName email role department')
+        .populate('reviewedBy', 'firstName lastName role'),
+      Leave.countDocuments(filter),
     ]);
 
-    const leaveBalance = {
-      ...user.leaveBalance.toObject(),
-      usedThisYear: usedLeave.reduce((acc, leave) => {
-        acc[leave._id] = leave.totalDays;
-        return acc;
-      }, {})
-    };
+    const stats = await Leave.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+    const summary = stats.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {});
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      data: {
-        user: {
-          firstName: user.firstName,
-          lastName: user.lastName
+      data: leaves,
+      summary,
+      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / Number(limit)) },
+    });
+  } catch (error) {
+    console.error('getAllLeaveRequests error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leave requests' });
+  }
+};
+
+// ─── Approve leave request (HR/Admin) ────────────────────────────────────────
+export const approveLeaveRequest = async (req, res) => {
+  try {
+    const { leaveId } = req.params;
+    const reviewerId = req.user._id;
+    const { comments } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(leaveId)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave ID' });
+    }
+
+    const leave = await Leave.findById(leaveId).populate('employeeId', 'firstName lastName email leaveBalance');
+    if (!leave) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (leave.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Leave request is already ${leave.status}` });
+    }
+
+    leave.status = 'approved';
+    leave.reviewedBy = reviewerId;
+    leave.reviewedAt = new Date();
+    leave.reviewComments = comments?.trim();
+    leave.lastModifiedBy = reviewerId;
+    await leave.save();
+    await leave.populate('reviewedBy', 'firstName lastName role');
+
+    return res.status(200).json({ success: true, message: 'Leave request approved', data: leave });
+  } catch (error) {
+    console.error('approveLeaveRequest error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to approve leave request' });
+  }
+};
+
+// ─── Reject leave request (HR/Admin) ─────────────────────────────────────────
+export const rejectLeaveRequest = async (req, res) => {
+  try {
+    const { leaveId } = req.params;
+    const reviewerId = req.user._id;
+    const { reason } = req.body;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(leaveId)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave ID' });
+    }
+
+    const leave = await Leave.findById(leaveId);
+    if (!leave) {
+      return res.status(404).json({ success: false, message: 'Leave request not found' });
+    }
+    if (leave.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Leave request is already ${leave.status}` });
+    }
+
+    leave.status = 'rejected';
+    leave.reviewedBy = reviewerId;
+    leave.reviewedAt = new Date();
+    leave.reviewComments = reason.trim();
+    leave.lastModifiedBy = reviewerId;
+    await leave.save();
+    await leave.populate('reviewedBy', 'firstName lastName role');
+    await leave.populate('employeeId', 'firstName lastName email role');
+
+    return res.status(200).json({ success: true, message: 'Leave request rejected', data: leave });
+  } catch (error) {
+    console.error('rejectLeaveRequest error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to reject leave request' });
+  }
+};
+
+// ─── Get leave statistics (HR/Admin) ─────────────────────────────────────────
+export const getLeaveStats = async (req, res) => {
+  try {
+    const stats = await Leave.aggregate([
+      {
+        $facet: {
+          byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+          byType: [{ $group: { _id: '$leaveType', count: { $sum: 1 } } }],
+          pending: [{ $match: { status: 'pending' } }, { $count: 'count' }],
+          thisMonth: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                },
+              },
+            },
+            { $count: 'count' },
+          ],
         },
-        leaveBalance
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching leave balance',
-      error: error.message
-    });
-  }
-};
-
-// Get leave analytics (HR/Admin)
-export const getLeaveAnalytics = async (req, res) => {
-  try {
-    const { startDate, endDate, department } = req.query;
-    
-    const matchStage = {};
-    if (startDate && endDate) {
-      matchStage.startDate = { $gte: new Date(startDate) };
-      matchStage.endDate = { $lte: new Date(endDate) };
-    }
-
-    // Get leave statistics
-    const leaveStats = await Leave.aggregate([
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'employeeId',
-          foreignField: '_id',
-          as: 'employee'
-        }
       },
-      { $unwind: '$employee' },
-      ...(department ? [{ $match: { 'employee.department': department } }] : []),
-      {
-        $group: {
-          _id: null,
-          totalRequests: { $sum: 1 },
-          approvedRequests: {
-            $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
-          },
-          rejectedRequests: {
-            $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] }
-          },
-          pendingRequests: {
-            $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
-          },
-          totalLeaveDays: { $sum: '$numberOfDays' },
-          leaveByType: {
-            $push: {
-              type: '$leaveType',
-              days: '$numberOfDays',
-              status: '$status'
-            }
-          }
-        }
-      }
     ]);
 
-    // Get leave trends by month
-    const leaveTrends = await Leave.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$startDate' },
-            month: { $month: '$startDate' }
-          },
-          count: { $sum: 1 },
-          totalDays: { $sum: '$numberOfDays' }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
-    ]);
-
-    res.json({
+    const result = stats[0];
+    return res.status(200).json({
       success: true,
       data: {
-        statistics: leaveStats[0] || {},
-        trends: leaveTrends
-      }
+        byStatus: result.byStatus.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {}),
+        byType: result.byType.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {}),
+        pendingCount: result.pending[0]?.count || 0,
+        thisMonthCount: result.thisMonth[0]?.count || 0,
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching leave analytics',
-      error: error.message
-    });
-  }
-};
-
-// Update leave balance (HR/Admin only)
-export const updateLeaveBalance = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { leaveBalance } = req.body;
-
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    user.leaveBalance = { ...user.leaveBalance.toObject(), ...leaveBalance };
-    await user.save();
-
-    // Log activity
-    await ActivityLog.create({
-      projectId: null,
-      entityType: 'user',
-      entityId: user._id,
-      userId: req.user._id,
-      action: 'updated',
-      actionCategory: 'leave_management',
-      description: `Leave balance updated for ${user.firstName} ${user.lastName}`,
-      metadata: {
-        updatedBalance: leaveBalance
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Leave balance updated successfully',
-      data: user.leaveBalance
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating leave balance',
-      error: error.message
-    });
+    console.error('getLeaveStats error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch leave statistics' });
   }
 };

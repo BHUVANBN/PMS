@@ -266,7 +266,7 @@ export const secureInput = {
         submissions.set(key, current + 1);
         
         // Cleanup old entries
-        for (const [k, v] of submissions.entries()) {
+        for (const [k] of submissions.entries()) {
           if (k.split('_')[1] < Math.floor((now - windowMs) / windowMs)) {
             submissions.delete(k);
           }

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Typography,
+  Grid,
+  Card,
+  CardContent,
   Box,
   Button,
   Chip,
@@ -19,18 +19,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar
 } from '@mui/material';
 import {
   TicketIcon,
-  UserIcon,
   CalendarDaysIcon,
   ClockIcon,
   EllipsisVerticalIcon,
@@ -42,7 +34,6 @@ import {
 } from '@heroicons/react/24/outline';
 import Badge from '../components/ui/Badge';
 import Table from '../components/ui/Table';
-import { ticketsAPI } from '../services/api';
 
 const TicketsPage = () => {
   const [tickets, setTickets] = useState([]);
@@ -53,17 +44,29 @@ const TicketsPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const tabs = ['All Tickets', 'Open', 'In Progress', 'Review', 'Closed'];
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  const filterTickets = useCallback(() => {
+    let filtered = tickets;
+    if (searchTerm) {
+      filtered = filtered.filter((ticket) =>
+        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.assignee.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (selectedTab > 0) {
+      const statusMap = { 1: 'Open', 2: 'In Progress', 3: 'Review', 4: 'Closed' };
+      filtered = filtered.filter((ticket) => ticket.status === statusMap[selectedTab]);
+    }
+    setFilteredTickets(filtered);
+  }, [tickets, searchTerm, selectedTab]);
 
   useEffect(() => {
     filterTickets();
-  }, [tickets, searchTerm, selectedTab]);
+  }, [filterTickets]);
 
   const fetchTickets = async () => {
     try {
@@ -173,32 +176,10 @@ const TicketsPage = () => {
     }
   };
 
-  const filterTickets = () => {
-    let filtered = tickets;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(ticket =>
-        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.assignee.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by tab
-    if (selectedTab > 0) {
-      const statusMap = {
-        1: 'Open',
-        2: 'In Progress',
-        3: 'Review',
-        4: 'Closed'
-      };
-      filtered = filtered.filter(ticket => ticket.status === statusMap[selectedTab]);
-    }
-
-    setFilteredTickets(filtered);
-  };
+  useEffect(() => {
+    fetchTickets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -209,6 +190,7 @@ const TicketsPage = () => {
       default: return 'secondary';
     }
   };
+
 
   const getPriorityColor = (priority) => {
     switch (priority) {

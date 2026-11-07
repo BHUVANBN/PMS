@@ -35,11 +35,11 @@ const ProjectOverview = ({ projects = [], onRefresh }) => {
   const deleteFromDialog = async () => {
     try {
       setEditLoading(true);
-      const pid = editValues.id;
-      if (!pid) return;
+      const _pid = editValues.id;
+      if (!_pid) return;
       const ok = window.confirm('Are you sure you want to delete this project? This action cannot be undone.');
       if (!ok) return;
-      await (managerAPI.deleteProjectHard ? managerAPI.deleteProjectHard(pid) : projectsAPI.deleteProject(pid));
+      await (managerAPI.deleteProjectHard ? managerAPI.deleteProjectHard(_pid) : projectsAPI.deleteProject(_pid));
       setEditOpen(false);
       if (typeof onRefresh === 'function') onRefresh();
     } catch (e) {

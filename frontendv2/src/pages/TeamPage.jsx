@@ -7,7 +7,6 @@ import {
   Groups, ExpandMore, ExpandLess, Person, Business, 
   Assignment, Refresh 
 } from '@mui/icons-material';
-// import { useNavigate } from 'react-router-dom';
 import { managerAPI, projectsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 

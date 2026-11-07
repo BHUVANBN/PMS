@@ -78,4 +78,4 @@ export const allowDepartmentRoles = allowRoles('admin', 'hr', 'marketing', 'sale
 // Broad access categories
 export const allowTechnicalRoles = allowRoles('admin', 'manager', 'developer', 'tester'); // Technical roles
 export const allowNonTechnicalRoles = allowRoles('admin', 'manager', 'employee', 'hr', 'marketing', 'sales'); // Non-technical roles
-export const allowAllAuthenticated = allowRoles('admin', 'manager', 'developer', 'tester', 'employee', 'hr', 'marketing', 'sales'); // Any authenticated user
+export const allowAllAuthenticated = allowRoles('admin', 'manager', 'developer', 'tester', 'employee', 'hr', 'marketing', 'sales', 'intern'); // Any authenticated user

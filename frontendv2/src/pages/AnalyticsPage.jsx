@@ -24,13 +24,11 @@ import {
 } from '@heroicons/react/24/outline';
 import StatsGrid from '../components/dashboard/StatsGrid';
 import DashboardCard from '../components/dashboard/DashboardCard';
-import { analyticsAPI } from '../services/api';
 
 const AnalyticsPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [timeRange, setTimeRange] = useState('30d');
   const [stats, setStats] = useState([]);
-  const [performanceData, setPerformanceData] = useState([]);
   const [projectData, setProjectData] = useState([]);
   const [teamData, setTeamData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,15 +85,6 @@ const AnalyticsPage = () => {
           trendValue: '-1.2%',
           color: 'warning'
         }
-      ]);
-
-      setPerformanceData([
-        { name: 'Jan', tasks: 65, bugs: 8, velocity: 38 },
-        { name: 'Feb', tasks: 78, bugs: 12, velocity: 42 },
-        { name: 'Mar', tasks: 90, bugs: 6, velocity: 45 },
-        { name: 'Apr', tasks: 81, bugs: 9, velocity: 41 },
-        { name: 'May', tasks: 95, bugs: 4, velocity: 48 },
-        { name: 'Jun', tasks: 88, bugs: 7, velocity: 44 }
       ]);
 
       setProjectData([

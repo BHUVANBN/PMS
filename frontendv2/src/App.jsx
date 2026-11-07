@@ -149,7 +149,7 @@ const AppRoutes = () => {
               <Route path="hr/employees/:id/edit" element={<ProtectedRoute requiredRoles={["hr"]}><EmployeeEdit /></ProtectedRoute>} />
               <Route path="hr/standups" element={<ProtectedRoute requiredRoles={["hr","admin"]}><AllStandups /></ProtectedRoute>} />
               <Route path="hr/onboarding-public" element={<ProtectedRoute requiredRoles={["hr","admin"]}><PublicOnboardingList /></ProtectedRoute>} />
-              <Route path="hr/documents" element={<ProtectedRoute requiredRoles={["admin","manager"]}><HRDocuments /></ProtectedRoute>} />
+              <Route path="hr/documents" element={<ProtectedRoute requiredRoles={["admin","hr","manager"]}><HRDocuments /></ProtectedRoute>} />
               <Route path="manager/documents" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDocuments /></ProtectedRoute>} />
 
               <Route path="manager/dashboard" element={<ProtectedRoute requiredRoles={["manager","admin"]}><ManagerDashboard /></ProtectedRoute>} />
@@ -182,14 +182,14 @@ const AppRoutes = () => {
               <Route path="bugs" element={<BugsPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="calendar" element={<CalendarPage />} />
-              <Route path="analytics" element={<Navigate to="/" replace />} />
+              <Route path="analytics" element={<ProtectedRoute requiredRoles={["admin","manager","hr"]}><AnalyticsPage /></ProtectedRoute>} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="help" element={<HelpPage />} />
               <Route path="meetings" element={<Meeting/>}/>
               <Route path="documents" element={<ProtectedRoute><MyDocuments /></ProtectedRoute>} />
               <Route path="hr/employee/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
-              <Route path="employee/details" element={<ProtectedRoute requiredRoles={["manager","developer","tester","sales","marketing","intern"]}><EmployeeDetails /></ProtectedRoute>} />
+              <Route path="employee/details" element={<ProtectedRoute requiredRoles={["manager","developer","tester","sales","marketing","intern","employee"]}><EmployeeDetails /></ProtectedRoute>} />
               <Route path="hr/employees/:id/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
               <Route path="admin/:id/details" element={<ProtectedRoute requiredRoles={["admin","hr"]}><EmployeeDetails /></ProtectedRoute>} />
               <Route path="notifications" element={<NotificationsPage />} />

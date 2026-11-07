@@ -29,7 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useThemeMode } from '../../contexts/useThemeMode';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import BrightnessAutoIcon from '@mui/icons-material/BrightnessAuto';
+
 import { ENABLE_STANDUP_BEFORE_LOGOUT } from '../../config/featureFlags.js';
 import { calendarAPI, meetingAPI, employeeAPI, subscribeToEvents } from '../../services/api';
 import dayjs from 'dayjs';

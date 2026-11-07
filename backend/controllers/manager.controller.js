@@ -18,38 +18,21 @@ import { uploadBufferToCloudinary } from '../utils/uploadToCloudinary.js';
 export const getMyProjects = async (req, res) => {
   try {
     const managerId = req.user._id;
-    console.log(`Manager getMyProjects called by user: ${req.user.email} (ID: ${managerId})`);
-    
     const projects = await Project.find({
       projectManager: managerId
     }).populate('teamMembers', 'firstName lastName username email role')
       .populate('modules.moduleLead', 'firstName lastName username')
       .select('-__v');
 
-    console.log(`Found ${projects.length} projects for manager ${req.user.email}`);
-    projects.forEach(project => {
-      console.log(`- Project: ${project.name} (ID: ${project._id})`);
-    });
-
-    // Also check if there are any projects in the database at all
-    const allProjects = await Project.find({}).select('name projectManager');
-    console.log(`Total projects in database: ${allProjects.length}`);
-    allProjects.forEach(project => {
-      console.log(`- ${project.name} managed by: ${project.projectManager}`);
-    });
-
     res.json({
       success: true,
       data: projects,
-      projects: projects, // Add alternative key for frontend parsing
+      projects,
       count: projects.length
     });
   } catch (error) {
     console.error('Error fetching manager projects:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch projects'
-    });
+    res.status(500).json({ success: false, error: 'Failed to fetch projects' });
   }
 };
 
@@ -247,33 +230,40 @@ export const updateProject = async (req, res) => {
     const { id } = req.params;
     const managerId = req.user._id;
 
-    const project = await Project.findOneAndUpdate(
-      {
-        _id: id,
-        projectManager: managerId
-      },
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        error: 'Project not found or access denied'
-      });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid project ID' });
     }
 
-    res.json({
-      success: true,
-      data: project,
-      message: 'Project updated successfully'
-    });
+    // Whitelist allowed fields to prevent mass assignment
+    const { name, description, startDate, endDate, status } = req.body;
+    const allowedUpdates = {};
+    if (name !== undefined) allowedUpdates.name = name;
+    if (description !== undefined) allowedUpdates.description = description;
+    if (startDate !== undefined) allowedUpdates.startDate = startDate;
+    if (endDate !== undefined) allowedUpdates.endDate = endDate;
+    if (status !== undefined) {
+      const validStatuses = ['planning', 'active', 'on_hold', 'completed', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ success: false, error: 'Invalid status value' });
+      }
+      allowedUpdates.status = status;
+    }
+
+    // Allow admins to update any project, managers only their own
+    const ownerFilter = req.user.role === 'admin'
+      ? { _id: id }
+      : { _id: id, projectManager: managerId };
+
+    const project = await Project.findOneAndUpdate(ownerFilter, allowedUpdates, { new: true, runValidators: true });
+
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found or access denied' });
+    }
+
+    res.json({ success: true, data: project, message: 'Project updated successfully' });
   } catch (error) {
     console.error('Error updating project:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
